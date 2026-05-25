@@ -911,7 +911,7 @@ async function doPasswordReset(){
 async function loadProfile(uid){
   if(!sb) return;
   try{
-    var res = await sb.from('profiles').select('*, firms(name)').eq('id', uid).single();
+    var res = await sb.from('profiles').select('*').eq('id', uid).single();
     if(res.error){ console.warn('Profile load error:', res.error.message); return; }
     var d = res.data;
     AUTH.profile = {
