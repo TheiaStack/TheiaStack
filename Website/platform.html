@@ -717,13 +717,11 @@ function parseJSON(raw){
 }
 
 async function callClaudeWithSearch(prompt,maxT){
-  // Anthropic handles web_search internally — just send the request and read the text back
-  var body={model:API_MODEL,max_tokens:maxT||1200,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt}]};
+  var sys='You are a software research assistant. CRITICAL: Your entire response must be a single valid JSON object. Start with { and end with }. No markdown, no explanation, no text outside the JSON. Do not think out loud. Return only the JSON.';
+  var body={model:API_MODEL,max_tokens:maxT||1200,system:sys,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt}]};
   var data=await _apiFetch(body);
   var tb=data.content&&data.content.find(function(b){return b.type==='text';});
   if(tb)return tb.text;
-  // If only tool_result blocks came back, extract text from them
-  var tr=data.content&&data.content.find(function(b){return b.type==='tool_result'||b.type==='tool_use';});
   console.warn('[Theia] unexpected search response shape:',JSON.stringify(data).slice(0,300));
   return '';
 }
