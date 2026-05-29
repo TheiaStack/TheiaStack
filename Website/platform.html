@@ -717,30 +717,15 @@ function parseJSON(raw){
 }
 
 async function callClaudeWithSearch(prompt,maxT){
-  // Try with web_search tool first; fall back to plain JSON call if tools aren't supported by the proxy
-  try{
-    var body={model:API_MODEL,max_tokens:maxT||1200,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt}]};
-    var data=await _apiFetch(body);
-    // Handle multi-turn: model wants to run a search
-    if(data.stop_reason==='tool_use'){
-      var toolUseBlocks=data.content.filter(function(b){return b.type==='tool_use';});
-      // Build real tool results by reflecting the search query back so the model has context
-      var toolResults=toolUseBlocks.map(function(b){
-        return {type:'tool_result',tool_use_id:b.id,content:'Web search performed for "'+b.input.query+'". Use your training knowledge to answer about this tool.'};
-      });
-      var msgs=[{role:'user',content:prompt},{role:'assistant',content:data.content},{role:'user',content:toolResults}];
-      var data2=await _apiFetch({model:API_MODEL,max_tokens:maxT||1200,tools:[{type:'web_search_20250305',name:'web_search'}],messages:msgs});
-      var tb=data2.content&&data2.content.find(function(b){return b.type==='text';});
-      return tb?tb.text:'';
-    }
-    var tb=data.content.find(function(b){return b.type==='text';});
-    return tb?tb.text:'';
-  }catch(e){
-    // Tools not supported by proxy — fall back to plain call with knowledge-only prompt
-    console.warn('[Theia] web_search fallback triggered:',e.message||e);
-    var fallbackPrompt='You are a software research assistant for Australian law firms. Based on your training knowledge, answer the following. '+prompt;
-    return callClaudeJSON('You are a software research assistant. Output ONLY valid JSON.',fallbackPrompt,maxT||1200);
-  }
+  // Anthropic handles web_search internally — just send the request and read the text back
+  var body={model:API_MODEL,max_tokens:maxT||1200,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt}]};
+  var data=await _apiFetch(body);
+  var tb=data.content&&data.content.find(function(b){return b.type==='text';});
+  if(tb)return tb.text;
+  // If only tool_result blocks came back, extract text from them
+  var tr=data.content&&data.content.find(function(b){return b.type==='tool_result'||b.type==='tool_use';});
+  console.warn('[Theia] unexpected search response shape:',JSON.stringify(data).slice(0,300));
+  return '';
 }
 /* ── End API helpers ─────────────────────────────────────────── */
 
@@ -2059,9 +2044,9 @@ function render(){
           showSuggestions(S.checklistSuggestions);
           return;
         }
-        // Call Claude — no web search, direct JSON call
-        var prompt='Identify the AI or software tool an Australian law firm user means by "'+query+'". Be generous with partial names and misspellings. Return ONLY valid JSON: {"found":true,"tool":{"name":"exact product name","vendor":"company","category":"Legal AI|General AI|Productivity|Communication|Document|Finance|Other","description":"what it does in 1-2 sentences","riskLevel":"Low|Medium|High","riskReason":"one sentence","processesClientData":true,"storageRegion":"Australia|US|EU|Global|Unknown"}} OR {"found":false,"suggestions":["name-similar tool 1","name-similar tool 2"]}';
-        callClaudeJSON('You are a software research assistant. Output ONLY valid JSON.',prompt,700).then(function(txt){
+        // Call Claude with web search for niche/unknown tools
+        var prompt='Search the web to identify what AI or software tool an Australian law firm user means by "'+query+'". Be generous with partial names and misspellings — e.g. "project manda" likely refers to a specific legal or AI tool, search for it. Return ONLY valid JSON: {"found":true,"tool":{"name":"exact product name","vendor":"company","category":"Legal AI|General AI|Productivity|Communication|Document|Finance|Other","description":"what it does in 1-2 sentences","riskLevel":"Low|Medium|High","riskReason":"one sentence","processesClientData":true,"storageRegion":"Australia|US|EU|Global|Unknown"}} OR {"found":false,"suggestions":["name-similar tools only"]}';
+        callClaudeWithSearch(prompt,1200).then(function(txt){
           sSpin.style.display='none';S.checklistSearching=false;
           try{
             var data=parseJSON(txt)||{};
