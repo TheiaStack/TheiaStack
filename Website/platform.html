@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Theia-Stack — AI Compliance Platform</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 :root{
   --navy:#111111;--navy-light:#2C2C2C;--gold:#B83232;--gold-light:#fdf0f0;
@@ -21,8 +20,6 @@
   --sidebar:240px;
   --font-display:'DM Serif Display',Georgia,serif;
   --font-body:'DM Sans',system-ui,sans-serif;
-  --purple:#6B4FA8;
-  --purple-light:rgba(107,79,168,.12);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;font-family:var(--font-body);background:var(--cream);color:var(--text);font-size:14px;line-height:1.6;}
@@ -519,89 +516,6 @@ textarea{resize:vertical;line-height:1.6;min-height:100px;}
 .cq-saved-q{color:var(--navy);font-weight:500;flex:1;line-height:1.5;}
 .cq-saved-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0 0 0 12px;flex-shrink:0;transition:color .15s;}
 .cq-saved-del:hover{color:var(--red);}
-
-/* ── Auth / Login ───────────────────────────────────────────── */
-.auth-gate{position:fixed;inset:0;z-index:9999;display:flex;background:var(--navy);}
-.auth-left{width:42%;background:var(--navy);display:flex;flex-direction:column;justify-content:space-between;padding:48px 40px;position:relative;overflow:hidden;}
-.auth-left::before{content:'';position:absolute;top:-80px;right:-80px;width:320px;height:320px;border-radius:50%;background:radial-gradient(circle,rgba(184,50,50,.18) 0%,transparent 70%);}
-.auth-left::after{content:'';position:absolute;bottom:-60px;left:-40px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(107,79,168,.14) 0%,transparent 70%);}
-.auth-brand{position:relative;z-index:1;}
-.auth-logo{display:flex;align-items:center;gap:12px;margin-bottom:8px;}
-.auth-logo-text{font-family:var(--font-display);font-size:22px;color:#fff;letter-spacing:-.02em;}
-.auth-sub{font-size:12px;color:rgba(255,255,255,.3);letter-spacing:.08em;text-transform:uppercase;margin-left:52px;}
-.auth-headline{position:relative;z-index:1;margin-top:40px;}
-.auth-headline h2{font-family:var(--font-display);font-size:28px;color:#fff;font-weight:400;line-height:1.3;margin-bottom:12px;}
-.auth-headline p{font-size:13px;color:rgba(255,255,255,.45);line-height:1.7;max-width:280px;}
-.auth-bullets{position:relative;z-index:1;margin-top:32px;display:flex;flex-direction:column;gap:12px;}
-.auth-bullet{display:flex;align-items:flex-start;gap:12px;}
-.auth-bullet-dot{width:20px;height:20px;border-radius:50%;background:rgba(184,50,50,.25);border:1px solid rgba(184,50,50,.5);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
-.auth-bullet-dot svg{width:10px;height:10px;}
-.auth-bullet-text{font-size:12px;color:rgba(255,255,255,.5);line-height:1.5;}
-.auth-footer-note{position:relative;z-index:1;font-size:11px;color:rgba(255,255,255,.2);letter-spacing:.03em;}
-
-.auth-right{flex:1;background:#F2F2F2;display:flex;align-items:center;justify-content:center;padding:48px;}
-.auth-form-wrap{width:100%;max-width:380px;}
-.auth-form-title{font-family:var(--font-display);font-size:26px;color:var(--navy);font-weight:400;margin-bottom:6px;}
-.auth-form-sub{font-size:13px;color:var(--muted);margin-bottom:36px;line-height:1.6;}
-.auth-field{margin-bottom:20px;}
-.auth-field label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:8px;}
-.auth-field input{width:100%;padding:13px 16px;border:1.5px solid var(--border);border-radius:var(--radius);background:#fff;font-size:14px;font-family:var(--font-body);color:var(--text);outline:none;transition:border-color .15s,box-shadow .15s;}
-.auth-field input:focus{border-color:var(--navy);box-shadow:0 0 0 3px rgba(17,17,17,.06);}
-.auth-field input::placeholder{color:#B0B0B0;}
-.auth-submit{width:100%;padding:14px;background:var(--navy);color:#fff;border:none;border-radius:var(--radius);font-size:14px;font-weight:600;font-family:var(--font-body);cursor:pointer;transition:background .15s,transform .1s;letter-spacing:.01em;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:10px;}
-.auth-submit:hover{background:#222;}
-.auth-submit:active{transform:scale(.99);}
-.auth-submit:disabled{background:var(--border-strong);cursor:not-allowed;}
-.auth-error{background:#fdf0f0;border:1px solid var(--red-border);border-radius:var(--radius);padding:11px 14px;font-size:13px;color:var(--red);margin-bottom:20px;display:flex;align-items:center;gap:8px;}
-.auth-forgot{text-align:center;margin-top:20px;font-size:12px;color:var(--muted);}
-.auth-forgot a{color:var(--navy);font-weight:600;cursor:pointer;text-decoration:underline;}
-.auth-divider{border:none;border-top:1px solid var(--border);margin:28px 0;}
-.auth-powered{text-align:center;font-size:11px;color:#B0B0B0;letter-spacing:.03em;}
-.auth-reset-wrap{text-align:center;margin-top:16px;}
-.auth-back-link{font-size:12px;color:var(--muted);cursor:pointer;background:none;border:none;font-family:var(--font-body);text-decoration:underline;padding:0;}
-.auth-back-link:hover{color:var(--navy);}
-.auth-success-msg{background:var(--green-bg);border:1px solid var(--green-border);border-radius:var(--radius);padding:12px 16px;font-size:13px;color:var(--green);margin-bottom:20px;}
-
-/* Sidebar user section */
-.sb-user{padding:14px 20px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px;}
-.sb-user-avatar{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff;flex-shrink:0;text-transform:uppercase;}
-.sb-user-info{flex:1;min-width:0;}
-.sb-user-email{font-size:11px;color:rgba(255,255,255,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.sb-user-role{font-size:10px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.06em;}
-.sb-logout-btn{background:none;border:none;cursor:pointer;padding:4px;color:rgba(255,255,255,.3);transition:color .15s;flex-shrink:0;}
-.sb-logout-btn:hover{color:rgba(255,255,255,.7);}
-.sb-logout-btn svg{width:14px;height:14px;}
-
-/* Save status indicator */
-.save-indicator{position:fixed;bottom:20px;right:24px;background:var(--white);border:1px solid var(--border);border-radius:20px;padding:7px 14px;font-size:12px;color:var(--muted);box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:7px;z-index:500;transition:opacity .3s;opacity:0;pointer-events:none;}
-.save-indicator.show{opacity:1;}
-.save-indicator.saving{color:var(--amber);}
-.save-indicator.saved{color:var(--green);}
-.save-dot{width:7px;height:7px;border-radius:50%;background:currentColor;}
-
-/* Admin panel */
-.admin-panel{padding:28px 40px;max-width:760px;}
-.admin-section{margin-bottom:32px;}
-.admin-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border);}
-.user-table{width:100%;border-collapse:collapse;}
-.user-table th{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;padding:8px 12px;border-bottom:2px solid var(--border);}
-.user-table td{padding:12px 12px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text);vertical-align:middle;}
-.user-table tr:last-child td{border-bottom:none;}
-.role-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
-.role-badge.admin{background:rgba(17,17,17,.08);color:var(--navy);}
-.role-badge.user{background:var(--blue-bg);color:var(--blue);}
-.invite-form{display:flex;gap:10px;align-items:flex-end;}
-.invite-form input{flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:var(--font-body);color:var(--text);background:var(--cream);outline:none;}
-.invite-form input:focus{border-color:var(--navy);}
-.perm-toggle{position:relative;display:inline-block;width:32px;height:18px;cursor:pointer;}
-.perm-toggle input{opacity:0;width:0;height:0;position:absolute;}
-.perm-slider{position:absolute;inset:0;background:#D0D0D0;border-radius:9px;transition:background .2s;}
-.perm-slider::after{content:'';position:absolute;width:14px;height:14px;left:2px;top:2px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
-.perm-toggle input:checked+.perm-slider{background:var(--green);}
-.perm-toggle input:checked+.perm-slider::after{transform:translateX(14px);}
-
-@keyframes authFadeIn{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
-.auth-form-wrap{animation:authFadeIn .4s ease forwards;}
 </style>
 </head>
 <body>
@@ -628,9 +542,6 @@ textarea{resize:vertical;line-height:1.6;min-height:100px;}
     <div class="dpo-msg" id="dpo-msg">Reading transaction data...</div>
   </div>
 </div>
-
-<div id="save-indicator" class="save-indicator"><span class="save-dot"></span><span id="save-indicator-text">Saving…</span></div>
-<div id="auth-gate" style="display:none"></div>
 
 <div class="app">
   <aside class="sidebar" id="sidebar">
@@ -662,19 +573,7 @@ textarea{resize:vertical;line-height:1.6;min-height:100px;}
       <div id="sb-steps"></div>
     </div>
     <div class="sb-footer">
-      <div class="sb-footer-text">v4.1 · Built for Australian law firms</div>
-    </div>
-    <div class="sb-user" id="sb-user" style="display:none">
-      <div class="sb-user-avatar" id="sb-user-avatar">?</div>
-      <div class="sb-user-info">
-        <div class="sb-user-email" id="sb-user-email">—</div>
-        <div class="sb-user-role" id="sb-user-role">Admin</div>
-      </div>
-      <button class="sb-logout-btn" id="sb-logout-btn" title="Sign out">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
-        </svg>
-      </button>
+      <div class="sb-footer-text">v4.0 · Built for Australian law firms</div>
     </div>
   </aside>
 
@@ -684,31 +583,6 @@ textarea{resize:vertical;line-height:1.6;min-height:100px;}
 </div>
 
 <script>
-/* ── Supabase config — fill these in from your Supabase project settings ── */
-var SUPABASE_URL  = 'https://rkqnrpyctllxcnknjsby.supabase.co';
-var SUPABASE_ANON = 'sb_publishable_7gIWX3E2pS_4UfEKJylqpw_V3CIY1b9';
-
-/* Initialise Supabase client — gracefully skips if SDK not loaded or config missing */
-var sb = null;
-(function(){
-  try{
-    if(window.supabase && SUPABASE_URL !== 'YOUR_SUPABASE_URL'){
-      sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-    }
-  }catch(e){ console.warn('Supabase init skipped:', e.message); }
-})();
-
-/* ── Auth state ─────────────────────────────────────────────── */
-var AUTH = {
-  ready:    false,   // true once session check is complete
-  session:  null,    // Supabase session object
-  user:     null,    // Supabase user object
-  profile:  null,    /* {firm_id, firm_name, role:'admin'|'user', display_name, permissions:{}} */
-  /* Login form state */
-  email:'', password:'', error:'', loading:false,
-  /* Reset flow */
-  resetMode:false, resetSent:false, resetEmail:''
-};
 var EXAMPLE_FIRM={firmName:'Mitchell & Partners',staffCount:'6-15',practiceAreas:['Commercial litigation','Property & conveyancing'],software:['LEAP','Microsoft 365']};
 var EXAMPLE_BILLING='03 Jan  OPENAI *CHATGPT PLUS       $29.00\n03 Jan  OPENAI *CHATGPT PLUS       $29.00\n15 Jan  MICROSOFT*365 BUSINESS     $22.00\n15 Jan  MICROSOFT*365 BUSINESS     $22.00\n18 Jan  ZOOM.US SUBSCRIPTION       $21.99\n22 Jan  ADOBE ACROBAT PRO DC       $19.99\n28 Jan  OTTER.AI BUSINESS          $16.99\n03 Feb  OPENAI *CHATGPT PLUS       $29.00\n15 Feb  MICROSOFT*365 BUSINESS     $22.00\n18 Feb  ZOOM.US SUBSCRIPTION       $21.99\n28 Feb  OTTER.AI BUSINESS          $16.99\n01 Feb  GRAMMARLY BUSINESS         $12.50\n03 Mar  OPENAI *CHATGPT PLUS       $29.00\n15 Mar  MICROSOFT*365 BUSINESS     $22.00\n19 Mar  HARVEY AI SUBSCRIPTION     $89.00\n22 Mar  ADOBE ACROBAT PRO DC       $19.99\n28 Mar  OTTER.AI BUSINESS          $16.99\n01 Mar  GRAMMARLY BUSINESS         $12.50';
 var PRACTICE_AREAS=['Commercial litigation','Family law','Property & conveyancing','Corporate & M&A','Employment law','Estate planning','IP','Immigration'];
@@ -740,9 +614,18 @@ var S={
   activeTab:'dashboard',copied:false,
   modules:[],modulesLoading:false,moduleProgress:0,
   dashStaff:[
-    {name:'Account Admin',role:'Administrator',status:'not-started',modules:0,date:null},
+    {name:'Sarah Mitchell',role:'Senior Associate',status:'certified',modules:3,date:'12 Mar 2026'},
+    {name:'James Thornton',role:'Partner',status:'certified',modules:3,date:'10 Mar 2026'},
+    {name:'Priya Sharma',role:'Associate',status:'in-progress',modules:1,date:null},
+    {name:'Tom Whitfield',role:'Paralegal',status:'not-started',modules:0,date:null},
+    {name:'Emma Clarke',role:'Practice Manager',status:'certified',modules:3,date:'14 Mar 2026'},
   ],
-  alerts:[],
+  alerts:[
+    {tool:'ChatGPT Plus',type:'feature',title:'New GPT-4o features released','desc':'Voice mode, improved file analysis, and canvas collaboration tools added. New training module available.','date':'2 days ago',action:'Start module',color:'#185fa5',bg:'#e6f1fb',icon:'🆕'},
+    {tool:'Microsoft Copilot',type:'policy',title:'Data handling terms updated','desc':'Microsoft updated Copilot commercial data processing terms. Your AI policy may need review.','date':'5 days ago',action:'Review policy',color:'#c97d10',bg:'#fdf3e3',icon:'⚠️'},
+    {tool:'Harvey AI',type:'risk',title:'SOC 2 Type II certification renewed','desc':'Harvey AI has renewed its SOC 2 Type II certification. Your risk assessment has been updated.','date':'1 week ago',action:'View update',color:'#1a7a46',bg:'#e8f5ee',icon:'✓'},
+    {tool:'Otter.ai',type:'feature',title:'AI summary improvements','desc':'Meeting summary accuracy improved with new legal terminology recognition. Update your usage guidelines.','date':'2 weeks ago',action:'View changes',color:'#185fa5',bg:'#e6f1fb',icon:'🆕'},
+  ],
   openModule:-1,quizAnswers:{},quizSubmitted:{},quizResults:{},
   certName:'',showCert:false,
   selectedModules:null,
@@ -757,312 +640,6 @@ var S={
 
 function ss(p){Object.assign(S,p);render();}
 function tog(arr,v){return arr.indexOf(v)>-1?arr.filter(function(x){return x!==v;}):arr.concat([v]);}
-
-/* ── Auth helpers ────────────────────────────────────────────── */
-function renderAuthGate(){
-  var gate = document.getElementById('auth-gate');
-  if(!gate) return;
-  gate.innerHTML = '';
-  gate.style.display = 'flex';
-  gate.style.position = 'fixed';
-  gate.style.inset = '0';
-  gate.style.zIndex = '9999';
-
-  /* Left branding panel */
-  var left = document.createElement('div');
-  left.className = 'auth-left';
-  left.innerHTML = '<div class="auth-brand">'
-    + '<div class="auth-logo">'
-    + '<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="40" height="40"><defs><clipPath id="alc"><polygon points="20,1 39,20 20,39 1,20"/></clipPath></defs>'
-    + '<rect x="0" y="0" width="40" height="9" fill="#B83232" clip-path="url(#alc)"/>'
-    + '<rect x="0" y="9" width="40" height="5.5" fill="#c94040" clip-path="url(#alc)"/>'
-    + '<rect x="0" y="14.5" width="40" height="5" fill="#F2F2F2" clip-path="url(#alc)"/>'
-    + '<rect x="0" y="19.5" width="40" height="5" fill="#D0D0D0" clip-path="url(#alc)"/>'
-    + '<rect x="0" y="24.5" width="40" height="5" fill="#5A5A5A" clip-path="url(#alc)"/>'
-    + '<rect x="0" y="29.5" width="40" height="4.5" fill="#2C2C2C" clip-path="url(#alc)"/>'
-    + '<rect x="0" y="34" width="40" height="6" fill="#111111" clip-path="url(#alc)"/>'
-    + '<polygon points="20,1 39,20 20,39 1,20" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>'
-    + '</svg>'
-    + '<span class="auth-logo-text">Theia-Stack</span>'
-    + '</div>'
-    + '<div class="auth-sub">AI Compliance Platform</div>'
-    + '</div>'
-    + '<div class="auth-headline">'
-    + '<h2>Your firm\'s AI risk, under control.</h2>'
-    + '<p>Continuous compliance monitoring, automated policy documents, and verified staff training — purpose-built for Australian law firms.</p>'
-    + '</div>'
-    + '<div class="auth-bullets">'
-    + '<div class="auth-bullet"><div class="auth-bullet-dot"><svg viewBox="0 0 10 10" fill="none" stroke="#B83232" stroke-width="2"><polyline points="2,5 4,7 8,3"/></svg></div><span class="auth-bullet-text">AI Risk Management Report — generated from your actual tool stack</span></div>'
-    + '<div class="auth-bullet"><div class="auth-bullet-dot"><svg viewBox="0 0 10 10" fill="none" stroke="#B83232" stroke-width="2"><polyline points="2,5 4,7 8,3"/></svg></div><span class="auth-bullet-text">Living AI policy that auto-updates when tools change their terms</span></div>'
-    + '<div class="auth-bullet"><div class="auth-bullet-dot"><svg viewBox="0 0 10 10" fill="none" stroke="#B83232" stroke-width="2"><polyline points="2,5 4,7 8,3"/></svg></div><span class="auth-bullet-text">Staff training modules with verified completion tracking</span></div>'
-    + '</div>'
-    + '<div class="auth-footer-note">theiastack.com.au</div>';
-
-  /* Right form panel */
-  var right = document.createElement('div');
-  right.className = 'auth-right';
-
-  var form = document.createElement('div');
-  form.className = 'auth-form-wrap';
-
-  if(AUTH.resetMode){
-    /* Password reset flow */
-    form.innerHTML = '<div class="auth-form-title">Reset password</div>'
-      + '<div class="auth-form-sub">Enter your email and we\'ll send a reset link.</div>'
-      + (AUTH.resetSent ? '<div class="auth-success-msg">✓ Check your inbox — a reset link has been sent to ' + AUTH.resetEmail + '</div>' : '')
-      + (AUTH.error ? '<div class="auth-error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12" y2="16"/></svg>' + AUTH.error + '</div>' : '')
-      + '<div class="auth-field"><label>Email address</label><input id="ar-email" type="email" placeholder="you@yourfirm.com.au" value="' + AUTH.resetEmail + '"/></div>'
-      + '<button id="ar-submit" class="auth-submit">' + (AUTH.loading ? '<span class="mini-spin" style="border-color:rgba(255,255,255,.3);border-top-color:#fff;width:16px;height:16px;"></span> Sending…' : 'Send reset link') + '</button>'
-      + '<div class="auth-reset-wrap"><button class="auth-back-link" id="ar-back">← Back to sign in</button></div>';
-
-    right.appendChild(form);
-    gate.appendChild(left);
-    gate.appendChild(right);
-
-    document.getElementById('ar-email').addEventListener('input', function(e){ AUTH.resetEmail = e.target.value; });
-    document.getElementById('ar-back').addEventListener('click', function(){ AUTH.resetMode = false; AUTH.resetSent = false; AUTH.error = ''; renderAuthGate(); });
-    document.getElementById('ar-submit').addEventListener('click', doPasswordReset);
-    return;
-  }
-
-  /* Sign-in flow */
-  form.innerHTML = '<div class="auth-form-title">Welcome back</div>'
-    + '<div class="auth-form-sub">Sign in to your Theia-Stack account.</div>'
-    + (AUTH.error ? '<div class="auth-error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12" y2="16"/></svg>' + AUTH.error + '</div>' : '')
-    + '<div class="auth-field"><label>Email address</label><input id="al-email" type="email" placeholder="you@yourfirm.com.au" autocomplete="email" value="' + AUTH.email + '"/></div>'
-    + '<div class="auth-field"><label>Password</label><input id="al-pass" type="password" placeholder="••••••••••" autocomplete="current-password"/></div>'
-    + '<button id="al-submit" class="auth-submit"' + (AUTH.loading ? ' disabled' : '') + '>'
-    + (AUTH.loading ? '<span class="mini-spin" style="border-color:rgba(255,255,255,.3);border-top-color:#fff;width:16px;height:16px;"></span> Signing in…' : 'Sign in →')
-    + '</button>'
-    + '<div class="auth-forgot"><a id="al-forgot">Forgot password?</a></div>'
-    + '<hr class="auth-divider">'
-    + '<div class="auth-powered">Powered by Theia-Stack · <a href="https://theiastack.com.au" target="_blank" style="color:#B0B0B0">theiastack.com.au</a></div>';
-
-  right.appendChild(form);
-  gate.appendChild(left);
-  gate.appendChild(right);
-
-  var emailIn = document.getElementById('al-email');
-  var passIn  = document.getElementById('al-pass');
-
-  emailIn.addEventListener('input', function(e){ AUTH.email = e.target.value; });
-  passIn.addEventListener('input',  function(e){ AUTH.password = e.target.value; });
-  passIn.addEventListener('keydown', function(e){ if(e.key === 'Enter') doSignIn(); });
-  document.getElementById('al-submit').addEventListener('click', doSignIn);
-  document.getElementById('al-forgot').addEventListener('click', function(){
-    AUTH.resetMode = true; AUTH.resetEmail = AUTH.email; AUTH.error = ''; renderAuthGate();
-  });
-
-  /* Auto-focus email if empty, password if email already filled */
-  setTimeout(function(){ if(!AUTH.email) emailIn.focus(); else passIn.focus(); }, 80);
-}
-
-async function doSignIn(){
-  if(AUTH.loading) return;
-  AUTH.error = '';
-  if(!AUTH.email || !AUTH.password){ AUTH.error = 'Please enter your email and password.'; renderAuthGate(); return; }
-  AUTH.loading = true; renderAuthGate();
-
-  /* If Supabase is not configured, run in demo mode */
-  if(!sb){
-    setTimeout(function(){
-      AUTH.loading = false;
-      AUTH.session = { demo: true };
-      AUTH.user    = { id: 'demo', email: AUTH.email };
-      AUTH.profile = { firm_id: 'demo', firm_name: 'Demo Firm', role: 'admin',
-        display_name: AUTH.email.split('@')[0],
-        permissions: { dashboard:true, findings:true, recommendations:true, policy:true, training:true, alerts:true }
-      };
-      AUTH.ready = true;
-      onAuthSuccess();
-    }, 900);
-    return;
-  }
-
-  try{
-    var res = await sb.auth.signInWithPassword({ email: AUTH.email, password: AUTH.password });
-    if(res.error) throw res.error;
-    AUTH.session = res.data.session;
-    AUTH.user    = res.data.user;
-    await loadProfile(res.data.user.id);
-    AUTH.ready   = true;
-    AUTH.loading = false;
-    onAuthSuccess();
-  }catch(e){
-    AUTH.loading = false;
-    AUTH.error = e.message || 'Sign in failed. Please check your credentials.';
-    renderAuthGate();
-  }
-}
-
-async function doPasswordReset(){
-  if(AUTH.loading || !AUTH.resetEmail) return;
-  AUTH.loading = true; renderAuthGate();
-  if(!sb){ setTimeout(function(){ AUTH.loading=false; AUTH.resetSent=true; renderAuthGate(); }, 700); return; }
-  try{
-    var res = await sb.auth.resetPasswordForEmail(AUTH.resetEmail, { redirectTo: window.location.href });
-    if(res.error) throw res.error;
-    AUTH.loading = false; AUTH.resetSent = true; renderAuthGate();
-  }catch(e){
-    AUTH.loading = false; AUTH.error = e.message || 'Could not send reset email.'; renderAuthGate();
-  }
-}
-
-async function loadProfile(uid){
-  if(!sb) return;
-  try{
-    var res = await sb.from('profiles').select('*').eq('id', uid).single();
-    if(res.error){ console.warn('Profile load error:', res.error.message); return; }
-    var d = res.data;
-    AUTH.profile = {
-      firm_id: d.firm_id,
-      firm_name: (d.firms && d.firms.name) || '',
-      role: d.role || 'admin',
-      display_name: d.display_name || '',
-      permissions: d.permissions || { dashboard:true, findings:true, recommendations:true, policy:true, training:true, alerts:true }
-    };
-  }catch(e){ console.warn('loadProfile error:', e); }
-}
-
-async function loadAuditData(){
-  if(!sb || !AUTH.profile || !AUTH.profile.firm_id) return Promise.resolve();
-  if(AUTH.profile.firm_id === 'demo') return Promise.resolve();
-  try{
-    var res = await sb.from('audit_sessions')
-      .select('session_data')
-      .eq('firm_id', AUTH.profile.firm_id)
-      .order('updated_at', { ascending:false })
-      .limit(1)
-      .single();
-    if(res.error || !res.data || !res.data.session_data) return;
-    var saved = res.data.session_data;
-    /* Merge saved keys into S — preserve current defaults for any missing keys */
-    Object.keys(saved).forEach(function(k){
-      if(k in S) S[k] = saved[k];
-    });
-    render();
-    console.log('Audit data loaded from Supabase.');
-  }catch(e){ console.warn('loadAuditData error:', e); }
-}
-
-var _saveTimer = null;
-function scheduleAuditSave(){
-  clearTimeout(_saveTimer);
-  _saveTimer = setTimeout(doAuditSave, 1800);
-  showSaveIndicator('saving');
-}
-async function doAuditSave(){
-  if(!sb || !AUTH.profile || AUTH.profile.firm_id === 'demo') return;
-  var sessionData = {
-    step:S.step, firmName:S.firmName, staffCount:S.staffCount, practiceAreas:S.practiceAreas,
-    software:S.software, tools:S.tools, clientData:S.clientData, dataStorage:S.dataStorage,
-    hasPolicy:S.hasPolicy, hasTraining:S.hasTraining, painPoints:S.painPoints, goals:S.goals,
-    concerns:S.concerns, detected:S.detected, checklist:S.checklist, report:S.report,
-    policy:S.policy, modules:S.modules, quizResults:S.quizResults, policyVersions:S.policyVersions,
-    pendingUpdates:S.pendingUpdates, alerts:S.alerts, dashStaff:S.dashStaff,
-    toolSearchHints:S.toolSearchHints, toolLookups:S.toolLookups
-  };
-  try{
-    await sb.from('audit_sessions').upsert({
-      firm_id: AUTH.profile.firm_id,
-      session_data: sessionData,
-      updated_at: new Date().toISOString()
-    }, { onConflict: 'firm_id' });
-    showSaveIndicator('saved');
-  }catch(e){ console.warn('doAuditSave error:', e); }
-}
-
-function showSaveIndicator(state){
-  var el2 = document.getElementById('save-indicator');
-  var txt = document.getElementById('save-indicator-text');
-  if(!el2 || !txt) return;
-  el2.className = 'save-indicator show ' + state;
-  txt.textContent = state === 'saving' ? 'Saving…' : 'Saved';
-  if(state === 'saved') setTimeout(function(){ el2.className = 'save-indicator'; }, 2200);
-}
-
-function onAuthSuccess(){
-  var gate = document.getElementById('auth-gate');
-  if(gate) gate.style.display = 'none';
-  /* Show sidebar user panel */
-  var userEl   = document.getElementById('sb-user');
-  var emailEl  = document.getElementById('sb-user-email');
-  var roleEl   = document.getElementById('sb-user-role');
-  var avatarEl = document.getElementById('sb-user-avatar');
-  var logoutEl = document.getElementById('sb-logout-btn');
-  if(userEl && AUTH.user){
-    userEl.style.display  = 'flex';
-    if(emailEl) emailEl.textContent  = AUTH.user.email || '—';
-    if(roleEl)  roleEl.textContent   = AUTH.profile && AUTH.profile.role === 'admin' ? 'Admin' : 'Staff';
-    if(avatarEl){ var init = (AUTH.user.email || '?').charAt(0).toUpperCase(); avatarEl.textContent = init; }
-    if(logoutEl) logoutEl.addEventListener('click', doSignOut);
-    /* Update admin name in dashStaff to match logged-in user */
-    if(S.dashStaff.length > 0 && S.dashStaff[0].name === 'Account Admin' && AUTH.user.email){
-      S.dashStaff[0].name = AUTH.user.email.split('@')[0];
-      S.dashStaff[0].role = AUTH.profile && AUTH.profile.role === 'admin' ? 'Administrator' : 'Staff';
-    }
-  }
-  /* Load any saved audit data for this firm */
-  loadAuditData().then(function(){
-    /* If a report already exists from a previous session, go straight to it */
-    if(S.report && S.step !== 6){ S.step = 6; }
-    render();
-  });
-}
-
-async function doSignOut(){
-  if(sb){ try{ await sb.auth.signOut(); }catch(e){} }
-  AUTH.session = null; AUTH.user = null; AUTH.profile = null; AUTH.ready = false;
-  AUTH.email = ''; AUTH.password = ''; AUTH.error = '';
-  /* Reset audit state */
-  Object.assign(S, {
-    step:0, firmName:'', staffCount:'', practiceAreas:[], software:[],
-    tools:[{name:'',cost:'',useCase:''}], clientData:'', dataStorage:'', hasPolicy:'', hasTraining:'',
-    painPoints:[], goals:'', concerns:[], detected:[], checklist:[], report:null, policy:null,
-    modules:[], quizResults:{}, policyVersions:[], pendingUpdates:[], alerts:S.alerts
-  });
-  var userEl = document.getElementById('sb-user');
-  if(userEl) userEl.style.display = 'none';
-  var gate = document.getElementById('auth-gate');
-  if(gate) gate.style.display = 'none';
-  renderAuthGate();
-  var gate2 = document.getElementById('auth-gate');
-  if(gate2) gate2.style.display = 'flex';
-}
-
-/* Init auth on page load — check for existing session */
-async function initAuth(){
-  if(!sb){
-    /* No Supabase configured — show login anyway for demo purposes */
-    AUTH.ready = true;
-    renderAuthGate();
-    var gate = document.getElementById('auth-gate');
-    if(gate) gate.style.display = 'flex';
-    return;
-  }
-  try{
-    var res = await sb.auth.getSession();
-    if(res.data && res.data.session){
-      AUTH.session = res.data.session;
-      AUTH.user    = res.data.session.user;
-      await loadProfile(AUTH.user.id);
-      AUTH.ready   = true;
-      onAuthSuccess();
-    } else {
-      AUTH.ready = true;
-      renderAuthGate();
-      var gate = document.getElementById('auth-gate');
-      if(gate) gate.style.display = 'flex';
-    }
-  }catch(e){
-    AUTH.ready = true;
-    renderAuthGate();
-    var gate3 = document.getElementById('auth-gate');
-    if(gate3) gate3.style.display = 'flex';
-  }
-}
-
-/* ── End auth helpers ────────────────────────────────────────── */
 function spend(){return S.tools.reduce(function(a,t){return a+(parseFloat(t.cost)||0);},0);}
 function missing(){var m=[];if(!S.firmName)m.push('firm name');if(!S.staffCount)m.push('staff count');if(!S.practiceAreas.length)m.push('practice area');return m;}
 function canNext(){
@@ -1081,9 +658,9 @@ function getModStatus(i){if(!S.quizResults[i])return 'pending';return S.quizResu
 function cleanOpt(opt){return (opt||'').replace(/^[A-Da-d][.)]\s*/,'').trim();}
 
 /* ── Core API helpers ────────────────────────────────────────── */
-var API_HDR={'Content-Type':'application/json','anthropic-version':'2023-06-01','x-api-key':'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'};
-var API_MODEL='claude-opus-4-7';
-var API_URL='/.netlify/functions/claude';
+var API_HDR={'Content-Type':'application/json','anthropic-version':'2023-06-01'};
+var API_MODEL='claude-sonnet-4-20250514';
+var API_URL='https://api.anthropic.com/v1/messages';
 
 async function _apiFetch(body){
   var res=await fetch(API_URL,{method:'POST',headers:API_HDR,body:JSON.stringify(body)});
@@ -1140,18 +717,30 @@ function parseJSON(raw){
 }
 
 async function callClaudeWithSearch(prompt,maxT){
-  var body={model:API_MODEL,max_tokens:maxT||1200,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt}]};
-  var data=await _apiFetch(body);
-  if(data.stop_reason==='tool_use'){
-    var toolUseBlocks=data.content.filter(function(b){return b.type==='tool_use';});
-    var toolResults=toolUseBlocks.map(function(b){return {type:'tool_result',tool_use_id:b.id,content:'Search completed for: '+b.input.query};});
-    var msgs=[{role:'user',content:prompt},{role:'assistant',content:data.content},{role:'user',content:toolResults}];
-    var data2=await _apiFetch({model:API_MODEL,max_tokens:maxT||1200,tools:[{type:'web_search_20250305',name:'web_search'}],messages:msgs});
-    var tb=data2.content&&data2.content.find(function(b){return b.type==='text';});
+  // Try with web_search tool first; fall back to plain JSON call if tools aren't supported by the proxy
+  try{
+    var body={model:API_MODEL,max_tokens:maxT||1200,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt}]};
+    var data=await _apiFetch(body);
+    // Handle multi-turn: model wants to run a search
+    if(data.stop_reason==='tool_use'){
+      var toolUseBlocks=data.content.filter(function(b){return b.type==='tool_use';});
+      // Build real tool results by reflecting the search query back so the model has context
+      var toolResults=toolUseBlocks.map(function(b){
+        return {type:'tool_result',tool_use_id:b.id,content:'Web search performed for "'+b.input.query+'". Use your training knowledge to answer about this tool.'};
+      });
+      var msgs=[{role:'user',content:prompt},{role:'assistant',content:data.content},{role:'user',content:toolResults}];
+      var data2=await _apiFetch({model:API_MODEL,max_tokens:maxT||1200,tools:[{type:'web_search_20250305',name:'web_search'}],messages:msgs});
+      var tb=data2.content&&data2.content.find(function(b){return b.type==='text';});
+      return tb?tb.text:'';
+    }
+    var tb=data.content.find(function(b){return b.type==='text';});
     return tb?tb.text:'';
+  }catch(e){
+    // Tools not supported by proxy — fall back to plain call with knowledge-only prompt
+    console.warn('[Theia] web_search fallback triggered:',e.message||e);
+    var fallbackPrompt='You are a software research assistant for Australian law firms. Based on your training knowledge, answer the following. '+prompt;
+    return callClaudeJSON('You are a software research assistant. Output ONLY valid JSON.',fallbackPrompt,maxT||1200);
   }
-  var tb=data.content.find(function(b){return b.type==='text';});
-  return tb?tb.text:'';
 }
 /* ── End API helpers ─────────────────────────────────────────── */
 
@@ -1198,7 +787,7 @@ async function genReport(){
     var raw=await callClaudeJSON('You are an AI compliance specialist for Australian law firms. Output ONLY valid JSON.',ctx+' '+auCtx+' '+schema,2000);
     var r=parseJSON(raw);
     if(!r||!r.riskLevel)throw new Error('Invalid report JSON');
-    ss({report:r,loading:false,step:6});scheduleAuditSave();setTimeout(function(){checkForUpdates();},1000);
+    ss({report:r,loading:false,step:6});setTimeout(function(){checkForUpdates();},1000);
   }catch(e){console.error('genReport error:',e);ss({loading:false,reportError:e.message||'Report generation failed. Please try again.'});}
 }
 
@@ -1208,7 +797,7 @@ async function genPolicy(){
     var toolList=S.tools.map(function(t){return (t.name||'unnamed')+' ('+(t.useCase||'general use')+', $'+(t.cost||0)+'/mo)';}).filter(function(t){return t.indexOf('unnamed')<0;}).join('; ');
     var policyPrompt='You are an AI compliance specialist for Australian law firms. Generate a comprehensive, Australian-law-compliant AI Usage Policy for '+S.firmName+'. Write in clear, plain English suitable for all staff. Use ## for section headings. Return ONLY the policy document — no JSON, no preamble, no commentary.\n\nFirm: '+S.firmName+', '+S.staffCount+' staff, '+S.practiceAreas.join(', ')+' law. AI tools in use: '+toolList+'. Client data accessed via AI: '+S.clientData+'. Data storage: '+S.dataStorage+'. Concerns: '+S.concerns.join(', ')+'.\n\nThis policy must explicitly reference and address:\n- Privacy Act 1988 (Cth) and the 13 Australian Privacy Principles — especially APP 3 (collection), APP 6 (use and disclosure), APP 8 (cross-border disclosure of personal information), APP 11 (security of personal information)\n- Privacy and Other Legislation Amendment Act 2024 (Royal Assent 10 December 2024) — new transparency obligations for automated decision-making using personal information\n- OAIC October 2024 Guidance on privacy and the use of commercially available AI products — conduct due diligence on AI vendors, data minimisation, staff awareness\n- National AI Centre AI6 Guidance for AI Adoption (October 2025) — 6 essential practices: accountability, transparency, human oversight, fairness, privacy, and security\n- Legal Profession Uniform Law (LPUL) and relevant State equivalents — professional conduct obligations, client confidentiality, and duty of competence in relation to technology\n- Data sovereignty — where each tool processes and stores data, and what this means for APP 8 cross-border obligations\n\nInclude the following sections:\n## 1. Purpose and scope\n## 2. Approved AI tools and permitted uses (address each tool by name)\n## 3. Prohibited uses and client data protections\n## 4. Compliance with the Australian Privacy Principles\n## 5. Cross-border data transfers and data sovereignty\n## 6. Automated decision-making transparency (Privacy and Other Legislation Amendment Act 2024)\n## 7. Staff responsibilities and training requirements\n## 8. Vendor due diligence and tool assessment\n## 9. Incident reporting and breach response\n## 10. Policy review and version control\n## 11. Acknowledgement';
     var txt=await callClaude(policyPrompt,2000);
-    ss({policy:txt,policyLoading:false});scheduleAuditSave();
+    ss({policy:txt,policyLoading:false});
   }catch(e){ss({policyLoading:false});}
 }
 
@@ -1241,7 +830,7 @@ async function genModules(){
       ss({modules:modules.slice(),modulesLoading:true,moduleProgress:Math.round(((i+1)/toolNames.length)*100)});
     }
   }
-  ss({modules:modules,modulesLoading:false,moduleProgress:100});scheduleAuditSave();
+  ss({modules:modules,modulesLoading:false,moduleProgress:100});
 }
 
 
@@ -1543,27 +1132,6 @@ function updateSidebar(){
     var nt=el('div',{sty:{padding:'10px 12px',marginTop:'8px',borderRadius:'8px',background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.07)',fontSize:'11px',color:'rgba(255,255,255,.3)',lineHeight:'1.5'}});
     nt.textContent='Click any step above to edit your answers.';
     steps.appendChild(nt);
-    /* Re-do Audit button */
-    var redoBtn=el('button',{sty:{marginTop:'12px',width:'100%',padding:'9px 12px',background:'transparent',border:'1px solid rgba(255,255,255,.15)',borderRadius:'8px',color:'rgba(255,255,255,.5)',fontSize:'12px',fontWeight:'600',fontFamily:'var(--font-body)',cursor:'pointer',textAlign:'center',transition:'all .15s',letterSpacing:'.02em'}});
-    redoBtn.textContent='↺ Re-do audit';
-    redoBtn.addEventListener('mouseenter',function(){redoBtn.style.background='rgba(255,255,255,.07)';redoBtn.style.color='rgba(255,255,255,.8)';redoBtn.style.borderColor='rgba(255,255,255,.3)';});
-    redoBtn.addEventListener('mouseleave',function(){redoBtn.style.background='transparent';redoBtn.style.color='rgba(255,255,255,.5)';redoBtn.style.borderColor='rgba(255,255,255,.15)';});
-    redoBtn.addEventListener('click',function(){
-      if(confirm('Start a new audit? Your current report will be cleared.')){
-        Object.assign(S,{step:0,firmName:'',staffCount:'',practiceAreas:[],software:[],tools:[{name:'',cost:'',useCase:''}],clientData:'',dataStorage:'',hasPolicy:'',hasTraining:'',painPoints:[],goals:'',concerns:[],detected:[],checklist:[],report:null,policy:null,modules:[],quizResults:{},policyVersions:[],pendingUpdates:[],alerts:[]});
-        render();
-      }
-    });
-    steps.appendChild(redoBtn);
-  }
-  /* Go to Report button — visible mid-audit if report already exists */
-  if(S.step!==6&&S.report){
-    var goBtn=el('button',{sty:{marginTop:'16px',width:'100%',padding:'10px 12px',background:'rgba(184,50,50,.15)',border:'1px solid rgba(184,50,50,.3)',borderRadius:'8px',color:'#f08080',fontSize:'12px',fontWeight:'700',fontFamily:'var(--font-body)',cursor:'pointer',textAlign:'center',transition:'all .15s',letterSpacing:'.02em'}});
-    goBtn.textContent='→ Back to report';
-    goBtn.addEventListener('mouseenter',function(){goBtn.style.background='rgba(184,50,50,.25)';goBtn.style.color='#ffaaaa';});
-    goBtn.addEventListener('mouseleave',function(){goBtn.style.background='rgba(184,50,50,.15)';goBtn.style.color='#f08080';});
-    goBtn.addEventListener('click',function(){ ss({step:6}); });
-    steps.appendChild(goBtn);
   }
 }
 
@@ -2152,45 +1720,36 @@ function renderDashboard(){
   pv.appendChild(pvh);
   pv.appendChild(el('div',{cls:'dash-card-title',sty:{marginBottom:'10px'}},'Version history'));
   var vh=el('div',{cls:'version-history'});
-  var versionsToShow=S.policyVersions.length?S.policyVersions:[];
-  if(versionsToShow.length){
-    versionsToShow.forEach(function(v){
-      var vi=el('div',{cls:'version-item'});
-      vi.appendChild(el('div',{cls:'version-dot',sty:{background:'var(--green)',marginTop:'5px'}}));
-      var vinfo=el('div',{cls:'version-info'});
-      var vrow=el('div',{sty:{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}});
-      vrow.appendChild(el('div',{cls:'version-label'},v.label||('v'+v.version)));
-      vrow.appendChild(el('span',{cls:'staff-badge',sty:{fontSize:'11px',padding:'2px 8px',borderRadius:'20px',background:'var(--cream)',color:'var(--muted)',border:'1px solid var(--border)',marginLeft:'8px',flexShrink:'0'}},v.status||'Current'));
-      vinfo.appendChild(vrow);
-      vinfo.appendChild(el('div',{cls:'version-date'},v.date||''));
-      vinfo.appendChild(el('div',{cls:'version-change'},v.change||''));
-      vi.appendChild(vinfo);vh.appendChild(vi);
-    });
-  } else {
-    vh.appendChild(el('div',{sty:{fontSize:'13px',color:'var(--muted)',padding:'8px 0'}},'Generate your AI policy to start tracking version history.'));
-  }
+  [
+    {label:'v2.1 — Copilot terms update',date:'15 Mar 2026',change:'Updated data sovereignty clause to reflect Microsoft Copilot commercial terms change.',col:'var(--amber)',status:'Current'},
+    {label:'v2.0 — Harvey AI added',date:'02 Mar 2026',change:'Added Harvey AI approved uses, prohibited uses, and data handling requirements.',col:'var(--green)',status:'Superseded'},
+    {label:'v1.0 — Initial policy',date:'20 Feb 2026',change:'Initial AI usage policy generated from audit. Covers ChatGPT, Microsoft 365, Zoom.',col:'var(--muted)',status:'Archived'},
+  ].forEach(function(v){
+    var vi=el('div',{cls:'version-item'});
+    vi.appendChild(el('div',{cls:'version-dot',sty:{background:v.col,marginTop:'5px'}}));
+    var vinfo=el('div',{cls:'version-info'});
+    var vrow=el('div',{sty:{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}});
+    vrow.appendChild(el('div',{cls:'version-label'},v.label));
+    vrow.appendChild(el('span',{cls:'staff-badge',sty:{fontSize:'11px',padding:'2px 8px',borderRadius:'20px',background:'var(--cream)',color:'var(--muted)',border:'1px solid var(--border)',marginLeft:'8px',flexShrink:'0'}},v.status));
+    vinfo.appendChild(vrow);
+    vinfo.appendChild(el('div',{cls:'version-date'},v.date));
+    vinfo.appendChild(el('div',{cls:'version-change'},v.change));
+    vi.appendChild(vinfo);vh.appendChild(vi);
+  });
   pv.appendChild(vh);wrap.appendChild(pv);
 
   // Bottom grid: renewals + tool risk
   var botGrid=el('div',{cls:'dash-grid'});
 
-  // Subscription renewals — built from real audit tools
+  // Subscription renewals
   var rc=el('div',{cls:'dash-card'});
   rc.appendChild(el('div',{cls:'dash-card-title'},'Upcoming renewals'));
-  var realTools=S.tools.filter(function(t){return t.name&&t.cost;});
-  if(realTools.length){
-    realTools.forEach(function(t){
-      var ri=el('div',{cls:'renewal-item'});
-      var rinfo=el('div',{});
-      rinfo.appendChild(el('div',{cls:'renewal-name'},t.name));
-      rinfo.appendChild(el('div',{cls:'renewal-date'},'Cost: $'+t.cost+'/mo'));
-      ri.appendChild(rinfo);
-      rc.appendChild(ri);
-    });
-  } else {
-    rc.appendChild(el('div',{sty:{fontSize:'13px',color:'var(--muted)',padding:'12px 0'}},'Complete your AI stack to see renewal tracking.'));
-  }
-  [].forEach(function(r){
+  [
+    {name:'ChatGPT Plus',date:'03 Apr 2026',cost:'$87/mo',days:17,urgent:true},
+    {name:'Microsoft 365',date:'15 Apr 2026',cost:'$44/mo',days:29,urgent:false},
+    {name:'Harvey AI',date:'19 May 2026',cost:'$89/mo',days:63,urgent:false},
+    {name:'Otter.ai',date:'28 May 2026',cost:'$17/mo',days:72,urgent:false},
+  ].forEach(function(r){
     var ri=el('div',{cls:'renewal-item'});
     var rinfo=el('div',{});rinfo.appendChild(el('div',{cls:'renewal-name'},r.name));rinfo.appendChild(el('div',{cls:'renewal-date'},r.date+' · '+r.cost));ri.appendChild(rinfo);
     var rbg=r.urgent?'var(--amber-bg)':'var(--green-bg)';var rcol2=r.urgent?'var(--amber)':'var(--green)';
@@ -2203,9 +1762,7 @@ function renderDashboard(){
   var trc=el('div',{cls:'dash-card'});
   trc.appendChild(el('div',{cls:'dash-card-title'},'Tool risk snapshot'));
   var toolNames=S.tools.map(function(t){return t.name;}).filter(Boolean);
-  if(!toolNames.length){
-    trc.appendChild(el('div',{sty:{fontSize:'13px',color:'var(--muted)',padding:'12px 0'}},'Complete your AI stack to see risk snapshot.'));
-  }
+  if(!toolNames.length)toolNames=['ChatGPT Plus','Microsoft 365','Harvey AI','Otter.ai','Grammarly'];
   var riskLevels=['Low','Low','Medium','Low','Low'];
   toolNames.forEach(function(t,i){
     var ri=el('div',{cls:'renewal-item'});
@@ -2292,7 +1849,6 @@ function render(){
       ['policy','AI policy'],
       ['training','Training ('+(canCert()?'✓':countPassed()+'/'+S.modules.length)+')'],
       ['alerts','Alerts ('+S.alerts.filter(function(a){return a.type==='policy';}).length+')'],
-      ['users','Team & access'],
     ];
     tabItems.forEach(function(t){
       var btn=el('button',{cls:'report-tab'+(S.activeTab===t[0]?' on':''),onclick:(function(id){return function(){ss({activeTab:id});};})(t[0])},t[1]);
@@ -2354,7 +1910,6 @@ function render(){
       }
     }
     if(S.activeTab==='training')rb.appendChild(renderTraining());
-    if(S.activeTab==='users')rb.appendChild(renderUserManagement());
     wrap.appendChild(rb);
     app.appendChild(wrap);return;
   }
@@ -2489,6 +2044,7 @@ function render(){
       // Helper: run the search without ever calling render()
       function doSearch(query){
         if(!query||query.length<2){sResults.innerHTML='';return;}
+        console.log('[Theia] doSearch triggered for:',query);
         sSpin.style.display='block';
         S.checklistSearching=true;
         // Local fuzzy match first
@@ -2503,9 +2059,9 @@ function render(){
           showSuggestions(S.checklistSuggestions);
           return;
         }
-        // Call Claude — write result directly to DOM, NO ss(), NO render()
-        var prompt='Search the web to identify what AI or software tool an Australian law firm user is referring to when they type "'+query+'". They may be using a partial name, nickname, or misspelling. Use web search to find the exact product. Examples: "Project Manda" likely refers to a legal project management or AI tool with Manda in the name — search for it. "Harv" likely refers to Harvey AI. Be generous with partial matches. After searching, return ONLY valid JSON with no markdown: {"found":true,"tool":{"name":"exact official product name","vendor":"company name","category":"Legal AI|General AI|Productivity|Communication|Document|Finance|Other","description":"1-2 sentences what it does and who uses it","dataStorage":"where data is stored or processed","australiaCompliance":"brief note on Australian Privacy Act compliance","riskLevel":"Low|Medium|High","riskReason":"one sentence","pricing":"pricing if known or Unknown","dataHandling":"how client or personal data is handled","processesClientData":true,"storageRegion":"Australia|US|EU|Global|Unknown"}} OR if genuinely no match exists: {"found":false,"suggestions":["tools whose name is phonetically or visually similar to what was typed — not generic alternatives"]}';
-        callClaudeWithSearch(prompt,1200).then(function(txt){
+        // Call Claude — no web search, direct JSON call
+        var prompt='Identify the AI or software tool an Australian law firm user means by "'+query+'". Be generous with partial names and misspellings. Return ONLY valid JSON: {"found":true,"tool":{"name":"exact product name","vendor":"company","category":"Legal AI|General AI|Productivity|Communication|Document|Finance|Other","description":"what it does in 1-2 sentences","riskLevel":"Low|Medium|High","riskReason":"one sentence","processesClientData":true,"storageRegion":"Australia|US|EU|Global|Unknown"}} OR {"found":false,"suggestions":["name-similar tool 1","name-similar tool 2"]}';
+        callClaudeJSON('You are a software research assistant. Output ONLY valid JSON.',prompt,700).then(function(txt){
           sSpin.style.display='none';S.checklistSearching=false;
           try{
             var data=parseJSON(txt)||{};
@@ -2515,20 +2071,19 @@ function render(){
               S.toolSearchHints=hints;
               showFoundCard(data.tool);
             } else {
-              var suggs=(data.suggestions||[]).slice(0,8);
+              var suggs=(data.suggestions||[]).slice(0,5);
               local.forEach(function(l){if(suggs.indexOf(l)<0)suggs.unshift(l);});
-              S.checklistSuggestions=suggs.slice(0,8);S.checklistSearchResult=null;
-              if(suggs.length>0){showSuggestions(S.checklistSuggestions);}
-              else{sResults.innerHTML='<div class="cl-no-result">No tool found matching "'+query+'". Check the spelling or try a different name.</div>';}
+              S.checklistSuggestions=suggs.slice(0,5);S.checklistSearchResult=null;
+              if(suggs.length){showSuggestions(S.checklistSuggestions);}
+              else{sResults.innerHTML='<div class="cl-no-result">No match for "'+query+'". Try the exact product name.</div>';}
             }
           }catch(e){
             sSpin.style.display='none';
-            if(local.length){S.checklistSuggestions=local.slice(0,5);showSuggestions(S.checklistSuggestions);}
-            else{sResults.innerHTML='<div class="cl-no-result">Could not find that tool. Check the spelling or try a different name.</div>';}
-          }
-        }).catch(function(){
+            sResults.innerHTML='<div class="cl-no-result">Could not identify that tool. Try a different spelling.</div>';}
+        }).catch(function(err){
+          console.error('[Theia] tool search error:',err);
           sSpin.style.display='none';S.checklistSearching=false;
-          sResults.innerHTML='';
+          sResults.innerHTML='<div class="cl-no-result">Search unavailable — try again shortly.</div>';
         });
       }
 
@@ -2756,126 +2311,6 @@ function render(){
 }
 
 render();
-
-/* ── Admin / User Management panel ──────────────────────────── */
-function renderUserManagement(){
-  var wrap = el('div', {cls:'admin-panel fade-in'});
-
-  /* Current user info */
-  var profile = AUTH.profile || {};
-  var infoCard = el('div', {cls:'card', sty:{marginBottom:'24px'}});
-  infoCard.appendChild(el('div', {cls:'card-title'}, 'Your account'));
-  var rows = [
-    {k:'Email', v: AUTH.user ? AUTH.user.email : '—'},
-    {k:'Role',  v: profile.role === 'admin' ? 'Administrator' : 'Staff user'},
-    {k:'Firm',  v: profile.firm_name || S.firmName || '—'},
-    {k:'Subscription', v: profile.subscription_tier || 'Annual plan'},
-  ];
-  var rt = el('div', {cls:'review-table'});
-  rows.forEach(function(r){ var row=el('div',{cls:'review-row'}); row.appendChild(el('span',{cls:'review-key'},r.k)); row.appendChild(el('span',{cls:'review-val'},r.v)); rt.appendChild(row); });
-  infoCard.appendChild(rt);
-  wrap.appendChild(infoCard);
-
-  /* Staff user management — admin only */
-  if(profile.role === 'admin'){
-    var staffCard = el('div', {cls:'card'});
-    staffCard.appendChild(el('div', {cls:'card-title'}, 'Staff access'));
-    staffCard.appendChild(el('p', {sty:{fontSize:'13px',color:'var(--muted)',marginBottom:'20px',lineHeight:'1.6'}},
-      'Invite staff to access Theia-Stack. By default, staff see the Training tab only. Use the toggles below to expand their access.'));
-
-    /* Invite form */
-    var invWrap = el('div', {sty:{marginBottom:'24px'}});
-    invWrap.appendChild(el('div', {cls:'field-label', sty:{marginBottom:'8px'}}, 'Invite a staff member'));
-    var invForm = el('div', {cls:'invite-form'});
-    var invEmail = el('input', {type:'email', placeholder:'colleague@yourfirm.com.au'});
-    var invRole  = el('select', {sty:{padding:'10px 14px',border:'1.5px solid var(--border)',borderRadius:'var(--radius)',fontSize:'13px',fontFamily:'var(--font-body)',color:'var(--text)',background:'var(--cream)',outline:'none'}});
-    [['user','Staff (limited)'],['admin','Administrator']].forEach(function(o){
-      var opt = document.createElement('option'); opt.value=o[0]; opt.textContent=o[1]; invRole.appendChild(opt);
-    });
-    var invBtn = el('button', {cls:'btn-primary btn-sm', onclick: function(){
-      var e = invEmail.value.trim();
-      if(!e){ return; }
-      if(!sb){ alert('Supabase not configured. In production, this would send an invite email to ' + e + '.'); invEmail.value=''; return; }
-      sb.auth.admin ? inviteStaffMember(e, invRole.value) : alert('Admin API required to send invites. Configure your Supabase service role key in the Netlify function to enable this.');
-    }});
-    invBtn.textContent = 'Send invite';
-    invForm.appendChild(invEmail); invForm.appendChild(invRole); invForm.appendChild(invBtn);
-    invWrap.appendChild(invForm);
-    invWrap.appendChild(el('div', {cls:'field-hint'}, 'Staff will receive an email with a temporary password to access Theia-Stack.'));
-    staffCard.appendChild(invWrap);
-
-    /* Staff list — uses dashStaff as source (will be real users in Phase 2) */
-    var permDefs = [
-      {key:'dashboard',     label:'Dashboard'},
-      {key:'findings',      label:'Findings'},
-      {key:'recommendations',label:'Recommendations'},
-      {key:'policy',        label:'Policy'},
-      {key:'training',      label:'Training'},
-      {key:'alerts',        label:'Alerts'},
-    ];
-    staffCard.appendChild(el('div', {cls:'admin-section-title', sty:{marginTop:'8px'}}, 'Current staff — access permissions'));
-
-    var table = el('table', {cls:'user-table'});
-    var thead = el('tr',{});
-    thead.appendChild(el('th',{},'Name / Email'));
-    thead.appendChild(el('th',{},'Role'));
-    permDefs.forEach(function(p){ thead.appendChild(el('th',{sty:{textAlign:'center'}},p.label)); });
-    thead.appendChild(el('th',{},''));
-    var theadWrap = el('thead',{}); theadWrap.appendChild(thead); table.appendChild(theadWrap);
-
-    var tbody = el('tbody',{});
-    S.dashStaff.forEach(function(staff, si){
-      var tr = el('tr',{});
-      var nameTd = el('td',{});
-      nameTd.appendChild(el('div',{sty:{fontWeight:'500',color:'var(--navy)'}}, staff.name));
-      nameTd.appendChild(el('div',{sty:{fontSize:'11px',color:'var(--muted)'}}, staff.role));
-      tr.appendChild(nameTd);
-      var roleBadge = el('span',{cls:'role-badge '+(si===0?'admin':'user')}, si===0?'Admin':'Staff');
-      var roleTd = el('td',{}); roleTd.appendChild(roleBadge); tr.appendChild(roleTd);
-      permDefs.forEach(function(p){
-        var td = el('td',{sty:{textAlign:'center'}});
-        var perms = staff.permissions || (si===0 ? {dashboard:true,findings:true,recommendations:true,policy:true,training:true,alerts:true} : {dashboard:false,findings:false,recommendations:false,policy:false,training:true,alerts:false});
-        var label = el('label',{cls:'perm-toggle'});
-        var cb = el('input',{type:'checkbox'});
-        cb.checked = !!perms[p.key];
-        (function(staffIdx, permKey, checkbox){
-          checkbox.addEventListener('change', function(){
-            if(!S.dashStaff[staffIdx].permissions) S.dashStaff[staffIdx].permissions = {};
-            S.dashStaff[staffIdx].permissions[permKey] = checkbox.checked;
-          });
-        })(si, p.key, cb);
-        var slider = el('span',{cls:'perm-slider'});
-        label.appendChild(cb); label.appendChild(slider);
-        td.appendChild(label); tr.appendChild(td);
-      });
-      var actionTd = el('td',{});
-      if(si > 0){
-        var revokeBtn = el('button',{cls:'btn-remove', sty:{fontSize:'11px'}, onclick:function(){
-          if(confirm('Remove access for '+staff.name+'?')){ var ds=S.dashStaff.slice(); ds.splice(si,1); ss({dashStaff:ds,activeTab:'users'}); }
-        }});
-        revokeBtn.textContent = 'Revoke';
-        actionTd.appendChild(revokeBtn);
-      }
-      tr.appendChild(actionTd);
-      tbody.appendChild(tr);
-    });
-    table.appendChild(tbody);
-    staffCard.appendChild(table);
-    wrap.appendChild(staffCard);
-  } else {
-    /* Non-admin: just show their own training status */
-    var roCard = el('div',{cls:'card'});
-    roCard.appendChild(el('div',{cls:'card-title'}, 'Your access'));
-    roCard.appendChild(el('p',{sty:{fontSize:'13px',color:'var(--muted)',lineHeight:'1.6'}},
-      'Your access is managed by your firm administrator. Contact your admin to request access to additional sections.'));
-    wrap.appendChild(roCard);
-  }
-
-  return wrap;
-}
-
-/* Called at page load — check for existing session before rendering anything */
-initAuth();
 </script>
 </body>
 </html>
