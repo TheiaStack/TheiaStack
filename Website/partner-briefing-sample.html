@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Partner Briefing Pack — Sample | Theia-Stack</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #111111;
+  --ink-2: #3d3d3d;
+  --ink-3: #7a7a7a;
+  --rule: #e0e0da;
+  --bg: #f8f7f4;
+  --white: #ffffff;
+  --red: #b83232;
+  --green: #1a6640;
+  --amber: #8a5a00;
+  --serif: 'Lora', Georgia, serif;
+  --sans: 'Inter', system-ui, sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--sans); background: var(--bg); color: var(--ink); -webkit-font-smoothing: antialiased; }
+
+.sample-banner {
+  background: var(--ink);
+  color: rgba(255,255,255,.7);
+  text-align: center;
+  padding: 12px 24px;
+  font-size: 12px;
+  letter-spacing: .03em;
+  position: sticky; top: 0; z-index: 100;
+}
+.sample-banner strong { color: var(--white); }
+.sample-banner a { color: rgba(255,255,255,.5); text-decoration: underline; }
+.sample-banner a:hover { color: var(--white); }
+
+.doc {
+  max-width: 860px;
+  margin: 40px auto 80px;
+  background: var(--white);
+  border: 1px solid var(--rule);
+}
+
+/* COVER */
+.cover {
+  background: var(--ink);
+  padding: 64px 64px 56px;
+  position: relative;
+}
+.cover::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--red);
+}
+.cover-brand {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 64px;
+}
+.cover-gem { width: 8px; height: 8px; background: var(--red); transform: rotate(45deg); }
+.cover-brand-name { font-family: var(--serif); font-size: 14px; color: rgba(255,255,255,.5); }
+.cover-doc-type {
+  font-size: 10px; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--red); margin-bottom: 16px;
+}
+.cover-title {
+  font-family: var(--serif);
+  font-size: 38px; font-weight: 400; line-height: 1.15;
+  color: var(--white); margin-bottom: 40px; letter-spacing: -.01em;
+}
+.cover-meta {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid rgba(255,255,255,.1);
+  padding-top: 28px;
+}
+.cover-meta-label {
+  font-size: 9px; letter-spacing: .14em; text-transform: uppercase;
+  color: rgba(255,255,255,.25); margin-bottom: 6px;
+}
+.cover-meta-value { font-size: 13px; color: rgba(255,255,255,.7); }
+
+/* HOW THIS WAS PRODUCED */
+.methodology-note {
+  background: var(--bg);
+  border-bottom: 1px solid var(--rule);
+  padding: 20px 48px;
+  display: flex; gap: 14px; align-items: flex-start;
+}
+.methodology-note-label {
+  font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-3); flex-shrink: 0; padding-top: 2px; white-space: nowrap;
+}
+.methodology-note-body {
+  font-size: 12px; color: var(--ink-3); line-height: 1.7;
+}
+
+/* SAMPLE NOTICE */
+.watermark {
+  background: rgba(184,50,50,.05);
+  border: 1px solid rgba(184,50,50,.15);
+  border-left: 3px solid var(--red);
+  padding: 14px 20px;
+  margin: 32px 48px 0;
+  font-size: 12px; color: #7a2020; line-height: 1.6;
+}
+
+/* SECTIONS */
+.doc-body { padding: 0 48px 56px; }
+.doc-section { padding: 40px 0; border-bottom: 1px solid var(--rule); }
+.doc-section:last-child { border-bottom: none; }
+.section-num {
+  font-size: 9px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--ink-3); margin-bottom: 4px; display: block;
+}
+.section-title {
+  font-family: var(--serif);
+  font-size: 22px; font-weight: 400; color: var(--ink);
+  margin-bottom: 8px; line-height: 1.2;
+}
+.section-intro {
+  font-size: 13px; color: var(--ink-3); line-height: 1.7;
+  margin-bottom: 24px;
+}
+
+/* RISK OVERVIEW */
+.risk-overview {
+  display: grid; grid-template-columns: 160px 1fr;
+  gap: 40px; align-items: start;
+  background: var(--bg); padding: 32px;
+  border: 1px solid var(--rule); margin-bottom: 24px;
+}
+.risk-score-block { text-align: center; }
+.risk-score-num {
+  font-family: var(--serif);
+  font-size: 72px; font-weight: 400; line-height: 1;
+  color: var(--amber); margin-bottom: 4px; letter-spacing: -.02em;
+}
+.risk-score-label { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
+.risk-score-band {
+  display: inline-block; margin-top: 10px; padding: 4px 14px;
+  background: #fff3cd; color: var(--amber);
+  font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+  border: 1px solid #f0c040;
+}
+.risk-summary { font-size: 14px; line-height: 1.8; color: var(--ink-2); }
+.risk-summary p { margin-bottom: 12px; }
+.risk-summary p:last-child { margin-bottom: 0; }
+.data-source {
+  display: inline-block; margin-left: 6px;
+  font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-3); background: var(--rule);
+  padding: 1px 6px; vertical-align: middle;
+}
+
+/* SCORE BARS */
+.score-bar-wrap { margin-bottom: 20px; }
+.score-bar-label {
+  display: flex; justify-content: space-between;
+  font-size: 12px; color: var(--ink-3); margin-bottom: 6px;
+}
+.score-bar-label strong { color: var(--ink); font-weight: 500; }
+.score-bar-track { height: 5px; background: var(--rule); }
+.score-bar-fill { height: 5px; }
+.score-bar-fill.high { background: #c0392b; }
+.score-bar-fill.med  { background: #c97d10; }
+.score-bar-fill.low  { background: var(--green); }
+
+/* TOOL TABLE */
+.tool-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 16px; }
+.tool-table th {
+  font-size: 9px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--ink-3); font-weight: 600;
+  padding: 10px 14px; border-bottom: 2px solid var(--rule);
+  text-align: left; background: var(--bg);
+}
+.tool-table td {
+  padding: 13px 14px; border-bottom: 1px solid var(--rule);
+  vertical-align: top; color: var(--ink-2); line-height: 1.5; font-size: 13px;
+}
+.tool-table tr:last-child td { border-bottom: none; }
+.tool-name { font-weight: 500; color: var(--ink); display: block; margin-bottom: 2px; }
+.tool-vendor { font-size: 11px; color: var(--ink-3); }
+.risk-badge {
+  display: inline-block; padding: 3px 9px;
+  font-size: 10px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+}
+.risk-badge.high { background: #fdecea; color: #c0392b; }
+.risk-badge.med  { background: #fff3cd; color: var(--amber); }
+.risk-badge.low  { background: #e8f5ee; color: var(--green); }
+.table-note {
+  font-size: 11px; color: var(--ink-3); line-height: 1.6;
+  background: var(--bg); border: 1px solid var(--rule);
+  padding: 10px 14px;
+}
+
+/* AUDIT RESPONSES */
+.responses-grid {
+  display: flex; flex-direction: column; gap: 0;
+  border: 1px solid var(--rule);
+}
+.response-row {
+  display: grid; grid-template-columns: 240px 1fr;
+  border-bottom: 1px solid var(--rule);
+}
+.response-row:last-child { border-bottom: none; }
+.response-q {
+  font-size: 12px; font-weight: 500; color: var(--ink);
+  padding: 14px 16px;
+  background: var(--bg);
+  border-right: 1px solid var(--rule);
+  line-height: 1.5;
+}
+.response-a {
+  font-size: 13px; color: var(--ink-2); padding: 14px 16px; line-height: 1.55;
+}
+.response-a.gap { color: #c0392b; font-weight: 500; }
+.response-a.partial { color: var(--amber); font-weight: 500; }
+.response-a.ok { color: var(--green); font-weight: 500; }
+
+/* FINDINGS */
+.finding {
+  display: flex; gap: 16px; align-items: flex-start;
+  padding: 18px 0; border-bottom: 1px solid var(--rule);
+}
+.finding:last-child { border-bottom: none; }
+.finding-num {
+  font-family: var(--serif); font-size: 13px; font-style: italic;
+  color: var(--red); flex-shrink: 0; width: 20px; padding-top: 2px;
+}
+.finding-title { font-size: 14px; font-weight: 500; color: var(--ink); margin-bottom: 5px; }
+.finding-desc { font-size: 13px; color: var(--ink-3); line-height: 1.7; }
+.finding-basis {
+  margin-top: 8px; font-size: 11px; color: var(--ink-3);
+  border-top: 1px solid var(--rule); padding-top: 8px;
+  display: flex; gap: 6px; align-items: baseline;
+}
+.finding-basis-label {
+  font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+  font-size: 10px; flex-shrink: 0; color: var(--ink-3);
+}
+
+/* RECS */
+.rec {
+  padding: 20px 0; border-bottom: 1px solid var(--rule);
+  display: grid; grid-template-columns: 100px 1fr;
+  gap: 20px; align-items: start;
+}
+.rec:last-child { border-bottom: none; }
+.rec-priority {
+  font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+  padding: 4px 10px; text-align: center;
+}
+.rec-priority.p1 { background: #fdecea; color: #c0392b; }
+.rec-priority.p2 { background: #fff3cd; color: var(--amber); }
+.rec-priority.p3 { background: #e8f5ee; color: var(--green); }
+.rec-title { font-size: 14px; font-weight: 500; color: var(--ink); margin-bottom: 5px; }
+.rec-desc { font-size: 13px; color: var(--ink-3); line-height: 1.7; }
+
+/* NEXT STEPS */
+.next-steps { background: var(--ink); padding: 36px; }
+.next-steps-title {
+  font-family: var(--serif); font-size: 18px; font-weight: 400;
+  color: var(--white); margin-bottom: 20px;
+}
+.next-step-item {
+  display: flex; gap: 16px; align-items: flex-start;
+  padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,.07);
+}
+.next-step-item:last-child { border-bottom: none; }
+.next-step-n {
+  font-family: var(--serif); font-style: italic;
+  font-size: 13px; color: var(--red); flex-shrink: 0; padding-top: 1px;
+}
+.next-step-text { font-size: 13px; color: rgba(255,255,255,.55); line-height: 1.65; }
+.next-step-text strong { color: rgba(255,255,255,.85); font-weight: 500; }
+
+/* FOOTER */
+.doc-footer {
+  border-top: 1px solid var(--rule);
+  padding: 20px 48px;
+  display: flex; justify-content: space-between; align-items: center; gap: 24px;
+  background: var(--bg);
+}
+.doc-footer-brand { display: flex; align-items: center; gap: 8px; font-family: var(--serif); font-size: 13px; color: var(--ink-3); }
+.doc-footer-gem { width: 6px; height: 6px; background: var(--red); transform: rotate(45deg); }
+.doc-footer-note { font-size: 11px; color: var(--ink-3); }
+
+@media print {
+  .sample-banner { display: none; }
+  body { background: white; }
+  .doc { border: none; margin: 0; max-width: none; }
+}
+@media (max-width: 700px) {
+  .cover { padding: 40px 24px 36px; }
+  .cover-meta { grid-template-columns: 1fr 1fr; gap: 16px; }
+  .doc-body { padding: 0 20px 40px; }
+  .methodology-note { padding: 16px 20px; flex-direction: column; gap: 6px; }
+  .watermark { margin: 20px 20px 0; }
+  .risk-overview { grid-template-columns: 1fr; gap: 20px; }
+  .response-row { grid-template-columns: 1fr; }
+  .response-q { border-right: none; border-bottom: 1px solid var(--rule); }
+  .rec { grid-template-columns: 1fr; gap: 8px; }
+  .doc-footer { flex-direction: column; align-items: flex-start; }
+}
+</style>
+</head>
+<body>
+
+<div class="sample-banner">
+  <strong>Sample document.</strong> All firm data is illustrative. Findings are based only on information a firm provides during the audit. <a href="index.html">Back to Theia-Stack →</a>
+</div>
+
+<div class="doc">
+
+  <div class="cover">
+    <div class="cover-brand">
+      <div class="cover-gem"></div>
+      <span class="cover-brand-name">Theia-Stack</span>
+    </div>
+    <p class="cover-doc-type">Partner Briefing Pack</p>
+    <h1 class="cover-title">AI Risk Assessment<br>and Compliance Position</h1>
+    <div class="cover-meta">
+      <div>
+        <p class="cover-meta-label">Firm</p>
+        <p class="cover-meta-value">Redacted &amp; Associates</p>
+      </div>
+      <div>
+        <p class="cover-meta-label">Date of assessment</p>
+        <p class="cover-meta-value">12 June 2026</p>
+      </div>
+      <div>
+        <p class="cover-meta-label">Document reference</p>
+        <p class="cover-meta-value">TS-2026-0042</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="methodology-note">
+    <span class="methodology-note-label">How this was produced</span>
+    <p class="methodology-note-body">This report was generated by the firm's managing partner or practice manager completing the Theia-Stack audit. It contains only information the firm provided during that process, combined with publicly documented risk characteristics of the identified tools. It does not involve network scanning, system access, or any form of technical investigation.</p>
+  </div>
+
+  <div class="watermark">
+    <strong>Sample only.</strong> This document uses illustrative data. A real Partner Briefing Pack reflects only your firm's actual self-reported information and the known risk profile of your identified tools.
+  </div>
+
+  <div class="doc-body">
+
+    <!-- SECTION 1 — RISK OVERVIEW -->
+    <div class="doc-section">
+      <span class="section-num">Section 01</span>
+      <h2 class="section-title">Overall Risk Position</h2>
+      <p class="section-intro">The score below reflects the firm's responses to the Theia-Stack audit questionnaire, weighted against the known risk profiles of the tools identified from billing data.</p>
+
+      <div class="risk-overview">
+        <div class="risk-score-block">
+          <p class="risk-score-num">62</p>
+          <p class="risk-score-label">Risk score</p>
+          <span class="risk-score-band">Moderate</span>
+        </div>
+        <div class="risk-summary">
+          <p>Redacted &amp; Associates identified three AI tools during the audit. The firm confirmed that two of these are used in contexts where client information may be involved, and that no formal AI usage policy currently exists.</p>
+          <p>The firm also confirmed that no structured staff training on AI use has been delivered, and that it is not certain what data retention settings apply to the tools in use.</p>
+          <p>These are the gaps driving the moderate risk rating. None represent an insurmountable position — they reflect a firm that is using AI practically but has not yet formalised how it does so.</p>
+        </div>
+      </div>
+
+      <div class="score-bar-wrap">
+        <div class="score-bar-label"><strong>AI usage policy</strong><span>None in place — firm confirmed</span></div>
+        <div class="score-bar-track"><div class="score-bar-fill high" style="width:90%"></div></div>
+      </div>
+      <div class="score-bar-wrap">
+        <div class="score-bar-label"><strong>Staff training</strong><span>None delivered — firm confirmed</span></div>
+        <div class="score-bar-track"><div class="score-bar-fill high" style="width:80%"></div></div>
+      </div>
+      <div class="score-bar-wrap">
+        <div class="score-bar-label"><strong>Data handling awareness</strong><span>Uncertain — firm could not confirm settings</span></div>
+        <div class="score-bar-track"><div class="score-bar-fill med" style="width:60%"></div></div>
+      </div>
+      <div class="score-bar-wrap">
+        <div class="score-bar-label"><strong>Tool oversight</strong><span>Informal — no approval process in place</span></div>
+        <div class="score-bar-track"><div class="score-bar-fill med" style="width:55%"></div></div>
+      </div>
+    </div>
+
+    <!-- SECTION 2 — TOOLS IDENTIFIED -->
+    <div class="doc-section">
+      <span class="section-num">Section 02</span>
+      <h2 class="section-title">AI Tools Identified</h2>
+      <p class="section-intro">The following tools were identified from three months of transaction data provided by the firm, and confirmed during the audit review step. Risk ratings reflect publicly documented characteristics of each tool — not a technical assessment of your specific configuration.</p>
+
+      <table class="tool-table">
+        <thead>
+          <tr>
+            <th>Tool</th>
+            <th>Confirmed use (firm-reported)</th>
+            <th>Known data characteristic</th>
+            <th>Monthly cost</th>
+            <th>Risk</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <span class="tool-name">Microsoft Copilot</span>
+              <span class="tool-vendor">Microsoft Corporation</span>
+            </td>
+            <td>Document drafting and email summarisation</td>
+            <td>Integrates with Microsoft 365 — data handling depends on tenant configuration. Default settings vary by licence type.</td>
+            <td>$420</td>
+            <td><span class="risk-badge high">High</span></td>
+          </tr>
+          <tr>
+            <td>
+              <span class="tool-name">ChatGPT</span>
+              <span class="tool-vendor">OpenAI</span>
+            </td>
+            <td>Research and drafting assistance</td>
+            <td>Data terms differ significantly between consumer, Teams, and Enterprise tiers. The firm did not confirm which tier is in use.</td>
+            <td>$60</td>
+            <td><span class="risk-badge high">High</span></td>
+          </tr>
+          <tr>
+            <td>
+              <span class="tool-name">Otter.ai</span>
+              <span class="tool-vendor">Otter.ai Inc.</span>
+            </td>
+            <td>Meeting transcription</td>
+            <td>Transcripts stored on US-based infrastructure under standard plan. Data processing terms publicly documented.</td>
+            <td>$89</td>
+            <td><span class="risk-badge med">Medium</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="table-note">Risk ratings are based on publicly available vendor documentation and known industry risk classifications — not on any technical inspection of your firm's systems or configuration.</p>
+    </div>
+
+    <!-- SECTION 3 — AUDIT RESPONSES -->
+    <div class="doc-section">
+      <span class="section-num">Section 03</span>
+      <h2 class="section-title">Audit Responses</h2>
+      <p class="section-intro">The following summarises the firm's responses to the structured compliance questions completed during the audit. Findings and recommendations in this report are derived directly from these responses.</p>
+
+      <div class="responses-grid">
+        <div class="response-row">
+          <div class="response-q">Does the firm have a documented AI usage policy?</div>
+          <div class="response-a gap">No — none in place</div>
+        </div>
+        <div class="response-row">
+          <div class="response-q">Have staff received training on AI use?</div>
+          <div class="response-a gap">No — not yet delivered</div>
+        </div>
+        <div class="response-row">
+          <div class="response-q">Are AI tools used in contexts involving client information?</div>
+          <div class="response-a partial">Yes — for two of the three tools identified</div>
+        </div>
+        <div class="response-row">
+          <div class="response-q">Is the firm aware of the data retention settings for its AI tools?</div>
+          <div class="response-a partial">Uncertain — the firm could not confirm this for most tools</div>
+        </div>
+        <div class="response-row">
+          <div class="response-q">Is there a process for approving new AI tools before use?</div>
+          <div class="response-a gap">No — tools are adopted informally</div>
+        </div>
+        <div class="response-row">
+          <div class="response-q">Has PI insurance renewal raised questions about AI governance?</div>
+          <div class="response-a partial">Not yet — but renewal is within three months</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 4 — FINDINGS -->
+    <div class="doc-section">
+      <span class="section-num">Section 04</span>
+      <h2 class="section-title">Key Findings</h2>
+      <p class="section-intro">Each finding below is derived from the firm's audit responses above, or from publicly documented characteristics of the identified tools. Where the basis is a firm response, this is noted.</p>
+
+      <div class="finding">
+        <span class="finding-num">i.</span>
+        <div>
+          <p class="finding-title">No AI usage policy exists</p>
+          <p class="finding-desc">The firm has no documented position on how AI tools may be used, what data may be submitted to them, or what oversight is required. This is the most significant gap in the firm's current position.</p>
+          <div class="finding-basis">
+            <span class="finding-basis-label">Basis</span>
+            Firm confirmed during audit: no policy in place
+          </div>
+        </div>
+      </div>
+
+      <div class="finding">
+        <span class="finding-num">ii.</span>
+        <div>
+          <p class="finding-title">No staff training on AI use has been delivered</p>
+          <p class="finding-desc">The firm confirmed that no structured guidance has been given to staff about appropriate or inappropriate use of the tools identified. Without training, the firm cannot demonstrate that staff are using AI within boundaries the firm has set.</p>
+          <div class="finding-basis">
+            <span class="finding-basis-label">Basis</span>
+            Firm confirmed during audit: no training delivered
+          </div>
+        </div>
+      </div>
+
+      <div class="finding">
+        <span class="finding-num">iii.</span>
+        <div>
+          <p class="finding-title">ChatGPT subscription tier not confirmed</p>
+          <p class="finding-desc">OpenAI's data handling terms differ materially between its consumer, Teams, and Enterprise tiers. The firm was unable to confirm which tier is in use. Until this is established, the applicable data terms are unknown.</p>
+          <div class="finding-basis">
+            <span class="finding-basis-label">Basis</span>
+            Firm could not confirm during audit — publicly documented difference between OpenAI tiers
+          </div>
+        </div>
+      </div>
+
+      <div class="finding">
+        <span class="finding-num">iv.</span>
+        <div>
+          <p class="finding-title">Microsoft Copilot data settings not confirmed</p>
+          <p class="finding-desc">Microsoft Copilot's data handling behaviour varies depending on licence type and tenant configuration. The firm was unable to confirm its current settings. This is a known complexity of the product and does not imply a problem — only that the position is currently unknown.</p>
+          <div class="finding-basis">
+            <span class="finding-basis-label">Basis</span>
+            Firm could not confirm during audit — publicly documented complexity of M365 data settings
+          </div>
+        </div>
+      </div>
+
+      <div class="finding">
+        <span class="finding-num">v.</span>
+        <div>
+          <p class="finding-title">No process for approving new AI tools</p>
+          <p class="finding-desc">The firm confirmed that AI tools are adopted informally, without a sign-off process. As the market for AI tools expands rapidly, the absence of an approval process creates ongoing exposure as staff add tools without governance review.</p>
+          <div class="finding-basis">
+            <span class="finding-basis-label">Basis</span>
+            Firm confirmed during audit: no approval process in place
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 5 — RECOMMENDATIONS -->
+    <div class="doc-section">
+      <span class="section-num">Section 05</span>
+      <h2 class="section-title">Recommendations</h2>
+      <p class="section-intro">Recommendations are ordered by priority. Each is actionable by the firm's managing partner or practice manager without external technical support.</p>
+
+      <div class="rec">
+        <span class="rec-priority p1">Priority 1</span>
+        <div>
+          <p class="rec-title">Implement a documented AI usage policy</p>
+          <p class="rec-desc">Establish a written policy covering which AI tools are approved for use, what types of information may and may not be submitted to them, and what the consequences of non-compliance are. Circulate to all staff and record acknowledgement.</p>
+        </div>
+      </div>
+
+      <div class="rec">
+        <span class="rec-priority p1">Priority 1</span>
+        <div>
+          <p class="rec-title">Confirm the ChatGPT subscription tier in use</p>
+          <p class="rec-desc">Identify whether staff are using personal, Teams, or Enterprise accounts and review the applicable data terms. OpenAI publishes its terms for each tier publicly. If personal accounts are in use for firm work, this warrants a decision about whether to consolidate under a firm-managed account.</p>
+        </div>
+      </div>
+
+      <div class="rec">
+        <span class="rec-priority p1">Priority 1</span>
+        <div>
+          <p class="rec-title">Confirm Microsoft Copilot data configuration</p>
+          <p class="rec-desc">Microsoft publishes documentation on data handling settings for Copilot. The managing partner or practice manager should confirm the relevant settings in the Microsoft 365 admin portal, or request confirmation from whoever manages the M365 subscription.</p>
+        </div>
+      </div>
+
+      <div class="rec">
+        <span class="rec-priority p2">Priority 2</span>
+        <div>
+          <p class="rec-title">Deliver structured staff training on AI use</p>
+          <p class="rec-desc">Provide all staff with clear guidance on the approved uses of each tool, what information should not be submitted, and what to do if they are uncertain. Keep a record of who has completed training.</p>
+        </div>
+      </div>
+
+      <div class="rec">
+        <span class="rec-priority p2">Priority 2</span>
+        <div>
+          <p class="rec-title">Establish a process for approving new AI tools</p>
+          <p class="rec-desc">Put in place a simple sign-off step before any new AI tool is used for firm or client work. This does not need to be complex — a brief review against a standard checklist is sufficient to demonstrate that governance is in place.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 6 — NEXT STEPS -->
+    <div class="doc-section" style="padding-bottom:0;border-bottom:none;">
+      <span class="section-num">Section 06</span>
+      <h2 class="section-title" style="margin-bottom:20px">What a Theia-Stack subscription includes</h2>
+      <div class="next-steps">
+        <p class="next-steps-title">Moving from this report to a documented compliance position</p>
+        <div class="next-step-item">
+          <span class="next-step-n">i.</span>
+          <p class="next-step-text"><strong>Living AI usage policy.</strong> Generated around your specific tools. Updates when tool terms or risk characteristics change.</p>
+        </div>
+        <div class="next-step-item">
+          <span class="next-step-n">ii.</span>
+          <p class="next-step-text"><strong>Staff training modules.</strong> One module per identified tool, covering approved uses, prohibited uses, and a knowledge check. Completion is recorded per staff member.</p>
+        </div>
+        <div class="next-step-item">
+          <span class="next-step-n">iii.</span>
+          <p class="next-step-text"><strong>Annual AI Risk Management Report.</strong> Timestamped and dated. Renewed each year to reflect the current state of the firm's AI use — not a one-off snapshot.</p>
+        </div>
+        <div class="next-step-item">
+          <span class="next-step-n">iv.</span>
+          <p class="next-step-text"><strong>Quarterly automatic re-audit.</strong> The platform monitors for changes to your tool stack and alerts you when something affects your compliance position.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="doc-footer">
+    <div class="doc-footer-brand">
+      <div class="doc-footer-gem"></div>
+      Theia-Stack
+    </div>
+    <p class="doc-footer-note">Sample document — illustrative only. Document reference TS-SAMPLE-001 &nbsp;·&nbsp; theiastack.com.au</p>
+  </div>
+
+</div>
+</body>
+</html>

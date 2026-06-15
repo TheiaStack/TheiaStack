@@ -664,7 +664,114 @@ footer {
 }
 .footer-copy { font-size: 11px; color: rgba(255,255,255,.18); font-weight: 400; }
 
-/* ── SCROLL REVEAL ── */
+/* ── CONTACT MODAL ── */
+.modal-overlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(15,15,13,.7);
+  backdrop-filter: blur(4px);
+  align-items: center; justify-content: center;
+  padding: 24px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--white);
+  width: 100%; max-width: 520px;
+  padding: 48px;
+  position: relative;
+  animation: modalIn .2s ease;
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.modal-close {
+  position: absolute; top: 20px; right: 24px;
+  background: none; border: none; cursor: pointer;
+  font-size: 20px; color: var(--ink-3); line-height: 1;
+  transition: color .15s;
+}
+.modal-close:hover { color: var(--ink); }
+.modal-eyebrow {
+  font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--red); margin-bottom: 12px;
+}
+.modal-title {
+  font-family: var(--serif);
+  font-size: 26px; font-weight: 400;
+  color: var(--ink); margin-bottom: 8px; line-height: 1.2;
+}
+.modal-sub {
+  font-size: 13px; color: var(--ink-3);
+  margin-bottom: 32px; line-height: 1.6;
+}
+.modal form { display: flex; flex-direction: column; gap: 16px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-field { display: flex; flex-direction: column; gap: 6px; }
+.form-field label {
+  font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.form-field input,
+.form-field select {
+  padding: 11px 14px;
+  border: 1px solid var(--rule);
+  background: var(--bg);
+  font-family: var(--sans); font-size: 14px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color .15s;
+  appearance: none;
+}
+.form-field input:focus,
+.form-field select:focus { border-color: var(--ink); background: var(--white); }
+.form-field.full { grid-column: 1 / -1; }
+.btn-modal-submit {
+  display: block; width: 100%; text-align: center;
+  background: var(--ink); color: var(--white);
+  font-family: var(--sans);
+  font-size: 13px; font-weight: 500; letter-spacing: .06em;
+  padding: 15px; border: none; cursor: pointer;
+  transition: background .2s; margin-top: 8px;
+}
+.btn-modal-submit:hover { background: var(--red); }
+.modal-success {
+  display: none;
+  text-align: center; padding: 32px 0;
+}
+.modal-success-icon {
+  width: 48px; height: 48px;
+  border: 1.5px solid var(--rule);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 20px;
+  font-size: 20px;
+}
+.modal-success h3 {
+  font-family: var(--serif); font-size: 22px; font-weight: 400;
+  color: var(--ink); margin-bottom: 10px;
+}
+.modal-success p { font-size: 13px; color: var(--ink-3); line-height: 1.65; }
+
+/* ── PARTNER BRIEFING EXPANDED ── */
+.briefing-what {
+  font-size: 12px; color: var(--ink-3);
+  margin-top: 14px; line-height: 1.65;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule);
+}
+.briefing-sample-link {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 12px; font-weight: 500;
+  color: var(--ink);
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 1px;
+  transition: color .15s, border-color .15s;
+}
+.briefing-sample-link:hover { color: var(--red); border-color: var(--red); }
+
+
 .reveal { opacity: 0; transform: translateY(20px); transition: opacity .55s ease, transform .55s ease; }
 .reveal.visible { opacity: 1; transform: none; }
 .d1 { transition-delay: .1s; } .d2 { transition-delay: .2s; } .d3 { transition-delay: .3s; }
@@ -714,7 +821,7 @@ footer {
     <h1>Your firm uses AI.<br><em>Is it compliant?</em></h1>
     <p class="hero-sub">Theia-Stack audits your AI tool usage, scores your compliance risk, generates a documented policy, and trains your staff. Built for Australian law firms.</p>
     <div class="hero-actions">
-      <a href="/platform" class="btn-hero">Start your audit</a>
+      <a href="#" class="btn-hero" onclick="openModal(event, 'Annual')">Start your audit</a>
       <a href="#how" class="hero-link">See how it works</a>
     </div>
   </div>
@@ -740,7 +847,7 @@ footer {
       <span class="feature-tag">The problem</span>
       <h2 class="feature-h">Most firms are now using AI in some form.<br><em>Few have a documented position on it.</em></h2>
       <p class="feature-body">Australian courts have issued GenAI practice notes. PI insurers are increasingly asking about AI governance. And staff are adding tools that sometimes touch client data without anyone upstairs knowing. The risk is real, and it often surfaces without warning.</p>
-      <a href="/platform" class="btn-feature">Run your audit now →</a>
+      <a href="#" class="btn-feature" onclick="openModal(event, 'Annual')">Get in touch →</a>
     </div>
   </div>
 </section>
@@ -855,7 +962,7 @@ footer {
           <li class="price-feature">Everything in the annual plan</li>
           <li class="price-feature">Billed monthly over 12 months</li>
         </ul>
-        <a href="/platform" class="btn-price-outline">Get started</a>
+        <a href="#" class="btn-price-outline" onclick="openModal(event, 'Monthly')">Get started</a>
       </div>
 
       <div class="pricing-card primary reveal d1">
@@ -872,7 +979,7 @@ footer {
           <li class="price-feature">Quarterly automatic re-audit</li>
           <li class="price-feature">Alerts when tool terms or risk ratings change</li>
         </ul>
-        <a href="/platform" class="btn-price-primary">Start your audit</a>
+        <a href="#" class="btn-price-primary" onclick="openModal(event, 'Annual')">Start your audit</a>
       </div>
 
       <div class="pricing-card reveal d2">
@@ -882,10 +989,14 @@ footer {
         <p class="price-equiv">credits toward annual subscription &nbsp;·&nbsp; inc. GST</p>
         <hr class="price-rule">
         <ul class="price-features">
-          <li class="price-feature">Full audit and AI Risk Management Report</li>
+          <li class="price-feature">Full AI tool audit and risk assessment</li>
+          <li class="price-feature">Timestamped AI Risk Management Report</li>
+          <li class="price-feature">Presented to your partners or leadership team</li>
           <li class="price-feature">Credit applied within 14 days if you subscribe</li>
         </ul>
-        <a href="mailto:hello@theiastack.com.au" class="btn-price-outline">Enquire</a>
+        <a href="#" class="btn-price-outline" onclick="openModal(event, 'Partner Briefing Pack')">Enquire</a>
+        <p class="briefing-what">The Partner Briefing Pack is designed for firms that want to present a documented AI risk position to their partners or leadership team before committing to a subscription. It produces the same audit and report as the annual plan, without the ongoing policy and training modules.</p>
+        <a href="partner-briefing-sample.html" target="_blank" class="briefing-sample-link">View a sample briefing pack →</a>
       </div>
 
     </div>
@@ -898,7 +1009,7 @@ footer {
   <div class="cta-band-inner reveal">
     <h2>Ready to get your firm's AI compliance in order?</h2>
     <p class="cta-band-sub">Timestamped. Documented. Built for Australian law firms with up to 50 staff.</p>
-    <a href="/platform" class="btn-white">Begin your audit</a>
+    <a href="#" class="btn-white" onclick="openModal(event, 'Annual')">Get in touch</a>
   </div>
 </section>
 
@@ -945,12 +1056,114 @@ footer {
   </div>
 </footer>
 
+<!-- CONTACT MODAL -->
+<div class="modal-overlay" id="contactModal" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+
+    <div id="modalForm">
+      <p class="modal-eyebrow">Get started</p>
+      <h2 class="modal-title">Tell us about your firm.</h2>
+      <p class="modal-sub">We'll be in touch to get things set up. No automated sequences — a real response from our team.</p>
+
+      <form name="contact" netlify netlify-honeypot="bot-field" onsubmit="handleSubmit(event)">
+        <input type="hidden" name="form-name" value="contact">
+        <input type="hidden" name="plan" id="planField" value="">
+        <p style="display:none"><input name="bot-field"></p>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label for="firstName">First name</label>
+            <input type="text" id="firstName" name="first_name" required placeholder="Jane">
+          </div>
+          <div class="form-field">
+            <label for="lastName">Last name</label>
+            <input type="text" id="lastName" name="last_name" required placeholder="Smith">
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label for="firmName">Firm name</label>
+          <input type="text" id="firmName" name="firm_name" required placeholder="Smith & Associates">
+        </div>
+
+        <div class="form-field">
+          <label for="email">Email address</label>
+          <input type="email" id="email" name="email" required placeholder="jane@smithassociates.com.au">
+        </div>
+
+        <div class="form-field">
+          <label for="plan">Interested in</label>
+          <select id="planSelect" name="plan_interest">
+            <option value="Annual">Annual subscription ($2,990/year)</option>
+            <option value="Monthly">Monthly subscription ($299/month)</option>
+            <option value="Partner Briefing Pack">Partner Briefing Pack ($690 one-off)</option>
+            <option value="Not sure">Not sure yet</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn-modal-submit">Send enquiry</button>
+      </form>
+    </div>
+
+    <div class="modal-success" id="modalSuccess">
+      <div class="modal-success-icon">✓</div>
+      <h3>Thanks — we'll be in touch.</h3>
+      <p>We aim to respond to all enquiries within one business day.</p>
+    </div>
+  </div>
+</div>
+
 <script>
 const els = document.querySelectorAll('.reveal');
 const obs = new IntersectionObserver(entries => {
   entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
 }, { threshold: 0.1, rootMargin: '0px 0px -24px 0px' });
 els.forEach(el => obs.observe(el));
+
+function openModal(e, plan) {
+  e.preventDefault();
+  const overlay = document.getElementById('contactModal');
+  const select = document.getElementById('planSelect');
+  const field = document.getElementById('planField');
+  if (plan && select) {
+    for (let i = 0; i < select.options.length; i++) {
+      if (select.options[i].value === plan) { select.selectedIndex = i; break; }
+    }
+  }
+  if (field) field.value = plan || '';
+  document.getElementById('modalForm').style.display = 'block';
+  document.getElementById('modalSuccess').style.display = 'none';
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('contactModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function closeModalOutside(e) {
+  if (e.target === document.getElementById('contactModal')) closeModal();
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+function handleSubmit(e) {
+  e.preventDefault();
+  const form = e.target;
+  const data = new FormData(form);
+  fetch('/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(data).toString() })
+    .then(() => {
+      document.getElementById('modalForm').style.display = 'none';
+      document.getElementById('modalSuccess').style.display = 'block';
+    })
+    .catch(() => {
+      document.getElementById('modalForm').style.display = 'none';
+      document.getElementById('modalSuccess').style.display = 'block';
+    });
+}
 </script>
 
 </body>
