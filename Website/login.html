@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Log in — Theia-Stack</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:    #111111;
+  --ink-2:  #3d3d3d;
+  --ink-3:  #7a7a7a;
+  --rule:   #e0e0da;
+  --bg:     #f8f7f4;
+  --white:  #ffffff;
+  --red:    #b83232;
+  --red-dk: #8c2424;
+  --serif:  'Lora', Georgia, serif;
+  --sans:   'Inter', system-ui, sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ── LAYOUT ── */
+.page {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 100vh;
+}
+
+/* ── LEFT PANEL ── */
+.left {
+  background: var(--ink);
+  padding: 56px 64px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+.left::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 3px; height: 100%;
+  background: var(--red);
+}
+.left-brand {
+  display: flex; align-items: center; gap: 10px;
+  text-decoration: none;
+}
+.brand-gem {
+  width: 9px; height: 9px;
+  background: var(--red);
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+.brand-name {
+  font-family: var(--serif);
+  font-size: 16px; color: var(--white);
+}
+.left-body {}
+.left-heading {
+  font-family: var(--serif);
+  font-size: clamp(28px, 3vw, 40px);
+  font-weight: 400;
+  color: var(--white);
+  line-height: 1.2;
+  margin-bottom: 20px;
+  letter-spacing: -.01em;
+}
+.left-heading em { font-style: italic; color: rgba(255,255,255,.4); }
+.left-sub {
+  font-size: 14px; font-weight: 400;
+  color: rgba(255,255,255,.4);
+  line-height: 1.75;
+  max-width: 340px;
+}
+.left-features {
+  list-style: none;
+  display: flex; flex-direction: column; gap: 0;
+  border-top: 1px solid rgba(255,255,255,.07);
+}
+.left-feature {
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  font-size: 13px;
+  color: rgba(255,255,255,.4);
+  display: flex; gap: 12px; align-items: flex-start;
+}
+.left-feature::before {
+  content: '—';
+  color: var(--red);
+  flex-shrink: 0;
+  opacity: .7;
+}
+
+/* ── RIGHT PANEL ── */
+.right {
+  background: var(--white);
+  padding: 56px 64px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.right-inner { max-width: 380px; }
+
+.form-eyebrow {
+  font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--ink-3); margin-bottom: 12px;
+}
+.form-title {
+  font-family: var(--serif);
+  font-size: 26px; font-weight: 400;
+  color: var(--ink);
+  margin-bottom: 32px; line-height: 1.2;
+}
+
+/* FORM */
+.form { display: flex; flex-direction: column; gap: 18px; }
+
+.field { display: flex; flex-direction: column; gap: 7px; }
+.field label {
+  font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.field input {
+  padding: 12px 14px;
+  border: 1px solid var(--rule);
+  background: var(--bg);
+  font-family: var(--sans); font-size: 14px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color .15s, background .15s;
+}
+.field input:focus {
+  border-color: var(--ink);
+  background: var(--white);
+}
+.field input::placeholder { color: #bbb; }
+
+.forgot {
+  font-size: 12px;
+  color: var(--ink-3);
+  text-decoration: none;
+  text-align: right;
+  margin-top: -10px;
+  transition: color .15s;
+}
+.forgot:hover { color: var(--ink); }
+
+.btn-login {
+  display: block; width: 100%;
+  background: var(--ink);
+  color: var(--white);
+  font-family: var(--sans);
+  font-size: 13px; font-weight: 500; letter-spacing: .06em;
+  padding: 15px;
+  border: none; cursor: pointer;
+  transition: background .2s;
+  margin-top: 6px;
+}
+.btn-login:hover { background: var(--red); }
+.btn-login:disabled {
+  opacity: .5; cursor: not-allowed;
+  background: var(--ink);
+}
+
+/* ERROR / SUCCESS */
+.msg {
+  display: none;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.55;
+  border: 1px solid;
+}
+.msg.error {
+  background: #fdecea;
+  border-color: #f0b0b0;
+  color: #8c2424;
+}
+.msg.success {
+  background: #e8f5ee;
+  border-color: #a0d4b8;
+  color: #1a6640;
+}
+.msg.show { display: block; }
+
+/* DIVIDER */
+.divider {
+  display: flex; align-items: center; gap: 12px;
+  margin: 4px 0;
+}
+.divider::before, .divider::after {
+  content: ''; flex: 1;
+  height: 1px; background: var(--rule);
+}
+.divider-text { font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+
+/* FOOTER LINK */
+.form-footer {
+  text-align: center;
+  font-size: 12px;
+  color: var(--ink-3);
+  margin-top: 8px;
+}
+.form-footer a {
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 1px;
+  transition: color .15s, border-color .15s;
+}
+.form-footer a:hover { color: var(--red); border-color: var(--red); }
+
+/* RIGHT FOOTER */
+.right-footer {
+  margin-top: auto;
+  padding-top: 48px;
+}
+.right-footer-text {
+  font-size: 11px; color: var(--ink-3);
+}
+
+/* RESET FORM */
+.reset-form { display: none; }
+.reset-form.show { display: flex; flex-direction: column; gap: 18px; }
+.login-form.hide { display: none; }
+
+/* MOBILE */
+@media (max-width: 800px) {
+  .page { grid-template-columns: 1fr; }
+  .left { display: none; }
+  .right { padding: 48px 28px; justify-content: flex-start; padding-top: 64px; }
+  .right-inner { max-width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- LEFT -->
+  <div class="left">
+    <a href="/" class="left-brand">
+      <div class="brand-gem"></div>
+      <span class="brand-name">Theia-Stack</span>
+    </a>
+
+    <div class="left-body">
+      <h1 class="left-heading">AI compliance,<br><em>documented.</em></h1>
+      <p class="left-sub">Your firm's AI audit, risk report, usage policy, and staff training — all in one place.</p>
+    </div>
+
+    <ul class="left-features">
+      <li class="left-feature">Annual AI Risk Management Report</li>
+      <li class="left-feature">Tailored AI usage policy</li>
+      <li class="left-feature">Staff training modules with knowledge checks</li>
+      <li class="left-feature">Quarterly automatic re-audit</li>
+    </ul>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right">
+    <div class="right-inner">
+
+      <!-- LOGIN FORM -->
+      <div class="login-form" id="loginSection">
+        <p class="form-eyebrow">Subscriber access</p>
+        <h2 class="form-title">Log in to your account</h2>
+
+        <form class="form" id="loginForm" onsubmit="handleLogin(event)">
+          <div class="msg error" id="loginError"></div>
+
+          <div class="field">
+            <label for="email">Email address</label>
+            <input type="email" id="email" name="email" required placeholder="you@yourfirm.com.au" autocomplete="email">
+          </div>
+
+          <div class="field">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required placeholder="••••••••" autocomplete="current-password">
+          </div>
+
+          <a href="#" class="forgot" onclick="showReset(event)">Forgot password?</a>
+
+          <button type="submit" class="btn-login" id="loginBtn">Log in</button>
+        </form>
+
+        <div class="divider" style="margin-top:20px"><span class="divider-text">not a subscriber?</span></div>
+        <p class="form-footer"><a href="/#pricing">View plans</a> or <a href="mailto:hello@theiastack.com.au">get in touch</a></p>
+      </div>
+
+      <!-- RESET FORM -->
+      <div id="resetSection">
+        <p class="form-eyebrow">Reset password</p>
+        <h2 class="form-title">We'll send you a link.</h2>
+
+        <form class="reset-form show" id="resetForm" onsubmit="handleReset(event)">
+          <div class="msg error" id="resetError"></div>
+          <div class="msg success" id="resetSuccess"></div>
+
+          <div class="field">
+            <label for="resetEmail">Email address</label>
+            <input type="email" id="resetEmail" name="resetEmail" required placeholder="you@yourfirm.com.au" autocomplete="email">
+          </div>
+
+          <button type="submit" class="btn-login" id="resetBtn">Send reset link</button>
+        </form>
+
+        <div class="divider" style="margin-top:20px"><span class="divider-text">remembered it?</span></div>
+        <p class="form-footer"><a href="#" onclick="showLogin(event)">Back to log in</a></p>
+      </div>
+
+    </div>
+
+    <div class="right-footer">
+      <p class="right-footer-text"><a href="/" style="color:inherit;text-decoration:none;border-bottom:1px solid var(--rule);padding-bottom:1px">← Back to theiastack.com.au</a></p>
+    </div>
+  </div>
+
+</div>
+
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL  = 'https://rkqnrpyctllxcnknjsby.supabase.co';
+const SUPABASE_KEY  = 'sb_publishable_7gIWX3E2pS_4UfEKJylqpw_V3CIY1b9';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// If already logged in and has a profile, go straight to platform
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    const { data: profile } = await sb.from('profiles').select('id').eq('id', session.user.id).maybeSingle();
+    if (profile) window.location.replace('/platform');
+  }
+})();
+
+// Show/hide sections
+const loginSection = document.getElementById('loginSection');
+const resetSection = document.getElementById('resetSection');
+resetSection.style.display = 'none';
+
+function showReset(e) {
+  e.preventDefault();
+  loginSection.style.display = 'none';
+  resetSection.style.display = 'block';
+}
+function showLogin(e) {
+  e.preventDefault();
+  resetSection.style.display = 'none';
+  loginSection.style.display = 'block';
+}
+
+// Login
+async function handleLogin(e) {
+  e.preventDefault();
+  const btn   = document.getElementById('loginBtn');
+  const errEl = document.getElementById('loginError');
+  const email = document.getElementById('email').value.trim();
+  const pass  = document.getElementById('password').value;
+
+  btn.disabled = true;
+  btn.textContent = 'Logging in...';
+  errEl.classList.remove('show');
+
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+
+  if (error) {
+    errEl.textContent = error.message === 'Invalid login credentials'
+      ? 'Email or password is incorrect. Please try again.'
+      : error.message;
+    errEl.classList.add('show');
+    btn.disabled = false;
+    btn.textContent = 'Log in';
+    return;
+  }
+
+  // Check they have a profile (i.e. are a subscriber)
+  const { data: profile } = await sb.from('profiles').select('id').eq('id', data.user.id).maybeSingle();
+
+  if (!profile) {
+    await sb.auth.signOut();
+    errEl.textContent = 'No active subscription found for this account. Please contact hello@theiastack.com.au.';
+    errEl.classList.add('show');
+    btn.disabled = false;
+    btn.textContent = 'Log in';
+    return;
+  }
+
+  window.location.replace('/platform');
+}
+
+// Password reset
+async function handleReset(e) {
+  e.preventDefault();
+  const btn     = document.getElementById('resetBtn');
+  const errEl   = document.getElementById('resetError');
+  const succEl  = document.getElementById('resetSuccess');
+  const email   = document.getElementById('resetEmail').value.trim();
+
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+  errEl.classList.remove('show');
+  succEl.classList.remove('show');
+
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + '/platform'
+  });
+
+  if (error) {
+    errEl.textContent = error.message;
+    errEl.classList.add('show');
+    btn.disabled = false;
+    btn.textContent = 'Send reset link';
+  } else {
+    succEl.textContent = 'Reset link sent. Check your inbox.';
+    succEl.classList.add('show');
+    btn.disabled = false;
+    btn.textContent = 'Send reset link';
+  }
+}
+</script>
+
+</body>
+</html>
