@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Theia-Stack | AI Compliance for Australian Law Firms</title>
+<meta name="description" content="Theia-Stack audits your firm's AI tools, assesses risk, and produces a timestamped compliance report. Built for Australian law firms.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400;1,600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+
+:root {
+  --ink:     #111111;
+  --ink-2:   #3d3d3d;
+  --ink-3:   #7a7a7a;
+  --rule:    #e0e0da;
+  --bg:      #f8f7f4;
+  --white:   #ffffff;
+  --red:     #b83232;
+  --red-dk:  #8c2424;
+  --serif:   'Lora', Georgia, serif;
+  --sans:    'Inter', system-ui, sans-serif;
+  --max:     1180px;
+  --pad:     clamp(24px, 5vw, 72px);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--sans);
+  color: var(--ink);
+  background: var(--white);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.65;
+}
+img { display: block; max-width: 100%; }
+a { color: inherit; text-decoration: none; }
+
+/* ── NAV ── */
+.nav {
+  position: sticky; top: 0; z-index: 200;
+  background: var(--white);
+  border-bottom: 1px solid var(--rule);
+}
+.nav-wrap {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 0 var(--pad);
+  height: 68px;
+  display: flex; align-items: center; justify-content: space-between; gap: 32px;
+}
+.nav-logo {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--serif);
+  font-size: 16px;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.logo-gem {
+  width: 9px; height: 9px;
+  background: var(--red);
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+.nav-links {
+  display: flex; align-items: center; gap: 28px;
+  list-style: none;
+}
+.nav-links a {
+  font-size: 13px; font-weight: 400;
+  color: var(--ink-3);
+  transition: color .15s;
+  white-space: nowrap;
+}
+.nav-links a:hover { color: var(--ink); }
+.nav-cta {
+  background: var(--red);
+  color: var(--white) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  padding: 10px 22px;
+  white-space: nowrap;
+  transition: background .15s !important;
+  border-radius: 2px;
+}
+.nav-cta:hover { background: var(--red-dk) !important; }
+
+/* ── HERO ── */
+.hero {
+  background: var(--ink);
+  background-image: url('https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1800&q=80&fit=crop');
+  background-size: cover;
+  background-position: center 30%;
+  position: relative;
+  padding: 100px var(--pad) 96px;
+  text-align: center;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(15,15,13,.88);
+  pointer-events: none;
+}
+.hero-inner { position: relative; }
+  max-width: 760px;
+  margin: 0 auto;
+}
+.hero-tag {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 11px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--red);
+  margin-bottom: 28px;
+}
+.hero-tag::before, .hero-tag::after {
+  content: '';
+  display: block;
+  width: 20px; height: 1px;
+  background: var(--red);
+  opacity: .6;
+}
+.hero h1 {
+  font-family: var(--serif);
+  font-size: clamp(38px, 6vw, 72px);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -.02em;
+  color: var(--white);
+  margin-bottom: 24px;
+}
+.hero h1 em {
+  font-style: italic;
+  color: rgba(255,255,255,.42);
+}
+.hero-sub {
+  font-size: clamp(15px, 1.8vw, 18px);
+  font-weight: 400;
+  line-height: 1.7;
+  color: rgba(255,255,255,.5);
+  max-width: 560px;
+  margin: 0 auto 44px;
+}
+.hero-actions {
+  display: flex; align-items: center; justify-content: center; gap: 20px; flex-wrap: wrap;
+}
+.btn-hero {
+  display: inline-block;
+  background: var(--red);
+  color: var(--white);
+  font-size: 13px; font-weight: 500; letter-spacing: .06em;
+  padding: 15px 36px;
+  border-radius: 2px;
+  transition: background .2s, transform .15s;
+}
+.btn-hero:hover { background: var(--red-dk); transform: translateY(-1px); }
+.hero-link {
+  font-size: 13px;
+  color: rgba(255,255,255,.4);
+  border-bottom: 1px solid rgba(255,255,255,.15);
+  padding-bottom: 1px;
+  transition: color .15s, border-color .15s;
+}
+.hero-link:hover { color: rgba(255,255,255,.7); border-color: rgba(255,255,255,.4); }
+
+/* ── TRUST BAR ── */
+.trust {
+  border-bottom: 1px solid var(--rule);
+  padding: 0 var(--pad);
+}
+.trust-wrap {
+  max-width: var(--max);
+  margin: 0 auto;
+  display: flex;
+  align-items: stretch;
+}
+.trust-item {
+  flex: 1;
+  padding: 22px 0;
+  display: flex; align-items: center; gap: 12px;
+  font-size: 13px;
+  color: var(--ink-3);
+  font-weight: 400;
+  border-right: 1px solid var(--rule);
+  padding-right: 32px;
+  margin-right: 32px;
+}
+.trust-item:last-child { border-right: none; margin-right: 0; padding-right: 0; }
+.trust-item strong { color: var(--ink); font-weight: 500; display: block; }
+.trust-dot {
+  width: 6px; height: 6px;
+  background: var(--red);
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+
+/* ── FEATURE ROWS ── */
+.feature-row {
+  padding: 96px var(--pad);
+  border-bottom: 1px solid var(--rule);
+}
+.feature-row:nth-child(even) { background: var(--bg); }
+.feature-row.photo-bg {
+  background-image: url('https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=1600&q=80&fit=crop');
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+.feature-row.photo-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,.93);
+  pointer-events: none;
+}
+.feature-row.photo-bg .feature-wrap { position: relative; }
+
+.feature-wrap {
+  max-width: var(--max);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+}
+.feature-row.flip .feature-wrap { direction: rtl; }
+.feature-row.flip .feature-wrap > * { direction: ltr; }
+
+.feature-visual {
+  position: relative;
+}
+.feature-panel {
+  background: var(--ink);
+  padding: 48px;
+  position: relative;
+  overflow: hidden;
+}
+.feature-panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--red);
+}
+.feature-panel-label {
+  font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+  color: rgba(255,255,255,.25);
+  margin-bottom: 32px;
+}
+.feature-panel-stat {
+  font-family: var(--serif);
+  font-size: 56px;
+  font-weight: 400;
+  color: var(--white);
+  line-height: 1;
+  margin-bottom: 8px;
+  letter-spacing: -.02em;
+}
+.feature-panel-stat-label {
+  font-size: 13px;
+  color: rgba(255,255,255,.4);
+  font-weight: 400;
+  margin-bottom: 40px;
+}
+.feature-panel-list { list-style: none; }
+.feature-panel-item {
+  padding: 14px 0;
+  border-top: 1px solid rgba(255,255,255,.07);
+  font-size: 13px;
+  color: rgba(255,255,255,.55);
+  font-weight: 400;
+  display: flex; gap: 14px; align-items: flex-start;
+}
+.feature-panel-item::before {
+  content: '—';
+  color: var(--red);
+  flex-shrink: 0;
+  opacity: .7;
+}
+
+/* alt panel style - checklist */
+.check-panel {
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  padding: 40px;
+}
+.check-panel-title {
+  font-family: var(--serif);
+  font-size: 15px;
+  color: var(--ink);
+  margin-bottom: 24px;
+  font-style: italic;
+}
+.check-list { list-style: none; }
+.check-item {
+  padding: 13px 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: 13px;
+  color: var(--ink-2);
+  font-weight: 400;
+  display: flex; gap: 14px; align-items: flex-start;
+  line-height: 1.55;
+}
+.check-item:last-child { border-bottom: none; }
+.check-mark {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--white);
+  font-size: 10px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* steps visual */
+.steps-visual {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+}
+.step-tile {
+  background: var(--white);
+  padding: 28px 24px;
+}
+.step-tile.dark { background: var(--ink); }
+.step-n {
+  font-family: var(--serif);
+  font-size: 32px;
+  color: var(--rule);
+  line-height: 1;
+  margin-bottom: 12px;
+  letter-spacing: -.02em;
+}
+.step-tile.dark .step-n { color: rgba(255,255,255,.1); }
+.step-title {
+  font-family: var(--serif);
+  font-size: 14px;
+  color: var(--ink);
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+.step-tile.dark .step-title { color: var(--white); }
+.step-copy {
+  font-size: 12px;
+  color: var(--ink-3);
+  font-weight: 400;
+  line-height: 1.6;
+}
+.step-tile.dark .step-copy { color: rgba(255,255,255,.4); }
+.step-flag {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--red);
+}
+
+/* ── FEATURE TEXT ── */
+.feature-tag {
+  font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--red);
+  margin-bottom: 16px;
+  display: block;
+}
+.feature-h {
+  font-family: var(--serif);
+  font-size: clamp(26px, 3vw, 38px);
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -.015em;
+  color: var(--ink);
+  margin-bottom: 20px;
+}
+.feature-h em { font-style: italic; color: var(--ink-3); }
+.feature-body {
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.8;
+  color: var(--ink-2);
+  margin-bottom: 32px;
+}
+.btn-feature {
+  display: inline-block;
+  font-size: 13px; font-weight: 500; letter-spacing: .06em;
+  color: var(--ink);
+  border-bottom: 1px solid var(--ink);
+  padding-bottom: 2px;
+  transition: color .15s, border-color .15s;
+}
+.btn-feature:hover { color: var(--red); border-color: var(--red); }
+
+/* ── QUOTE ── */
+.quote-section {
+  background: var(--ink);
+  background-image: url('https://images.unsplash.com/photo-1479142506502-19b3a3b7ff33?w=1800&q=80&fit=crop');
+  background-size: cover;
+  background-position: center 40%;
+  position: relative;
+  padding: 80px var(--pad);
+  text-align: center;
+}
+.quote-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(15,15,13,.91);
+  pointer-events: none;
+}
+.quote-inner {
+  max-width: 720px;
+  margin: 0 auto;
+  position: relative;
+}
+.quote-mark {
+  font-family: var(--serif);
+  font-size: 72px;
+  line-height: .6;
+  color: var(--red);
+  opacity: .4;
+  margin-bottom: 24px;
+  display: block;
+}
+.quote-text {
+  font-family: var(--serif);
+  font-size: clamp(18px, 2.5vw, 26px);
+  font-weight: 400;
+  font-style: italic;
+  line-height: 1.55;
+  color: rgba(255,255,255,.75);
+  margin-bottom: 28px;
+}
+.quote-attr {
+  font-size: 12px; letter-spacing: .1em; text-transform: uppercase;
+  color: rgba(255,255,255,.25);
+}
+
+/* ── PRICING ── */
+.pricing-section {
+  padding: 96px var(--pad);
+  background: var(--bg);
+  border-bottom: 1px solid var(--rule);
+}
+.pricing-inner {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+.pricing-header {
+  text-align: center;
+  margin-bottom: 56px;
+}
+.pricing-h {
+  font-family: var(--serif);
+  font-size: clamp(28px, 3vw, 42px);
+  font-weight: 400;
+  letter-spacing: -.015em;
+  color: var(--ink);
+  margin-bottom: 12px;
+}
+.pricing-sub {
+  font-size: 15px; font-weight: 400;
+  color: var(--ink-3);
+  max-width: 480px;
+  margin: 0 auto;
+  line-height: 1.65;
+}
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  align-items: stretch;
+  border: 1px solid var(--rule);
+}
+.pricing-card {
+  background: var(--white);
+  border-right: 1px solid var(--rule);
+  padding: 44px 36px;
+}
+.pricing-card:last-child { border-right: none; }
+.pricing-card.primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  position: relative;
+}
+.pricing-card.primary::before {
+  content: 'Recommended';
+  position: absolute;
+  top: 0; left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--red);
+  color: var(--white);
+  font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  padding: 5px 16px;
+  white-space: nowrap;
+}
+.price-label {
+  font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--ink-3);
+  display: block;
+  margin-bottom: 28px;
+}
+.pricing-card.primary .price-label { color: rgba(255,255,255,.3); }
+.price-num {
+  font-family: var(--serif);
+  font-size: 48px; font-weight: 400;
+  letter-spacing: -.025em;
+  color: var(--ink);
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.pricing-card.primary .price-num { color: var(--white); }
+.price-period {
+  font-size: 13px; font-weight: 400;
+  color: var(--ink-3);
+  margin-bottom: 4px;
+}
+.pricing-card.primary .price-period { color: rgba(255,255,255,.35); }
+.price-equiv {
+  font-size: 12px; font-weight: 400;
+  color: var(--ink-3);
+  margin-bottom: 32px;
+}
+.pricing-card.primary .price-equiv { color: rgba(255,255,255,.25); }
+.price-rule { border: none; border-top: 1px solid var(--rule); margin-bottom: 28px; }
+.pricing-card.primary .price-rule { border-color: rgba(255,255,255,.08); }
+.price-features { list-style: none; margin-bottom: 36px; flex: 1; }
+.price-feature {
+  font-size: 13px; font-weight: 400;
+  color: var(--ink-2);
+  line-height: 1.55;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rule);
+  display: flex; gap: 12px; align-items: flex-start;
+}
+.price-feature:first-child { border-top: 1px solid var(--rule); }
+.pricing-card.primary .price-feature { color: rgba(255,255,255,.65); border-color: rgba(255,255,255,.07); }
+.pricing-card.primary .price-feature:first-child { border-color: rgba(255,255,255,.07); }
+.price-feature::before { content: '↗'; font-size: 11px; color: var(--red); flex-shrink: 0; margin-top: 1px; opacity: .7; }
+.pricing-card.primary .price-feature::before { color: var(--red); opacity: 1; }
+.btn-price-primary {
+  display: block; text-align: center;
+  background: var(--red);
+  color: var(--white);
+  font-size: 13px; font-weight: 500; letter-spacing: .06em;
+  padding: 14px;
+  transition: background .2s;
+}
+.btn-price-primary:hover { background: var(--red-dk); }
+.btn-price-outline {
+  display: block; text-align: center;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13px; font-weight: 500; letter-spacing: .06em;
+  padding: 13px;
+  border: 1px solid var(--rule);
+  transition: border-color .2s, color .2s;
+}
+.btn-price-outline:hover { border-color: var(--ink); }
+.pricing-note {
+  margin-top: 32px;
+  text-align: center;
+  font-size: 12px; font-weight: 400;
+  color: var(--ink-3);
+  line-height: 1.65;
+}
+
+/* ── CTA BAND ── */
+.cta-band {
+  background: var(--red);
+  background-image: url('https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=1800&q=80&fit=crop');
+  background-size: cover;
+  background-position: center 50%;
+  position: relative;
+  padding: 80px var(--pad);
+  text-align: center;
+}
+.cta-band::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(184,50,50,.9);
+  pointer-events: none;
+}
+.cta-band-inner { max-width: 640px; margin: 0 auto; position: relative; }
+.cta-band h2 {
+  font-family: var(--serif);
+  font-size: clamp(26px, 3.5vw, 42px);
+  font-weight: 400;
+  color: var(--white);
+  line-height: 1.2;
+  margin-bottom: 12px;
+}
+.cta-band h2 em { font-style: italic; opacity: .65; }
+.cta-band-sub {
+  font-size: 15px; font-weight: 400;
+  color: rgba(255,255,255,.55);
+  margin-bottom: 36px;
+}
+.btn-white {
+  display: inline-block;
+  background: var(--white);
+  color: var(--red);
+  font-size: 13px; font-weight: 500; letter-spacing: .06em;
+  padding: 15px 36px;
+  border-radius: 2px;
+  transition: background .2s;
+}
+.btn-white:hover { background: var(--bg); }
+
+/* ── FOOTER ── */
+footer {
+  background: var(--ink);
+  padding: 64px var(--pad) 32px;
+}
+.footer-inner {
+  max-width: var(--max);
+  margin: 0 auto;
+}
+.footer-top {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 48px;
+  padding-bottom: 48px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  margin-bottom: 28px;
+}
+.footer-brand {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--serif);
+  font-size: 16px;
+  color: var(--white);
+  margin-bottom: 10px;
+}
+.footer-gem {
+  width: 8px; height: 8px;
+  background: var(--red);
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+.footer-tag {
+  font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+  color: rgba(255,255,255,.2);
+  margin-bottom: 5px;
+}
+.footer-parent { font-size: 12px; color: rgba(255,255,255,.15); font-weight: 400; }
+.footer-col-h {
+  font-size: 10px; letter-spacing: .12em; text-transform: uppercase;
+  color: rgba(255,255,255,.2);
+  margin-bottom: 18px;
+}
+.footer-col-links { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.footer-col-links a {
+  font-size: 13px; font-weight: 400;
+  color: rgba(255,255,255,.4);
+  transition: color .15s;
+}
+.footer-col-links a:hover { color: rgba(255,255,255,.8); }
+.footer-bottom {
+  display: flex; justify-content: space-between; align-items: center; gap: 16px;
+}
+.footer-copy { font-size: 11px; color: rgba(255,255,255,.18); font-weight: 400; }
+
+/* ── CONTACT MODAL ── */
+.modal-overlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(15,15,13,.7);
+  backdrop-filter: blur(4px);
+  align-items: center; justify-content: center;
+  padding: 24px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--white);
+  width: 100%; max-width: 520px;
+  padding: 48px;
+  position: relative;
+  animation: modalIn .2s ease;
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.modal-close {
+  position: absolute; top: 20px; right: 24px;
+  background: none; border: none; cursor: pointer;
+  font-size: 20px; color: var(--ink-3); line-height: 1;
+  transition: color .15s;
+}
+.modal-close:hover { color: var(--ink); }
+.modal-eyebrow {
+  font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--red); margin-bottom: 12px;
+}
+.modal-title {
+  font-family: var(--serif);
+  font-size: 26px; font-weight: 400;
+  color: var(--ink); margin-bottom: 8px; line-height: 1.2;
+}
+.modal-sub {
+  font-size: 13px; color: var(--ink-3);
+  margin-bottom: 32px; line-height: 1.6;
+}
+.modal form { display: flex; flex-direction: column; gap: 16px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-field { display: flex; flex-direction: column; gap: 6px; }
+.form-field label {
+  font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.form-field input,
+.form-field select {
+  padding: 11px 14px;
+  border: 1px solid var(--rule);
+  background: var(--bg);
+  font-family: var(--sans); font-size: 14px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color .15s;
+  appearance: none;
+}
+.form-field input:focus,
+.form-field select:focus { border-color: var(--ink); background: var(--white); }
+.form-field.full { grid-column: 1 / -1; }
+.btn-modal-submit {
+  display: block; width: 100%; text-align: center;
+  background: var(--ink); color: var(--white);
+  font-family: var(--sans);
+  font-size: 13px; font-weight: 500; letter-spacing: .06em;
+  padding: 15px; border: none; cursor: pointer;
+  transition: background .2s; margin-top: 8px;
+}
+.btn-modal-submit:hover { background: var(--red); }
+.modal-success {
+  display: none;
+  text-align: center; padding: 32px 0;
+}
+.modal-success-icon {
+  width: 48px; height: 48px;
+  border: 1.5px solid var(--rule);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 20px;
+  font-size: 20px;
+}
+.modal-success h3 {
+  font-family: var(--serif); font-size: 22px; font-weight: 400;
+  color: var(--ink); margin-bottom: 10px;
+}
+.modal-success p { font-size: 13px; color: var(--ink-3); line-height: 1.65; }
+
+/* ── PARTNER BRIEFING EXPANDED ── */
+.briefing-what {
+  font-size: 12px; color: var(--ink-3);
+  margin-top: 14px; line-height: 1.65;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule);
+}
+.briefing-sample-link {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 12px; font-weight: 500;
+  color: var(--ink);
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 1px;
+  transition: color .15s, border-color .15s;
+}
+.briefing-sample-link:hover { color: var(--red); border-color: var(--red); }
+
+
+.reveal { opacity: 0; transform: translateY(20px); transition: opacity .55s ease, transform .55s ease; }
+.reveal.visible { opacity: 1; transform: none; }
+.d1 { transition-delay: .1s; } .d2 { transition-delay: .2s; } .d3 { transition-delay: .3s; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  .nav-links li:not(:last-child) { display: none; }
+  .trust-wrap { flex-wrap: wrap; gap: 0; }
+  .trust-item { flex: 0 0 50%; border-right: none; margin: 0; padding: 16px 0; border-bottom: 1px solid var(--rule); }
+  .trust-item:nth-child(odd) { border-right: 1px solid var(--rule); padding-right: 20px; }
+  .feature-wrap, .feature-row.flip .feature-wrap { grid-template-columns: 1fr; direction: ltr; gap: 40px; }
+  .feature-row.flip .feature-wrap .feature-visual { order: -1; }
+  .pricing-grid { grid-template-columns: 1fr; border: none; gap: 1px; background: var(--rule); }
+  .pricing-card { border-right: none; border-bottom: none; }
+  .footer-top { grid-template-columns: 1fr 1fr; gap: 32px; }
+  .footer-bottom { flex-direction: column; align-items: flex-start; gap: 8px; }
+}
+@media (max-width: 600px) {
+  .steps-visual { grid-template-columns: 1fr; }
+  .footer-top { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-wrap">
+    <a href="/" class="nav-logo">
+      <div class="logo-gem"></div>
+      Theia-Stack
+    </a>
+    <ul class="nav-links">
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#deliverables">What you get</a></li>
+      <li><a href="#pricing">Pricing</a></li>
+      <li><a href="#who">Who it's for</a></li>
+      <li><a href="/login" class="nav-cta">Log in</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-inner">
+    <p class="hero-tag">AI Compliance Platform</p>
+    <h1>Your firm uses AI.<br><em>Is it compliant?</em></h1>
+    <p class="hero-sub">Theia-Stack audits your AI tool usage, scores your compliance risk, generates a documented policy, and trains your staff. Built for Australian law firms.</p>
+    <div class="hero-actions">
+      <a href="#" class="btn-hero" onclick="openModal(event, 'Annual')">Start your audit</a>
+      <a href="#how" class="hero-link">See how it works</a>
+    </div>
+  </div>
+</section>
+
+
+
+<!-- FEATURE ROW 1 — the problem -->
+<section class="feature-row photo-bg" id="who">
+  <div class="feature-wrap">
+    <div class="feature-visual reveal">
+      <div class="feature-panel">
+        <p class="feature-panel-label">Common triggers for action</p>
+        <ul class="feature-panel-list">
+          <li class="feature-panel-item">PI insurance renewal. Insurers are increasingly asking about AI governance.</li>
+          <li class="feature-panel-item">Court practice notes on AI. Australian courts have issued robust GenAI guidance for practitioners.</li>
+          <li class="feature-panel-item">A client complaint or near-miss. Confidential data passed to an AI tool without a policy in place.</li>
+          <li class="feature-panel-item">Shadow IT discovered. Staff running AI subscriptions the firm didn't know about.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="feature-text reveal d1">
+      <span class="feature-tag">The problem</span>
+      <h2 class="feature-h">Most firms are now using AI in some form.<br><em>Few have a documented position on it.</em></h2>
+      <p class="feature-body">Australian courts have issued GenAI practice notes. PI insurers are increasingly asking about AI governance. And staff are adding tools that sometimes touch client data without anyone upstairs knowing. The risk is real, and it often surfaces without warning.</p>
+      <a href="#" class="btn-feature" onclick="openModal(event, 'Annual')">Get in touch →</a>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURE ROW 2 — how it works -->
+<section class="feature-row flip" id="how">
+  <div class="feature-wrap">
+    <div class="feature-visual reveal">
+      <div class="steps-visual">
+        <div class="step-tile">
+          <span class="step-n">01</span>
+          <h3 class="step-title">Firm profile</h3>
+          <p class="step-copy">Size, practice areas, current software.</p>
+        </div>
+        <div class="step-tile dark">
+          <span class="step-n">02</span>
+          <h3 class="step-title">Detect AI tools</h3>
+          <p class="step-copy">Paste billing data. Shadow IT found automatically.</p>
+          <span class="step-flag">Shadow IT finder</span>
+        </div>
+        <div class="step-tile dark">
+          <span class="step-n">03</span>
+          <h3 class="step-title">Review your stack</h3>
+          <p class="step-copy">Risk data looked up per tool, automatically.</p>
+        </div>
+        <div class="step-tile">
+          <span class="step-n">04</span>
+          <h3 class="step-title">Assess risk</h3>
+          <p class="step-copy">Client data, storage, existing policy status.</p>
+        </div>
+        <div class="step-tile">
+          <span class="step-n">05</span>
+          <h3 class="step-title">Your goals</h3>
+          <p class="step-copy">Workflow concerns. Output tailored to your firm.</p>
+        </div>
+        <div class="step-tile dark">
+          <span class="step-n">06</span>
+          <h3 class="step-title">Report generated</h3>
+          <p class="step-copy">Dated report, policy, and training modules, ready to use immediately.</p>
+          <span class="step-flag">Timestamped</span>
+        </div>
+      </div>
+    </div>
+    <div class="feature-text reveal d1">
+      <span class="feature-tag">How it works</span>
+      <h2 class="feature-h">Six steps.<br><em>One documented result.</em></h2>
+      <p class="feature-body">The platform walks your managing partner or practice manager through a structured audit. The process is straightforward and can be completed at your own pace, leaving you with a timestamped AI Risk Management Report, a tailored usage policy, and staff training modules.</p>
+      <a href="#deliverables" class="btn-feature">See what you get →</a>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURE ROW 3 — deliverables -->
+<section class="feature-row" id="deliverables">
+  <div class="feature-wrap">
+    <div class="feature-visual reveal">
+      <div class="check-panel">
+        <p class="check-panel-title">Every active subscription includes:</p>
+        <ul class="check-list">
+          <li class="check-item">
+            <span class="check-mark">✓</span>
+            <div><strong style="font-weight:500;display:block;margin-bottom:2px">AI Risk Management Report</strong>Timestamped, dated, renewed annually. Shows the process was followed.</div>
+          </li>
+          <li class="check-item">
+            <span class="check-mark">✓</span>
+            <div><strong style="font-weight:500;display:block;margin-bottom:2px">Tailored AI Usage Policy</strong>Built around your exact tools. Auto-updates when terms change.</div>
+          </li>
+          <li class="check-item">
+            <span class="check-mark">✓</span>
+            <div><strong style="font-weight:500;display:block;margin-bottom:2px">Staff Training Modules</strong>Per-tool modules with knowledge checks. Staff earn a Certificate of AI Compliance.</div>
+          </li>
+          <li class="check-item">
+            <span class="check-mark">✓</span>
+            <div><strong style="font-weight:500;display:block;margin-bottom:2px">Quarterly Automatic Re-Audit</strong>Your stack changes. The platform keeps up. No effort from your team.</div>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div class="feature-text reveal d1">
+      <span class="feature-tag">What you get</span>
+      <h2 class="feature-h">Not a one-off report.<br><em>A living compliance system.</em></h2>
+      <p class="feature-body">Every subscription includes four deliverables that update as your firm's AI usage evolves. The annual report expiry creates a natural renewal cycle, aligned with the way law firms already think about PI insurance and practising certificates.</p>
+      <a href="#pricing" class="btn-feature">View pricing →</a>
+    </div>
+  </div>
+</section>
+
+<!-- QUOTE -->
+<div class="quote-section">
+  <div class="quote-inner">
+    <span class="quote-mark">"</span>
+    <p class="quote-text">The question isn't whether your firm uses AI. It's whether you can demonstrate that you've thought carefully about how it's used with client data.</p>
+    <p class="quote-attr">The position every managing partner needs to be able to take</p>
+  </div>
+</div>
+
+<!-- PRICING -->
+<section class="pricing-section" id="pricing">
+  <div class="pricing-inner">
+    <div class="pricing-header reveal">
+      <h2 class="pricing-h">Simple, transparent pricing.</h2>
+    </div>
+    <div class="pricing-grid">
+
+      <div class="pricing-card reveal">
+        <span class="price-label">Monthly</span>
+        <p class="price-num">$299</p>
+        <p class="price-period">per month</p>
+        <p class="price-equiv">12-month minimum term &nbsp;·&nbsp; inc. GST</p>
+        <hr class="price-rule">
+        <ul class="price-features">
+          <li class="price-feature">Everything in the annual plan</li>
+          <li class="price-feature">Billed monthly over 12 months</li>
+        </ul>
+        <a href="#" class="btn-price-outline" onclick="openModal(event, 'Monthly')">Get started</a>
+      </div>
+
+      <div class="pricing-card primary reveal d1">
+        <span class="price-label">Annual subscription</span>
+        <p class="price-num">$2,990</p>
+        <p class="price-period">per year, billed upfront</p>
+        <p class="price-equiv">approx. $249 per month &nbsp;·&nbsp; inc. GST</p>
+        <hr class="price-rule">
+        <ul class="price-features">
+          <li class="price-feature">Full AI compliance audit</li>
+          <li class="price-feature">Annual AI Risk Management Report (timestamped)</li>
+          <li class="price-feature">Living AI usage policy that updates automatically</li>
+          <li class="price-feature">Staff training modules with knowledge checks</li>
+          <li class="price-feature">Quarterly automatic re-audit</li>
+          <li class="price-feature">Alerts when tool terms or risk ratings change</li>
+        </ul>
+        <a href="#" class="btn-price-primary" onclick="openModal(event, 'Annual')">Start your audit</a>
+      </div>
+
+      <div class="pricing-card reveal d2">
+        <span class="price-label">Partner Briefing Pack</span>
+        <p class="price-num">$690</p>
+        <p class="price-period">one-off payment</p>
+        <p class="price-equiv">credits toward annual subscription &nbsp;·&nbsp; inc. GST</p>
+        <hr class="price-rule">
+        <ul class="price-features">
+          <li class="price-feature">Full AI tool audit and risk assessment</li>
+          <li class="price-feature">Timestamped AI Risk Management Report</li>
+          <li class="price-feature">Presented to your partners or leadership team</li>
+          <li class="price-feature">Credit applied within 14 days if you subscribe</li>
+        </ul>
+        <a href="#" class="btn-price-outline" onclick="openModal(event, 'Partner Briefing Pack')">Enquire</a>
+        <p class="briefing-what">The Partner Briefing Pack is designed for firms that want to present a documented AI risk position to their partners or leadership team before committing to a subscription. It produces the same audit and report as the annual plan, without the ongoing policy and training modules.</p>
+        <a href="partner-briefing-sample.html" target="_blank" class="briefing-sample-link">View a sample briefing pack →</a>
+      </div>
+
+    </div>
+    <p class="pricing-note reveal">All prices in Australian dollars, inclusive of GST. A 12-month minimum term applies to monthly subscriptions. The annual subscription is always the recommended option.</p>
+  </div>
+</section>
+
+<!-- CTA BAND -->
+<section class="cta-band">
+  <div class="cta-band-inner reveal">
+    <h2>Ready to get your firm's AI compliance in order?</h2>
+    <p class="cta-band-sub">Timestamped. Documented. Built for Australian law firms with up to 50 staff.</p>
+    <a href="#" class="btn-white" onclick="openModal(event, 'Annual')">Get in touch</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div>
+        <div class="footer-brand">
+          <div class="footer-gem"></div>
+          Theia-Stack
+        </div>
+        <p class="footer-tag">AI Compliance Platform</p>
+
+      </div>
+      <div>
+        <p class="footer-col-h">Platform</p>
+        <ul class="footer-col-links">
+          <li><a href="/login">Log in</a></li>
+          <li><a href="#how">How it works</a></li>
+          <li><a href="#deliverables">What you get</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="footer-col-h">Company</p>
+        <ul class="footer-col-links">
+          <li><a href="#who">Who it's for</a></li>
+          <li><a href="mailto:hello@theiastack.com.au">Contact</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="footer-col-h">Get in touch</p>
+        <ul class="footer-col-links">
+          <li><a href="mailto:hello@theiastack.com.au">hello@theiastack.com.au</a></li>
+          <li><a href="https://theiastack.com.au">theiastack.com.au</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p class="footer-copy">© 2026 Theia-Stack. All rights reserved.</p>
+      <p class="footer-copy">Built for Australian law firms.</p>
+    </div>
+  </div>
+</footer>
+
+<!-- CONTACT MODAL -->
+<div class="modal-overlay" id="contactModal" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+
+    <div id="modalForm">
+      <p class="modal-eyebrow">Get started</p>
+      <h2 class="modal-title">Tell us about your firm.</h2>
+      <p class="modal-sub">We'll be in touch to get things set up. No automated sequences — a real response from our team.</p>
+
+      <form name="contact" netlify netlify-honeypot="bot-field" onsubmit="handleSubmit(event)">
+        <input type="hidden" name="form-name" value="contact">
+        <input type="hidden" name="plan" id="planField" value="">
+        <p style="display:none"><input name="bot-field"></p>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label for="firstName">First name</label>
+            <input type="text" id="firstName" name="first_name" required placeholder="Jane">
+          </div>
+          <div class="form-field">
+            <label for="lastName">Last name</label>
+            <input type="text" id="lastName" name="last_name" required placeholder="Smith">
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label for="firmName">Firm name</label>
+          <input type="text" id="firmName" name="firm_name" required placeholder="Smith & Associates">
+        </div>
+
+        <div class="form-field">
+          <label for="email">Email address</label>
+          <input type="email" id="email" name="email" required placeholder="jane@smithassociates.com.au">
+        </div>
+
+        <div class="form-field">
+          <label for="plan">Interested in</label>
+          <select id="planSelect" name="plan_interest">
+            <option value="Annual">Annual subscription ($2,990/year)</option>
+            <option value="Monthly">Monthly subscription ($299/month)</option>
+            <option value="Partner Briefing Pack">Partner Briefing Pack ($690 one-off)</option>
+            <option value="Not sure">Not sure yet</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn-modal-submit">Send enquiry</button>
+      </form>
+    </div>
+
+    <div class="modal-success" id="modalSuccess">
+      <div class="modal-success-icon">✓</div>
+      <h3>Thanks — we'll be in touch.</h3>
+      <p>We aim to respond to all enquiries within one business day.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const els = document.querySelectorAll('.reveal');
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+}, { threshold: 0.1, rootMargin: '0px 0px -24px 0px' });
+els.forEach(el => obs.observe(el));
+
+function openModal(e, plan) {
+  e.preventDefault();
+  const overlay = document.getElementById('contactModal');
+  const select = document.getElementById('planSelect');
+  const field = document.getElementById('planField');
+  if (plan && select) {
+    for (let i = 0; i < select.options.length; i++) {
+      if (select.options[i].value === plan) { select.selectedIndex = i; break; }
+    }
+  }
+  if (field) field.value = plan || '';
+  document.getElementById('modalForm').style.display = 'block';
+  document.getElementById('modalSuccess').style.display = 'none';
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('contactModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function closeModalOutside(e) {
+  if (e.target === document.getElementById('contactModal')) closeModal();
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+function handleSubmit(e) {
+  e.preventDefault();
+  const form = e.target;
+  const data = new FormData(form);
+  fetch('/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(data).toString() })
+    .then(() => {
+      document.getElementById('modalForm').style.display = 'none';
+      document.getElementById('modalSuccess').style.display = 'block';
+    })
+    .catch(() => {
+      document.getElementById('modalForm').style.display = 'none';
+      document.getElementById('modalSuccess').style.display = 'block';
+    });
+}
+</script>
+
+</body>
+</html>
