@@ -521,21 +521,28 @@ textarea{resize:vertical;line-height:1.6;min-height:100px;}
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+var _sbClient = null;
+
 (async function() {
   try {
     const SUPABASE_URL = 'https://rkqnrpyctllxcnknjsby.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_7gIWX3E2pS_4UfEKJylqpw_V3CIY1b9';
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    _sbClient = sb;
     const { data: { session }, error } = await sb.auth.getSession();
     if (error || !session) { window.location.replace('/login'); return; }
     const { data: profile } = await sb.from('profiles').select('id, role, display_name, firm_id, permissions').eq('id', session.user.id).maybeSingle();
     if (!profile) { await sb.auth.signOut(); window.location.replace('/login'); return; }
     window.THEIA_USER = { id: session.user.id, email: session.user.email, role: profile.role, displayName: profile.display_name, firmId: profile.firm_id, permissions: profile.permissions };
   } catch(e) {
-    // If auth check fails for any reason, send to login
     window.location.replace('/login');
   }
 })();
+
+async function handleLogout() {
+  try { if (_sbClient) await _sbClient.auth.signOut(); } catch(e) {}
+  window.location.replace('/login');
+}
 </script>
 
 <div id="detect-overlay">
@@ -591,6 +598,7 @@ textarea{resize:vertical;line-height:1.6;min-height:100px;}
       <div id="sb-steps"></div>
     </div>
     <div class="sb-footer">
+      <button onclick="handleLogout()" style="background:none;border:none;cursor:pointer;font-size:11px;color:rgba(255,255,255,.35);font-family:var(--font-body);padding:0;transition:color .15s;display:block;margin-bottom:6px;text-align:left;" onmouseover="this.style.color='rgba(255,255,255,.7)'" onmouseout="this.style.color='rgba(255,255,255,.35)'">Sign out</button>
       <div class="sb-footer-text">v4.0 · Built for Australian law firms</div>
     </div>
   </aside>
