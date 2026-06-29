@@ -519,50 +519,7 @@ textarea{resize:vertical;line-height:1.6;min-height:100px;}
 </style>
 </head>
 <body>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-(async function() {
-  const SUPABASE_URL = 'https://rkqnrpyctllxcnknjsby.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_7gIWX3E2pS_4UfEKJylqpw_V3CIY1b9';
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // Hide page until auth is confirmed — prevents flash of content
-  document.documentElement.style.visibility = 'hidden';
-
-  const { data: { session } } = await sb.auth.getSession();
-
-  if (!session) {
-    window.location.replace('/login');
-    return;
-  }
-
-  // Check they have an active profile (subscriber check)
-  const { data: profile } = await sb
-    .from('profiles')
-    .select('id, role, display_name, firm_id, permissions')
-    .eq('id', session.user.id)
-    .maybeSingle();
-
-  if (!profile) {
-    await sb.auth.signOut();
-    window.location.replace('/login');
-    return;
-  }
-
-  // Auth passed — store profile data for the platform to use
-  window.THEIA_USER = {
-    id:          session.user.id,
-    email:       session.user.email,
-    role:        profile.role,
-    displayName: profile.display_name,
-    firmId:      profile.firm_id,
-    permissions: profile.permissions
-  };
-
-  // Reveal the page
-  document.documentElement.style.visibility = 'visible';
-})();
-</script>
 <div id="detect-overlay">
   <div class="detect-modal">
     <div class="detect-modal-icon" style="background:transparent;">
@@ -656,19 +613,8 @@ var S={
   report:null,policy:null,policyLoading:false,
   activeTab:'dashboard',copied:false,
   modules:[],modulesLoading:false,moduleProgress:0,
-  dashStaff:[
-    {name:'Sarah Mitchell',role:'Senior Associate',status:'certified',modules:3,date:'12 Mar 2026'},
-    {name:'James Thornton',role:'Partner',status:'certified',modules:3,date:'10 Mar 2026'},
-    {name:'Priya Sharma',role:'Associate',status:'in-progress',modules:1,date:null},
-    {name:'Tom Whitfield',role:'Paralegal',status:'not-started',modules:0,date:null},
-    {name:'Emma Clarke',role:'Practice Manager',status:'certified',modules:3,date:'14 Mar 2026'},
-  ],
-  alerts:[
-    {tool:'ChatGPT Plus',type:'feature',title:'New GPT-4o features released','desc':'Voice mode, improved file analysis, and canvas collaboration tools added. New training module available.','date':'2 days ago',action:'Start module',color:'#185fa5',bg:'#e6f1fb',icon:'🆕'},
-    {tool:'Microsoft Copilot',type:'policy',title:'Data handling terms updated','desc':'Microsoft updated Copilot commercial data processing terms. Your AI policy may need review.','date':'5 days ago',action:'Review policy',color:'#c97d10',bg:'#fdf3e3',icon:'⚠️'},
-    {tool:'Harvey AI',type:'risk',title:'SOC 2 Type II certification renewed','desc':'Harvey AI has renewed its SOC 2 Type II certification. Your risk assessment has been updated.','date':'1 week ago',action:'View update',color:'#1a7a46',bg:'#e8f5ee',icon:'✓'},
-    {tool:'Otter.ai',type:'feature',title:'AI summary improvements','desc':'Meeting summary accuracy improved with new legal terminology recognition. Update your usage guidelines.','date':'2 weeks ago',action:'View changes',color:'#185fa5',bg:'#e6f1fb',icon:'🆕'},
-  ],
+  dashStaff:[],
+  alerts:[],
   openModule:-1,quizAnswers:{},quizSubmitted:{},quizResults:{},
   certName:'',showCert:false,
   selectedModules:null,
@@ -702,8 +648,8 @@ function cleanOpt(opt){return (opt||'').replace(/^[A-Da-d][.)]\s*/,'').trim();}
 
 /* ── Core API helpers ────────────────────────────────────────── */
 var API_HDR={'Content-Type':'application/json','anthropic-version':'2023-06-01'};
-var API_MODEL='claude-sonnet-4-6';
-var API_URL='/.netlify/functions/claude';
+var API_MODEL='claude-sonnet-4-20250514';
+var API_URL='https://api.anthropic.com/v1/messages';
 
 async function _apiFetch(body){
   var res=await fetch(API_URL,{method:'POST',headers:API_HDR,body:JSON.stringify(body)});
@@ -760,13 +706,18 @@ function parseJSON(raw){
 }
 
 async function callClaudeWithSearch(prompt,maxT){
-  var sys='You are a software research assistant. CRITICAL: Your entire response must be a single valid JSON object. Start with { and end with }. No markdown, no explanation, no text outside the JSON. Do not think out loud. Return only the JSON.';
-  var body={model:API_MODEL,max_tokens:maxT||1200,system:sys,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt}]};
+  var body={model:API_MODEL,max_tokens:maxT||1200,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt}]};
   var data=await _apiFetch(body);
-  var tb=data.content&&data.content.find(function(b){return b.type==='text';});
-  if(tb)return tb.text;
-  console.warn('[Theia] unexpected search response shape:',JSON.stringify(data).slice(0,300));
-  return '';
+  if(data.stop_reason==='tool_use'){
+    var toolUseBlocks=data.content.filter(function(b){return b.type==='tool_use';});
+    var toolResults=toolUseBlocks.map(function(b){return {type:'tool_result',tool_use_id:b.id,content:'Search completed for: '+b.input.query};});
+    var msgs=[{role:'user',content:prompt},{role:'assistant',content:data.content},{role:'user',content:toolResults}];
+    var data2=await _apiFetch({model:API_MODEL,max_tokens:maxT||1200,tools:[{type:'web_search_20250305',name:'web_search'}],messages:msgs});
+    var tb=data2.content&&data2.content.find(function(b){return b.type==='text';});
+    return tb?tb.text:'';
+  }
+  var tb=data.content.find(function(b){return b.type==='text';});
+  return tb?tb.text:'';
 }
 /* ── End API helpers ─────────────────────────────────────────── */
 
@@ -807,10 +758,11 @@ async function runDetect(){
 async function genReport(){
   ss({loading:true});var sp=spend();
   try{
-    var ctx='Firm: '+S.firmName+', '+S.staffCount+' staff. Practice areas: '+S.practiceAreas.join(', ')+'. Software: '+S.software.join(', ')+'. AI tools: '+S.tools.map(function(t){return (t.name||'unnamed')+' ($'+(t.cost||0)+'/mo, '+(t.useCase||'unspecified')+')'}).join('; ')+'. Monthly spend: $'+sp.toFixed(0)+'. Client data access: '+S.clientData+'. Data storage: '+S.dataStorage+'. Existing policy: '+S.hasPolicy+'. Existing training: '+S.hasTraining+'. Pain points: '+S.painPoints.join(', ')+'. Goals: '+S.goals+'. Concerns: '+S.concerns.join(', ')+'.';
-    var auCtx='Australian compliance: Privacy Act 1988 APPs apply to all personal information in AI systems. Privacy and Other Legislation Amendment Act 2024 (Dec 2024) introduces transparency requirements for automated decisions. OAIC Oct 2024 guidance requires AI vendor due diligence. National AI Centre AI6 Guidance (Oct 2025) has 6 essential practices. Legal Profession Uniform Law obligations on client confidentiality apply regardless of tool used.';
-    var schema='Return JSON: {"riskLevel":"Low|Medium|High","riskSummary":"2 sentences citing specific AU obligations","estimatedWaste":0,"potentialSavings":0,"keyFindings":["f1","f2","f3"],"recommendations":[{"title":"t","description":"one sentence","priority":"Immediate|Short-term|Long-term","impact":"quantified impact"},{"title":"t","description":"s","priority":"Immediate|Short-term|Long-term","impact":"q"},{"title":"t","description":"s","priority":"Immediate|Short-term|Long-term","impact":"q"}]}';
-    var raw=await callClaudeJSON('You are an AI compliance specialist for Australian law firms. Output ONLY valid JSON.',ctx+' '+auCtx+' '+schema,2000);
+    var ctx='Firm: '+S.firmName+', '+S.staffCount+' staff. Practice areas: '+S.practiceAreas.join(', ')+'. Software: '+S.software.join(', ')+'. AI tools: '+S.tools.map(function(t){return (t.name||'unnamed')+' ($'+(t.cost||0)+'/mo, use: '+(t.useCase||'unspecified')+')'}).join('; ')+'. Monthly AI spend: $'+sp.toFixed(0)+'. Client data accessed via AI: '+S.clientData+'. Data storage location: '+S.dataStorage+'. Existing AI policy: '+S.hasPolicy+'. Existing staff training: '+S.hasTraining+'. Pain points: '+S.painPoints.join(', ')+'. Goals: '+S.goals+'. Concerns: '+S.concerns.join(', ')+'.';
+    var auCtx='Australian compliance context: Privacy Act 1988 APPs apply to all personal information in AI systems. Privacy and Other Legislation Amendment Act 2024 (Dec 2024) introduces transparency requirements for automated decisions. OAIC Oct 2024 guidance requires AI vendor due diligence. National AI Centre AI6 Guidance (Oct 2025) has 6 essential practices. Legal Profession Uniform Law obligations on client confidentiality apply regardless of tool used.';
+    var schema='Return JSON: {"riskLevel":"Low|Medium|High","riskSummary":"2 sentences based strictly on the information provided above — cite specific AU obligations that apply to these tools and this firm","keyFindings":["finding based only on information above","finding based only on information above","finding based only on information above"],"recommendations":[{"title":"t","description":"one sentence — actionable step this firm can take","priority":"Immediate|Short-term|Long-term"},{"title":"t","description":"s","priority":"Immediate|Short-term|Long-term"},{"title":"t","description":"s","priority":"Immediate|Short-term|Long-term"}]}';
+    var systemPrompt='You are an AI compliance specialist for Australian law firms. Output ONLY valid JSON. CRITICAL RULES: (1) Base every finding and recommendation ONLY on the information explicitly provided — do not invent staff names, incident details, specific settings, or any information not stated. (2) Do not include estimatedWaste or potentialSavings — you cannot know these figures. (3) If the firm has not confirmed a detail, do not assume it. (4) Every finding must be directly evidenced by something in the firm data provided.';
+    var raw=await callClaudeJSON(systemPrompt,ctx+' '+auCtx+' '+schema,2000);
     var r=parseJSON(raw);
     if(!r||!r.riskLevel)throw new Error('Invalid report JSON');
     ss({report:r,loading:false,step:6});setTimeout(function(){checkForUpdates();},1000);
@@ -1717,21 +1669,28 @@ function renderDashboard(){
   // Staff status card
   var sc2=el('div',{cls:'dash-card'});
   sc2.appendChild(el('div',{cls:'dash-card-title'},'Staff certification'));
-  var certCount=S.dashStaff.filter(function(s){return s.status==='certified';}).length;
-  sc2.appendChild(el('div',{cls:'health-score',sty:{color:'var(--navy)'}},certCount+'/'+S.dashStaff.length));
-  sc2.appendChild(el('div',{cls:'health-label',sty:{color:'var(--navy)'}},'Staff certified'));
-  sc2.appendChild(el('div',{cls:'health-sub',sty:{marginBottom:'14px'}},'As of today'));
-  var sl=el('div',{cls:'staff-list'});
-  S.dashStaff.forEach(function(staff){
-    var si=el('div',{cls:'staff-item'});
-    var sinfo=el('div',{});sinfo.appendChild(el('div',{cls:'staff-name'},staff.name));sinfo.appendChild(el('div',{cls:'staff-role'},staff.role));si.appendChild(sinfo);
-    var sbg=staff.status==='certified'?'var(--green-bg)':staff.status==='in-progress'?'var(--amber-bg)':'var(--red-bg)';
-    var scol=staff.status==='certified'?'var(--green)':staff.status==='in-progress'?'var(--amber)':'var(--red)';
-    var stxt=staff.status==='certified'?'Certified':staff.status==='in-progress'?'In progress':'Not started';
-    si.appendChild(el('span',{cls:'staff-badge',sty:{background:sbg,color:scol}},stxt));
-    sl.appendChild(si);
-  });
-  sc2.appendChild(sl);topGrid.appendChild(sc2);
+  if(S.dashStaff.length===0){
+    sc2.appendChild(el('div',{cls:'health-score',sty:{color:'var(--muted)'}},'—'));
+    sc2.appendChild(el('div',{cls:'health-label',sty:{color:'var(--muted)'}},'No staff added yet'));
+    sc2.appendChild(el('div',{cls:'health-sub',sty:{marginBottom:'14px'}},'Staff complete training via the training tab. Their progress will appear here once they have started.'));
+  } else {
+    var certCount=S.dashStaff.filter(function(s){return s.status==='certified';}).length;
+    sc2.appendChild(el('div',{cls:'health-score',sty:{color:'var(--navy)'}},certCount+'/'+S.dashStaff.length));
+    sc2.appendChild(el('div',{cls:'health-label',sty:{color:'var(--navy)'}},'Staff certified'));
+    sc2.appendChild(el('div',{cls:'health-sub',sty:{marginBottom:'14px'}},'As of today'));
+    var sl=el('div',{cls:'staff-list'});
+    S.dashStaff.forEach(function(staff){
+      var si=el('div',{cls:'staff-item'});
+      var sinfo=el('div',{});sinfo.appendChild(el('div',{cls:'staff-name'},staff.name));sinfo.appendChild(el('div',{cls:'staff-role'},staff.role));si.appendChild(sinfo);
+      var sbg=staff.status==='certified'?'var(--green-bg)':staff.status==='in-progress'?'var(--amber-bg)':'var(--red-bg)';
+      var scol=staff.status==='certified'?'var(--green)':staff.status==='in-progress'?'var(--amber)':'var(--red)';
+      var stxt=staff.status==='certified'?'Certified':staff.status==='in-progress'?'In progress':'Not started';
+      si.appendChild(el('span',{cls:'staff-badge',sty:{background:sbg,color:scol}},stxt));
+      sl.appendChild(si);
+    });
+    sc2.appendChild(sl);
+  }
+  topGrid.appendChild(sc2);
   wrap.appendChild(topGrid);
 
   // Policy version tracker
@@ -1739,66 +1698,82 @@ function renderDashboard(){
   var pvh=el('div',{cls:'policy-version-header'});
   var pvl=el('div',{});
   pvl.appendChild(el('div',{cls:'policy-version-title'},'AI usage policy'));
-  pvl.appendChild(el('div',{cls:'policy-version-meta'},'Version 2.1 · Last updated 15 Mar 2026'));
-  pvh.appendChild(pvl);
-  var pvb=el('span',{cls:'staff-badge',sty:{background:'var(--amber-bg)',color:'var(--amber)',fontSize:'11px',padding:'4px 12px',borderRadius:'20px',fontWeight:'600'}});
-  pvb.textContent='Review needed';pvh.appendChild(pvb);
+  var today=new Date();var dd=String(today.getDate()).padStart(2,'0');var mm=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][today.getMonth()];var yyyy=today.getFullYear();
+  if(S.policy){
+    pvl.appendChild(el('div',{cls:'policy-version-meta'},'Version 1.0 · Generated '+dd+' '+mm+' '+yyyy));
+    pvh.appendChild(pvl);
+    var pvb=el('span',{cls:'staff-badge',sty:{background:'var(--green-bg)',color:'var(--green)',fontSize:'11px',padding:'4px 12px',borderRadius:'20px',fontWeight:'600'}});
+    pvb.textContent='Current';pvh.appendChild(pvb);
+  } else {
+    pvl.appendChild(el('div',{cls:'policy-version-meta'},'Not yet generated'));
+    pvh.appendChild(pvl);
+    var pvb=el('span',{cls:'staff-badge',sty:{background:'var(--amber-bg)',color:'var(--amber)',fontSize:'11px',padding:'4px 12px',borderRadius:'20px',fontWeight:'600'}});
+    pvb.textContent='Pending';pvh.appendChild(pvb);
+  }
   pv.appendChild(pvh);
-  pv.appendChild(el('div',{cls:'dash-card-title',sty:{marginBottom:'10px'}},'Version history'));
-  var vh=el('div',{cls:'version-history'});
-  [
-    {label:'v2.1 — Copilot terms update',date:'15 Mar 2026',change:'Updated data sovereignty clause to reflect Microsoft Copilot commercial terms change.',col:'var(--amber)',status:'Current'},
-    {label:'v2.0 — Harvey AI added',date:'02 Mar 2026',change:'Added Harvey AI approved uses, prohibited uses, and data handling requirements.',col:'var(--green)',status:'Superseded'},
-    {label:'v1.0 — Initial policy',date:'20 Feb 2026',change:'Initial AI usage policy generated from audit. Covers ChatGPT, Microsoft 365, Zoom.',col:'var(--muted)',status:'Archived'},
-  ].forEach(function(v){
+  if(!S.policy){
+    pv.appendChild(el('div',{sty:{fontSize:'13px',color:'var(--muted)',marginTop:'10px',lineHeight:'1.6'}},'Your AI usage policy will appear here after it is generated. Go to the AI Policy tab to generate it.'));
+  } else {
+    pv.appendChild(el('div',{cls:'dash-card-title',sty:{marginBottom:'10px',marginTop:'16px'}},'Version history'));
+    var vh=el('div',{cls:'version-history'});
     var vi=el('div',{cls:'version-item'});
-    vi.appendChild(el('div',{cls:'version-dot',sty:{background:v.col,marginTop:'5px'}}));
+    vi.appendChild(el('div',{cls:'version-dot',sty:{background:'var(--green)',marginTop:'5px'}}));
     var vinfo=el('div',{cls:'version-info'});
     var vrow=el('div',{sty:{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}});
-    vrow.appendChild(el('div',{cls:'version-label'},v.label));
-    vrow.appendChild(el('span',{cls:'staff-badge',sty:{fontSize:'11px',padding:'2px 8px',borderRadius:'20px',background:'var(--cream)',color:'var(--muted)',border:'1px solid var(--border)',marginLeft:'8px',flexShrink:'0'}},v.status));
+    vrow.appendChild(el('div',{cls:'version-label'},'v1.0 — Initial policy'));
+    vrow.appendChild(el('span',{cls:'staff-badge',sty:{fontSize:'11px',padding:'2px 8px',borderRadius:'20px',background:'var(--green-bg)',color:'var(--green)',marginLeft:'8px',flexShrink:'0'}},'Current'));
     vinfo.appendChild(vrow);
-    vinfo.appendChild(el('div',{cls:'version-date'},v.date));
-    vinfo.appendChild(el('div',{cls:'version-change'},v.change));
+    vinfo.appendChild(el('div',{cls:'version-date'},dd+' '+mm+' '+yyyy));
+    vinfo.appendChild(el('div',{cls:'version-change'},'Initial AI usage policy generated from audit. Covers: '+S.tools.map(function(t){return t.name;}).filter(Boolean).join(', ')+'.'));
     vi.appendChild(vinfo);vh.appendChild(vi);
-  });
-  pv.appendChild(vh);wrap.appendChild(pv);
+    pv.appendChild(vh);
+  }
+  wrap.appendChild(pv);
 
   // Bottom grid: renewals + tool risk
   var botGrid=el('div',{cls:'dash-grid'});
 
   // Subscription renewals
   var rc=el('div',{cls:'dash-card'});
-  rc.appendChild(el('div',{cls:'dash-card-title'},'Upcoming renewals'));
-  [
-    {name:'ChatGPT Plus',date:'03 Apr 2026',cost:'$87/mo',days:17,urgent:true},
-    {name:'Microsoft 365',date:'15 Apr 2026',cost:'$44/mo',days:29,urgent:false},
-    {name:'Harvey AI',date:'19 May 2026',cost:'$89/mo',days:63,urgent:false},
-    {name:'Otter.ai',date:'28 May 2026',cost:'$17/mo',days:72,urgent:false},
-  ].forEach(function(r){
-    var ri=el('div',{cls:'renewal-item'});
-    var rinfo=el('div',{});rinfo.appendChild(el('div',{cls:'renewal-name'},r.name));rinfo.appendChild(el('div',{cls:'renewal-date'},r.date+' · '+r.cost));ri.appendChild(rinfo);
-    var rbg=r.urgent?'var(--amber-bg)':'var(--green-bg)';var rcol2=r.urgent?'var(--amber)':'var(--green)';
-    ri.appendChild(el('span',{cls:'renewal-badge',sty:{background:rbg,color:rcol2}},r.days+' days'));
-    rc.appendChild(ri);
-  });
+  rc.appendChild(el('div',{cls:'dash-card-title'},'AI tool subscriptions'));
+  var knownTools=S.tools.filter(function(t){return t.name;});
+  if(!knownTools.length){
+    rc.appendChild(el('div',{sty:{fontSize:'13px',color:'var(--muted)',lineHeight:'1.6'}},'No tools recorded yet. Complete the audit to populate this.'));
+  } else {
+    knownTools.forEach(function(t){
+      var ri=el('div',{cls:'renewal-item'});
+      var rinfo=el('div',{});
+      rinfo.appendChild(el('div',{cls:'renewal-name'},t.name));
+      rinfo.appendChild(el('div',{cls:'renewal-date'},t.cost?'$'+t.cost+'/mo':'Cost not recorded'));
+      ri.appendChild(rinfo);
+      var lookup=S.toolLookups[t.name];
+      var rl=lookup&&lookup.riskLevel?lookup.riskLevel:'Unknown';
+      var rbg=rl==='Low'?'var(--green-bg)':rl==='Medium'?'var(--amber-bg)':rl==='High'?'var(--red-bg)':'var(--cream)';
+      var rcol2=rl==='Low'?'var(--green)':rl==='Medium'?'var(--amber)':rl==='High'?'var(--red)':'var(--muted)';
+      ri.appendChild(el('span',{cls:'renewal-badge',sty:{background:rbg,color:rcol2}},rl+' risk'));
+      rc.appendChild(ri);
+    });
+  }
   botGrid.appendChild(rc);
 
   // Tool risk snapshot
   var trc=el('div',{cls:'dash-card'});
   trc.appendChild(el('div',{cls:'dash-card-title'},'Tool risk snapshot'));
   var toolNames=S.tools.map(function(t){return t.name;}).filter(Boolean);
-  if(!toolNames.length)toolNames=['ChatGPT Plus','Microsoft 365','Harvey AI','Otter.ai','Grammarly'];
-  var riskLevels=['Low','Low','Medium','Low','Low'];
-  toolNames.forEach(function(t,i){
-    var ri=el('div',{cls:'renewal-item'});
-    ri.appendChild(el('div',{cls:'renewal-name'},t));
-    var rl=riskLevels[i%riskLevels.length];
-    var rbg=rl==='Low'?'var(--green-bg)':rl==='Medium'?'var(--amber-bg)':'var(--red-bg)';
-    var rcol3=rl==='Low'?'var(--green)':rl==='Medium'?'var(--amber)':'var(--red)';
-    ri.appendChild(el('span',{cls:'renewal-badge',sty:{background:rbg,color:rcol3}},rl+' risk'));
-    trc.appendChild(ri);
-  });
+  if(!toolNames.length){
+    trc.appendChild(el('div',{sty:{fontSize:'13px',color:'var(--muted)',lineHeight:'1.6'}},'No tools recorded yet.'));
+  } else {
+    toolNames.forEach(function(t){
+      var ri=el('div',{cls:'renewal-item'});
+      ri.appendChild(el('div',{cls:'renewal-name'},t));
+      var lookup=S.toolLookups[t];
+      var rl=lookup&&lookup.riskLevel?lookup.riskLevel:'Not assessed';
+      var rbg=rl==='Low'?'var(--green-bg)':rl==='Medium'?'var(--amber-bg)':rl==='High'?'var(--red-bg)':'var(--cream)';
+      var rcol3=rl==='Low'?'var(--green)':rl==='Medium'?'var(--amber)':rl==='High'?'var(--red)':'var(--muted)';
+      ri.appendChild(el('span',{cls:'renewal-badge',sty:{background:rbg,color:rcol3}},rl));
+      trc.appendChild(ri);
+    });
+  }
   botGrid.appendChild(trc);
   wrap.appendChild(botGrid);
 
@@ -1861,8 +1836,9 @@ function render(){
 
     // Metrics
     var met=el('div',{cls:'metrics-row'});
-    [{label:'Monthly AI spend',val:'$'+sp.toFixed(0),col:'var(--navy)'},{label:'Estimated waste',val:'$'+(r.estimatedWaste||0),col:'var(--amber)'},{label:'Potential savings',val:'$'+(r.potentialSavings||0),col:'var(--green)'}].forEach(function(m){
-      var mc=el('div',{cls:'metric'});mc.appendChild(el('div',{cls:'metric-label'},m.label));mc.appendChild(el('div',{cls:'metric-value',sty:{color:m.col}},m.val));mc.appendChild(el('div',{cls:'metric-sub'},'per month'));met.appendChild(mc);
+    var toolCount=S.tools.filter(function(t){return t.name;}).length;
+    [{label:'Monthly AI spend',val:'$'+sp.toFixed(0),col:'var(--navy)',sub:'across '+toolCount+' tool'+(toolCount!==1?'s':'')},{label:'Risk level',val:r.riskLevel,col:rcol(r.riskLevel),sub:'based on audit responses'},{label:'Tools audited',val:String(toolCount),col:'var(--navy)',sub:'included in this report'}].forEach(function(m){
+      var mc=el('div',{cls:'metric'});mc.appendChild(el('div',{cls:'metric-label'},m.label));mc.appendChild(el('div',{cls:'metric-value',sty:{color:m.col}},m.val));mc.appendChild(el('div',{cls:'metric-sub'},m.sub));met.appendChild(mc);
     });
     wrap.appendChild(met);
 
@@ -2070,7 +2046,6 @@ function render(){
       // Helper: run the search without ever calling render()
       function doSearch(query){
         if(!query||query.length<2){sResults.innerHTML='';return;}
-        console.log('[Theia] doSearch triggered for:',query);
         sSpin.style.display='block';
         S.checklistSearching=true;
         // Local fuzzy match first
@@ -2085,8 +2060,8 @@ function render(){
           showSuggestions(S.checklistSuggestions);
           return;
         }
-        // Call Claude with web search for niche/unknown tools
-        var prompt='Search the web to identify what AI or software tool an Australian law firm user means by "'+query+'". Be generous with partial names and misspellings — e.g. "project manda" likely refers to a specific legal or AI tool, search for it. Return ONLY valid JSON: {"found":true,"tool":{"name":"exact product name","vendor":"company","category":"Legal AI|General AI|Productivity|Communication|Document|Finance|Other","description":"what it does in 1-2 sentences","riskLevel":"Low|Medium|High","riskReason":"one sentence","processesClientData":true,"storageRegion":"Australia|US|EU|Global|Unknown"}} OR {"found":false,"suggestions":["name-similar tools only"]}';
+        // Call Claude — write result directly to DOM, NO ss(), NO render()
+        var prompt='Search the web to identify what AI or software tool an Australian law firm user is referring to when they type "'+query+'". They may be using a partial name, nickname, or misspelling. Use web search to find the exact product. Examples: "Project Manda" likely refers to a legal project management or AI tool with Manda in the name — search for it. "Harv" likely refers to Harvey AI. Be generous with partial matches. After searching, return ONLY valid JSON with no markdown: {"found":true,"tool":{"name":"exact official product name","vendor":"company name","category":"Legal AI|General AI|Productivity|Communication|Document|Finance|Other","description":"1-2 sentences what it does and who uses it","dataStorage":"where data is stored or processed","australiaCompliance":"brief note on Australian Privacy Act compliance","riskLevel":"Low|Medium|High","riskReason":"one sentence","pricing":"pricing if known or Unknown","dataHandling":"how client or personal data is handled","processesClientData":true,"storageRegion":"Australia|US|EU|Global|Unknown"}} OR if genuinely no match exists: {"found":false,"suggestions":["tools whose name is phonetically or visually similar to what was typed — not generic alternatives"]}';
         callClaudeWithSearch(prompt,1200).then(function(txt){
           sSpin.style.display='none';S.checklistSearching=false;
           try{
@@ -2097,19 +2072,20 @@ function render(){
               S.toolSearchHints=hints;
               showFoundCard(data.tool);
             } else {
-              var suggs=(data.suggestions||[]).slice(0,5);
+              var suggs=(data.suggestions||[]).slice(0,8);
               local.forEach(function(l){if(suggs.indexOf(l)<0)suggs.unshift(l);});
-              S.checklistSuggestions=suggs.slice(0,5);S.checklistSearchResult=null;
-              if(suggs.length){showSuggestions(S.checklistSuggestions);}
-              else{sResults.innerHTML='<div class="cl-no-result">No match for "'+query+'". Try the exact product name.</div>';}
+              S.checklistSuggestions=suggs.slice(0,8);S.checklistSearchResult=null;
+              if(suggs.length>0){showSuggestions(S.checklistSuggestions);}
+              else{sResults.innerHTML='<div class="cl-no-result">No tool found matching "'+query+'". Check the spelling or try a different name.</div>';}
             }
           }catch(e){
             sSpin.style.display='none';
-            sResults.innerHTML='<div class="cl-no-result">Could not identify that tool. Try a different spelling.</div>';}
-        }).catch(function(err){
-          console.error('[Theia] tool search error:',err);
+            if(local.length){S.checklistSuggestions=local.slice(0,5);showSuggestions(S.checklistSuggestions);}
+            else{sResults.innerHTML='<div class="cl-no-result">Could not find that tool. Check the spelling or try a different name.</div>';}
+          }
+        }).catch(function(){
           sSpin.style.display='none';S.checklistSearching=false;
-          sResults.innerHTML='<div class="cl-no-result">Search unavailable — try again shortly.</div>';
+          sResults.innerHTML='';
         });
       }
 
