@@ -519,7 +519,50 @@ textarea{resize:vertical;line-height:1.6;min-height:100px;}
 </style>
 </head>
 <body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(async function() {
+  const SUPABASE_URL = 'https://rkqnrpyctllxcnknjsby.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_7gIWX3E2pS_4UfEKJylqpw_V3CIY1b9';
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+  // Hide page until auth is confirmed — prevents flash of content
+  document.documentElement.style.visibility = 'hidden';
+
+  const { data: { session } } = await sb.auth.getSession();
+
+  if (!session) {
+    window.location.replace('/login');
+    return;
+  }
+
+  // Check they have an active profile (subscriber check)
+  const { data: profile } = await sb
+    .from('profiles')
+    .select('id, role, display_name, firm_id, permissions')
+    .eq('id', session.user.id)
+    .maybeSingle();
+
+  if (!profile) {
+    await sb.auth.signOut();
+    window.location.replace('/login');
+    return;
+  }
+
+  // Auth passed — store profile data for the platform to use
+  window.THEIA_USER = {
+    id:          session.user.id,
+    email:       session.user.email,
+    role:        profile.role,
+    displayName: profile.display_name,
+    firmId:      profile.firm_id,
+    permissions: profile.permissions
+  };
+
+  // Reveal the page
+  document.documentElement.style.visibility = 'visible';
+})();
+</script>
 <div id="detect-overlay">
   <div class="detect-modal">
     <div class="detect-modal-icon" style="background:transparent;">
