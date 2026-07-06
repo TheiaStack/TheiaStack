@@ -534,6 +534,8 @@ var _sbClient = null;
     const { data: profile } = await sb.from('profiles').select('id, role, display_name, firm_id, permissions').eq('id', session.user.id).maybeSingle();
     if (!profile) { await sb.auth.signOut(); window.location.replace('/login'); return; }
     window.THEIA_USER = { id: session.user.id, email: session.user.email, role: profile.role, displayName: profile.display_name, firmId: profile.firm_id, permissions: profile.permissions };
+    // Restore saved audit session — called after main script has executed
+    setTimeout(function(){ loadAuditSession(); }, 50);
   } catch(e) {
     window.location.replace('/login');
   }
@@ -654,6 +656,47 @@ var S={
 };
 
 function ss(p){Object.assign(S,p);render();}
+
+/* ── Session persistence ─────────────────────────────────────── */
+var _saveTimer=null;
+var PERSIST=['step','firmName','staffCount','practiceAreas','software','tools','toolLookups',
+  'clientData','dataStorage','hasPolicy','hasTraining','painPoints','goals','concerns',
+  'detectMethod','billingText','detected','checklist','report','policy','modules',
+  'openModule','quizAnswers','quizSubmitted','quizResults','certName','showCert','activeTab'];
+
+async function saveAuditSession(){
+  if(!_sbClient||!window.THEIA_USER)return;
+  var fid=window.THEIA_USER.firmId;if(!fid)return;
+  var d={};PERSIST.forEach(function(f){d[f]=S[f];});
+  try{
+    await _sbClient.from('audit_sessions').upsert(
+      {firm_id:fid,session_data:d,updated_at:new Date().toISOString()},
+      {onConflict:'firm_id'}
+    );
+  }catch(e){console.warn('Session save failed:',e);}
+}
+
+async function loadAuditSession(){
+  if(!_sbClient||!window.THEIA_USER)return;
+  var fid=window.THEIA_USER.firmId;if(!fid)return;
+  try{
+    var res=await _sbClient.from('audit_sessions').select('session_data').eq('firm_id',fid).maybeSingle();
+    if(res.error||!res.data||!res.data.session_data)return;
+    var saved=res.data.session_data;
+    PERSIST.forEach(function(f){if(saved[f]!==undefined)S[f]=saved[f];});
+    render();
+  }catch(e){console.warn('Session load failed:',e);}
+}
+
+// Auto-save 1s after any step change or AI generation
+var _ssSave=ss;
+ss=function(p){
+  _ssSave(p);
+  if(p.step!==undefined||p.report!==undefined||p.policy!==undefined||p.modules!==undefined||p.goals!==undefined||p.tools!==undefined){
+    if(_saveTimer)clearTimeout(_saveTimer);
+    _saveTimer=setTimeout(saveAuditSession,1000);
+  }
+};
 function tog(arr,v){return arr.indexOf(v)>-1?arr.filter(function(x){return x!==v;}):arr.concat([v]);}
 function spend(){return S.tools.reduce(function(a,t){return a+(parseFloat(t.cost)||0);},0);}
 function missing(){var m=[];if(!S.firmName)m.push('firm name');if(!S.staffCount)m.push('staff count');if(!S.practiceAreas.length)m.push('practice area');return m;}
