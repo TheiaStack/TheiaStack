@@ -643,6 +643,8 @@ var S={
   modules:[],modulesLoading:false,moduleProgress:0,
   dashStaff:[],
   alerts:[],
+  staffCompletions:[],
+  passThreshold:90,
   openModule:-1,quizAnswers:{},quizSubmitted:{},quizResults:{},
   certName:'',showCert:false,
   selectedModules:null,
@@ -662,7 +664,8 @@ var _saveTimer=null;
 var PERSIST=['step','firmName','staffCount','practiceAreas','software','tools','toolLookups',
   'clientData','dataStorage','hasPolicy','hasTraining','painPoints','goals','concerns',
   'detectMethod','billingText','detected','checklist','report','policy','modules',
-  'openModule','quizAnswers','quizSubmitted','quizResults','certName','showCert','activeTab'];
+  'openModule','quizAnswers','quizSubmitted','quizResults','certName','showCert','activeTab',
+  'staffCompletions','passThreshold'];
 
 async function saveAuditSession(){
   if(!_sbClient||!window.THEIA_USER)return;
@@ -692,7 +695,7 @@ async function loadAuditSession(){
 var _ssSave=ss;
 ss=function(p){
   _ssSave(p);
-  if(p.step!==undefined||p.report!==undefined||p.policy!==undefined||p.modules!==undefined||p.goals!==undefined||p.tools!==undefined){
+  if(p.step!==undefined||p.report!==undefined||p.policy!==undefined||p.modules!==undefined||p.goals!==undefined||p.tools!==undefined||p.staffCompletions!==undefined){
     if(_saveTimer)clearTimeout(_saveTimer);
     _saveTimer=setTimeout(saveAuditSession,1000);
   }
@@ -1184,6 +1187,55 @@ function updateSidebar(){
 
 function renderTraining(){
   var wrap=el('div',{cls:'fade-in'});
+
+  // Share link — shown whenever modules exist
+  if(S.modules&&S.modules.length&&window.THEIA_USER&&window.THEIA_USER.firmId){
+    var shareCard=el('div',{cls:'card',sty:{marginBottom:'20px',background:'var(--navy)',border:'none'}});
+    var shTop=el('div',{sty:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'12px'}});
+    var shLeft=el('div',{});
+    shLeft.appendChild(el('div',{sty:{fontSize:'10px',fontWeight:'700',letterSpacing:'.1em',textTransform:'uppercase',color:'rgba(255,255,255,.35)',marginBottom:'4px'}},'Staff training link'));
+    shLeft.appendChild(el('div',{sty:{fontSize:'13px',color:'rgba(255,255,255,.8)',fontWeight:'500'}},'Share this link with your staff to begin training'));
+    shTop.appendChild(shLeft);
+    shareCard.appendChild(shTop);
+    var linkVal='https://theiastack.com.au/training?firm='+window.THEIA_USER.firmId;
+    var linkRow=el('div',{sty:{display:'flex',gap:'8px',alignItems:'center'}});
+    var linkInput=el('input',{type:'text',sty:{flex:'1',padding:'10px 12px',fontSize:'12px',background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.15)',color:'rgba(255,255,255,.8)',fontFamily:'monospace',outline:'none',borderRadius:'0'}});
+    linkInput.value=linkVal;linkInput.readOnly=true;
+    var copyBtn=el('button',{cls:'btn-primary btn-sm',sty:{flexShrink:'0',background:'var(--gold)',border:'none'}});
+    copyBtn.textContent='Copy link';
+    copyBtn.addEventListener('click',function(){
+      navigator.clipboard.writeText(linkVal).then(function(){
+        copyBtn.textContent='Copied!';setTimeout(function(){copyBtn.textContent='Copy link';},2000);
+      });
+    });
+    linkRow.appendChild(linkInput);linkRow.appendChild(copyBtn);
+    shareCard.appendChild(linkRow);
+    if(S.staffCompletions&&S.staffCompletions.length){
+      var compRow=el('div',{sty:{marginTop:'12px',paddingTop:'12px',borderTop:'1px solid rgba(255,255,255,.08)',fontSize:'12px',color:'rgba(255,255,255,.4)'}});
+      compRow.textContent=S.staffCompletions.length+' staff member'+(S.staffCompletions.length!==1?'s have':' has')+' completed training';
+      shareCard.appendChild(compRow);
+    }
+    // Pass threshold setting
+    var ptRow=el('div',{sty:{marginTop:'14px',paddingTop:'14px',borderTop:'1px solid rgba(255,255,255,.08)',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'16px'}});
+    var ptLabel=el('div',{});
+    ptLabel.appendChild(el('div',{sty:{fontSize:'12px',fontWeight:'500',color:'rgba(255,255,255,.6)','marginBottom':'2px'}},'Pass threshold'));
+    ptLabel.appendChild(el('div',{sty:{fontSize:'11px',color:'rgba(255,255,255,.3)'}},'Minimum score staff must achieve to pass each quiz'));
+    ptRow.appendChild(ptLabel);
+    var ptRight=el('div',{sty:{display:'flex',alignItems:'center',gap:'8px',flexShrink:'0'}});
+    var ptInput=el('input',{type:'number',sty:{width:'60px',padding:'6px 10px',background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.15)',color:'rgba(255,255,255,.8)',fontFamily:'var(--font-body)',fontSize:'14px',textAlign:'center',outline:'none'}});
+    ptInput.min='50';ptInput.max='100';ptInput.value=S.passThreshold||90;
+    ptInput.addEventListener('change',function(){
+      var v=parseInt(ptInput.value);
+      if(v>=50&&v<=100)ss({passThreshold:v});
+      else ptInput.value=S.passThreshold||90;
+    });
+    ptRight.appendChild(ptInput);
+    ptRight.appendChild(el('span',{sty:{fontSize:'13px',color:'rgba(255,255,255,.4)'}},'%'));
+    ptRow.appendChild(ptRight);
+    shareCard.appendChild(ptRow);
+    wrap.appendChild(shareCard);
+  }
+
   // Show update-triggered module prompts
   if(S.newModuleQueue.length&&S.modules.length&&!S.modulesLoading){
     var uq=el('div',{sty:{marginBottom:'20px'}});
@@ -1737,24 +1789,30 @@ function renderDashboard(){
 
   // Staff status card
   var sc2=el('div',{cls:'dash-card'});
-  sc2.appendChild(el('div',{cls:'dash-card-title'},'Staff certification'));
-  if(S.dashStaff.length===0){
+  sc2.appendChild(el('div',{cls:'dash-card-title'},'Staff training'));
+  var comps=S.staffCompletions||[];
+  if(!comps.length){
     sc2.appendChild(el('div',{cls:'health-score',sty:{color:'var(--muted)'}},'—'));
-    sc2.appendChild(el('div',{cls:'health-label',sty:{color:'var(--muted)'}},'No staff added yet'));
-    sc2.appendChild(el('div',{cls:'health-sub',sty:{marginBottom:'14px'}},'Staff complete training via the training tab. Their progress will appear here once they have started.'));
-  } else {
-    var certCount=S.dashStaff.filter(function(s){return s.status==='certified';}).length;
-    sc2.appendChild(el('div',{cls:'health-score',sty:{color:'var(--navy)'}},certCount+'/'+S.dashStaff.length));
-    sc2.appendChild(el('div',{cls:'health-label',sty:{color:'var(--navy)'}},'Staff certified'));
-    sc2.appendChild(el('div',{cls:'health-sub',sty:{marginBottom:'14px'}},'As of today'));
+    sc2.appendChild(el('div',{cls:'health-label',sty:{color:'var(--muted)'}},'No completions yet'));
+    if(S.modules&&S.modules.length){
+      var shareHint=el('div',{cls:'health-sub',sty:{marginBottom:'14px'}});shareHint.textContent='Share the training link with your staff from the Training tab.';sc2.appendChild(shareHint);
+    }else{
+      var genHint=el('div',{cls:'health-sub',sty:{marginBottom:'14px'}});genHint.textContent='Generate training modules from the Training tab, then share the link with your staff.';sc2.appendChild(genHint);
+    }
+  }else{
+    sc2.appendChild(el('div',{cls:'health-score',sty:{color:'var(--navy)'}},String(comps.length)));
+    sc2.appendChild(el('div',{cls:'health-label',sty:{color:'var(--navy)'}},'Staff completed'));
+    sc2.appendChild(el('div',{cls:'health-sub',sty:{marginBottom:'14px'}},'Training completion log'));
     var sl=el('div',{cls:'staff-list'});
-    S.dashStaff.forEach(function(staff){
+    comps.slice(-5).reverse().forEach(function(c){
       var si=el('div',{cls:'staff-item'});
-      var sinfo=el('div',{});sinfo.appendChild(el('div',{cls:'staff-name'},staff.name));sinfo.appendChild(el('div',{cls:'staff-role'},staff.role));si.appendChild(sinfo);
-      var sbg=staff.status==='certified'?'var(--green-bg)':staff.status==='in-progress'?'var(--amber-bg)':'var(--red-bg)';
-      var scol=staff.status==='certified'?'var(--green)':staff.status==='in-progress'?'var(--amber)':'var(--red)';
-      var stxt=staff.status==='certified'?'Certified':staff.status==='in-progress'?'In progress':'Not started';
-      si.appendChild(el('span',{cls:'staff-badge',sty:{background:sbg,color:scol}},stxt));
+      var sinfo=el('div',{});
+      sinfo.appendChild(el('div',{cls:'staff-name'},c.name));
+      var totalAttempts=c.modules?c.modules.reduce(function(a,m){return a+(m.attempts||1);},0):1;
+      var d=c.completedAt?new Date(c.completedAt).toLocaleDateString('en-AU',{day:'numeric',month:'short'}):'';
+      sinfo.appendChild(el('div',{cls:'staff-role'},(d?d+' · ':'')+totalAttempts+' total attempt'+(totalAttempts!==1?'s':'')));
+      si.appendChild(sinfo);
+      si.appendChild(el('span',{cls:'staff-badge',sty:{background:'var(--green-bg)',color:'var(--green)',fontSize:'11px',padding:'2px 8px',borderRadius:'4px',fontWeight:'600'}},'Certified'));
       sl.appendChild(si);
     });
     sc2.appendChild(sl);

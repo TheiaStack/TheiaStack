@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Compliance Training — Theia-Stack</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#111111;--ink-2:#3d3d3d;--ink-3:#7a7a7a;
+  --rule:#e0e0da;--bg:#f8f7f4;--white:#ffffff;
+  --red:#b83232;--red-dk:#8c2424;--red-bg:#fdf2f2;
+  --green:#1a6640;--green-bg:#e8f5ee;--green-border:#a0d4b8;
+  --amber:#8a5a00;--amber-bg:#fff8e6;
+  --serif:'Lora',Georgia,serif;--sans:'Inter',system-ui,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{min-height:100%;font-family:var(--sans);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;}
+
+/* Layout */
+.page{max-width:640px;margin:0 auto;padding:40px 24px 80px;}
+
+/* Header */
+.t-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:40px;padding-bottom:24px;border-bottom:1px solid var(--rule);}
+.t-brand{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.t-gem{width:8px;height:8px;background:var(--red);transform:rotate(45deg);flex-shrink:0;}
+.t-brand-name{font-family:var(--serif);font-size:15px;color:var(--ink);}
+.t-firm{font-size:12px;color:var(--ink-3);text-align:right;}
+.t-firm strong{display:block;color:var(--ink);font-weight:500;}
+
+/* Progress */
+.t-progress{margin-bottom:32px;}
+.t-progress-header{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-3);margin-bottom:8px;}
+.t-progress-track{height:4px;background:var(--rule);border-radius:4px;overflow:hidden;}
+.t-progress-bar{height:4px;background:var(--ink);border-radius:4px;transition:width .4s ease;}
+
+/* Cards */
+.t-card{background:var(--white);border:1px solid var(--rule);padding:28px;margin-bottom:16px;}
+
+/* State screens */
+.t-center{text-align:center;padding:48px 0;}
+.t-spinner{width:28px;height:28px;border-radius:50%;border:2px solid var(--rule);border-top-color:var(--ink);animation:spin .8s linear infinite;margin:0 auto 16px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.t-eyebrow{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--red);margin-bottom:10px;}
+.t-h1{font-family:var(--serif);font-size:clamp(22px,4vw,30px);font-weight:400;color:var(--ink);line-height:1.2;margin-bottom:12px;}
+.t-sub{font-size:14px;color:var(--ink-3);line-height:1.7;margin-bottom:24px;}
+
+/* Name form */
+.t-name-input{width:100%;padding:13px 16px;border:1px solid var(--rule);background:var(--bg);font-family:var(--sans);font-size:15px;color:var(--ink);outline:none;transition:border-color .15s;margin-bottom:14px;}
+.t-name-input:focus{border-color:var(--ink);background:var(--white);}
+
+/* Module overview */
+.t-module-list{list-style:none;margin-bottom:24px;}
+.t-module-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--rule);font-size:13px;}
+.t-module-item:last-child{border-bottom:none;}
+.t-module-dot{width:8px;height:8px;border-radius:50%;background:var(--rule);flex-shrink:0;}
+.t-module-dot.done{background:var(--green);}
+.t-module-dot.current{background:var(--ink);}
+
+/* Content sections */
+.t-section{margin-bottom:20px;}
+.t-section-label{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.t-section-label::after{content:'';flex:1;height:1px;background:var(--rule);}
+.t-content-text{font-size:14px;color:var(--ink-2);line-height:1.75;}
+.t-list{list-style:none;display:flex;flex-direction:column;gap:6px;}
+.t-list-item{font-size:13px;color:var(--ink-2);line-height:1.6;padding:8px 12px;background:var(--bg);border-left:2px solid var(--rule);display:flex;gap:10px;}
+.t-list-item.green{background:var(--green-bg);border-color:var(--green);}
+.t-list-item.red{background:var(--red-bg);border-color:var(--red);color:#7a2020;}
+.t-compliance-note{padding:12px 14px;background:var(--amber-bg);border:1px solid #e8c870;border-radius:0;font-size:13px;color:var(--amber);line-height:1.6;margin-top:16px;}
+.t-compliance-label{font-weight:600;font-size:10px;letter-spacing:.1em;text-transform:uppercase;margin-right:6px;}
+
+/* Quiz */
+.t-quiz-card{background:var(--bg);border:1px solid var(--rule);padding:20px;margin-top:20px;}
+.t-quiz-title{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:16px;}
+.t-q{margin-bottom:18px;}
+.t-q-text{font-size:14px;font-weight:500;color:var(--ink);margin-bottom:10px;line-height:1.5;}
+.t-q-opt{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border:1px solid var(--rule);background:var(--white);cursor:pointer;margin-bottom:6px;font-size:13px;color:var(--ink-2);line-height:1.5;transition:border-color .15s,background .15s;}
+.t-q-opt:hover{border-color:var(--ink-3);background:var(--bg);}
+.t-q-opt.selected{border-color:var(--ink);background:#f0f0ec;}
+.t-q-opt.correct{border-color:var(--green);background:var(--green-bg);color:var(--green);}
+.t-q-opt.wrong{border-color:var(--red);background:var(--red-bg);color:var(--red);}
+.t-q-dot{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--rule);flex-shrink:0;margin-top:2px;transition:all .15s;}
+.t-q-opt.selected .t-q-dot{border-color:var(--ink);background:var(--ink);}
+.t-q-opt.correct .t-q-dot{border-color:var(--green);background:var(--green);}
+.t-q-opt.wrong .t-q-dot{border-color:var(--red);background:var(--red);}
+.t-q-exp{font-size:12px;color:var(--green);font-weight:500;margin-top:6px;padding-left:24px;}
+.t-quiz-result{text-align:center;padding:20px;margin-top:16px;border:1px solid var(--rule);background:var(--white);}
+.t-quiz-score{font-family:var(--serif);font-size:48px;font-weight:400;line-height:1;margin-bottom:6px;}
+.t-quiz-msg{font-size:13px;font-weight:500;margin-bottom:4px;}
+.t-quiz-sub{font-size:12px;color:var(--ink-3);}
+.t-attempt-badge{display:inline-block;margin-top:8px;font-size:11px;color:var(--ink-3);background:var(--bg);border:1px solid var(--rule);padding:3px 10px;}
+
+/* Buttons */
+.t-btn{display:block;width:100%;text-align:center;background:var(--ink);color:var(--white);font-family:var(--sans);font-size:13px;font-weight:500;letter-spacing:.04em;padding:14px;border:none;cursor:pointer;transition:background .2s;margin-top:16px;}
+.t-btn:hover{background:var(--red);}
+.t-btn:disabled{opacity:.4;cursor:not-allowed;background:var(--ink);}
+.t-btn.secondary{background:transparent;color:var(--ink);border:1px solid var(--rule);}
+.t-btn.secondary:hover{border-color:var(--ink);background:var(--bg);}
+
+/* Certificate */
+.t-cert{background:var(--ink);padding:40px;text-align:center;position:relative;overflow:hidden;margin-bottom:24px;}
+.t-cert::before{content:'';position:absolute;inset:8px;border:1px solid rgba(255,255,255,.1);pointer-events:none;}
+.t-cert-gem{width:40px;height:40px;background:var(--red);transform:rotate(45deg);margin:0 auto 24px;}
+.t-cert-eyebrow{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:10px;}
+.t-cert-title{font-family:var(--serif);font-size:clamp(20px,4vw,28px);font-weight:400;color:var(--white);margin-bottom:8px;}
+.t-cert-name{font-family:var(--serif);font-size:clamp(24px,5vw,36px);font-style:italic;color:rgba(255,255,255,.9);margin-bottom:8px;}
+.t-cert-firm{font-size:13px;color:rgba(255,255,255,.4);margin-bottom:28px;}
+.t-cert-tools{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-bottom:24px;}
+.t-cert-tool{font-size:11px;font-weight:500;padding:4px 12px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.1);}
+.t-cert-date{font-size:11px;color:rgba(255,255,255,.25);letter-spacing:.06em;}
+
+/* Error */
+.t-error{background:var(--red-bg);border:1px solid #f0b0b0;padding:16px;font-size:13px;color:#7a2020;margin-bottom:16px;}
+
+@media(max-width:500px){
+  .page{padding:24px 16px 60px;}
+  .t-cert{padding:28px 20px;}
+}
+</style>
+</head>
+<body>
+
+<div class="page" id="page">
+  <div class="t-center"><div class="t-spinner"></div></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://rkqnrpyctllxcnknjsby.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_7gIWX3E2pS_4UfEKJylqpw_V3CIY1b9';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// State
+var T = {
+  firmId: null,
+  firmName: '',
+  modules: [],
+  passThreshold: 90,
+  staffName: '',
+  screen: 'loading', // loading | error | name | overview | module | complete
+  currentModule: 0,
+  // Per-module attempt tracking: { toolName: attemptCount }
+  attempts: {},
+  // Current module quiz state
+  quizAnswers: {},
+  quizSubmitted: false,
+  quizScore: 0,
+  quizPassed: false,
+  // Completed module results: [{tool, passed, attempts}]
+  completed: [],
+  errorMsg: ''
+};
+
+function el(tag, attrs, text) {
+  var e = document.createElement(tag);
+  if (attrs) {
+    if (attrs.cls) e.className = attrs.cls;
+    if (attrs.id) e.id = attrs.id;
+    if (attrs.style) e.setAttribute('style', attrs.style);
+    Object.keys(attrs).forEach(function(k) {
+      if (k !== 'cls' && k !== 'id' && k !== 'style') {
+        if (k.startsWith('on')) e.addEventListener(k.slice(2), attrs[k]);
+        else if (k !== 'cls' && k !== 'id' && k !== 'style') try { e[k] = attrs[k]; } catch(e2) {}
+      }
+    });
+  }
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+
+function render() {
+  var page = document.getElementById('page');
+  page.innerHTML = '';
+  var wrap = document.createElement('div');
+
+  // Header (shown on all screens except loading/error)
+  if (T.screen !== 'loading' && T.screen !== 'error') {
+    var hdr = el('div', {cls:'t-header'});
+    var brand = el('a', {cls:'t-brand', href:'/'});
+    var gem = el('div', {cls:'t-gem'});
+    brand.appendChild(gem);
+    brand.appendChild(el('span', {cls:'t-brand-name'}, 'Theia-Stack'));
+    hdr.appendChild(brand);
+    if (T.firmName) {
+      var firmInfo = el('div', {cls:'t-firm'});
+      firmInfo.appendChild(el('strong', {}, T.firmName));
+      var firmSub = document.createTextNode('AI Compliance Training');
+      firmInfo.appendChild(firmSub);
+      hdr.appendChild(firmInfo);
+    }
+    wrap.appendChild(hdr);
+  }
+
+  if (T.screen === 'loading') {
+    var lc = el('div', {cls:'t-center'});
+    lc.appendChild(el('div', {cls:'t-spinner'}));
+    lc.appendChild(el('div', {style:'font-size:13px;color:var(--ink-3)'}, 'Loading training modules...'));
+    wrap.appendChild(lc);
+
+  } else if (T.screen === 'error') {
+    var hdr2 = el('div', {cls:'t-header'});
+    var brand2 = el('a', {cls:'t-brand', href:'/'});
+    brand2.appendChild(el('div', {cls:'t-gem'}));
+    brand2.appendChild(el('span', {cls:'t-brand-name'}, 'Theia-Stack'));
+    hdr2.appendChild(brand2);
+    wrap.appendChild(hdr2);
+    var ec = el('div', {cls:'t-center'});
+    ec.appendChild(el('div', {cls:'t-eyebrow'}, 'Unable to load'));
+    ec.appendChild(el('h1', {cls:'t-h1'}, 'Training not found'));
+    ec.appendChild(el('p', {cls:'t-sub'}, T.errorMsg || 'This training link may be invalid or your firm\'s training has not been generated yet. Contact your firm administrator.'));
+    wrap.appendChild(ec);
+
+  } else if (T.screen === 'name') {
+    wrap.appendChild(el('div', {cls:'t-eyebrow'}, 'AI Compliance Training'));
+    wrap.appendChild(el('h1', {cls:'t-h1'}, 'Welcome to your firm\'s AI compliance training.'));
+    wrap.appendChild(el('p', {cls:'t-sub'}, 'You will complete ' + T.modules.length + ' training module' + (T.modules.length !== 1 ? 's' : '') + ', one for each AI tool your firm uses. Each module ends with a short knowledge check.'));
+
+    var card = el('div', {cls:'t-card'});
+    card.appendChild(el('div', {style:'font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:10px'}, 'Before you begin'));
+    card.appendChild(el('div', {style:'font-size:14px;color:var(--ink-2);margin-bottom:16px;line-height:1.6'}, 'Enter your name as it should appear on your Certificate of AI Compliance.'));
+    var inp = el('input', {cls:'t-name-input', type:'text', placeholder:'Your full name'});
+    inp.id = 'staffName';
+    card.appendChild(inp);
+    var startBtn = el('button', {cls:'t-btn'}, 'Begin training');
+    startBtn.addEventListener('click', function() {
+      var name = document.getElementById('staffName').value.trim();
+      if (!name) { inp.style.borderColor = 'var(--red)'; return; }
+      T.staffName = name;
+      T.screen = 'overview';
+      render();
+    });
+    card.appendChild(startBtn);
+    wrap.appendChild(card);
+
+  } else if (T.screen === 'overview') {
+    wrap.appendChild(el('div', {cls:'t-eyebrow'}, 'Your training modules'));
+    wrap.appendChild(el('h1', {cls:'t-h1'}, 'Hi ' + T.staffName + '.'));
+    wrap.appendChild(el('p', {cls:'t-sub'}, 'Work through each module below. You need to pass the knowledge check at the end of each one to earn your certificate.'));
+
+    var modCard = el('div', {cls:'t-card'});
+    var mlist = el('ul', {cls:'t-module-list'});
+    T.modules.forEach(function(m, i) {
+      var done = T.completed.some(function(c) { return c.tool === m.toolName; });
+      var item = el('li', {cls:'t-module-item'});
+      var dot = el('div', {cls:'t-module-dot' + (done ? ' done' : (i === 0 ? ' current' : ''))});
+      item.appendChild(dot);
+      var minfo = el('div', {style:'flex:1'});
+      minfo.appendChild(el('div', {style:'font-size:14px;font-weight:500;color:var(--ink)'}, m.toolName));
+      minfo.appendChild(el('div', {style:'font-size:12px;color:var(--ink-3);margin-top:2px'}, done ? 'Completed' : (m.quiz ? m.quiz.length + ' questions' : 'Knowledge check included')));
+      item.appendChild(minfo);
+      if (done) {
+        var badge = el('span', {style:'font-size:11px;font-weight:600;padding:3px 10px;background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)'}, '✓ Passed');
+        item.appendChild(badge);
+      }
+      mlist.appendChild(item);
+    });
+    modCard.appendChild(mlist);
+    wrap.appendChild(modCard);
+
+    var nextIncomplete = T.modules.findIndex(function(m) {
+      return !T.completed.some(function(c) { return c.tool === m.toolName; });
+    });
+    if (nextIncomplete !== -1) {
+      T.currentModule = nextIncomplete;
+      var startMod = el('button', {cls:'t-btn'}, 'Start: ' + T.modules[nextIncomplete].toolName);
+      startMod.addEventListener('click', function() {
+        T.quizAnswers = {};
+        T.quizSubmitted = false;
+        T.screen = 'module';
+        render();
+      });
+      wrap.appendChild(startMod);
+    }
+
+  } else if (T.screen === 'module') {
+    var mod = T.modules[T.currentModule];
+    var totalMods = T.modules.length;
+    var doneMods = T.completed.length;
+
+    // Progress bar
+    var prog = el('div', {cls:'t-progress'});
+    var progHdr = el('div', {cls:'t-progress-header'});
+    progHdr.appendChild(el('span', {}, 'Module ' + (T.currentModule + 1) + ' of ' + totalMods));
+    progHdr.appendChild(el('span', {}, doneMods + ' completed'));
+    prog.appendChild(progHdr);
+    var progTrack = el('div', {cls:'t-progress-track'});
+    var progBar = el('div', {cls:'t-progress-bar', style:'width:' + Math.round((doneMods / totalMods) * 100) + '%'});
+    progTrack.appendChild(progBar);
+    prog.appendChild(progTrack);
+    wrap.appendChild(prog);
+
+    var attempts = T.attempts[mod.toolName] || 0;
+
+    wrap.appendChild(el('div', {cls:'t-eyebrow'}, mod.toolName));
+    wrap.appendChild(el('h1', {cls:'t-h1'}, 'Module ' + (T.currentModule + 1) + ': ' + mod.toolName));
+    if (attempts > 0) {
+      var retryBadge = el('div', {style:'margin-bottom:16px'});
+      retryBadge.appendChild(el('span', {cls:'t-attempt-badge'}, 'Attempt ' + (attempts + 1)));
+      wrap.appendChild(retryBadge);
+    }
+
+    // Content card
+    var contentCard = el('div', {cls:'t-card'});
+
+    if (mod.overview) {
+      var os = el('div', {cls:'t-section'});
+      os.appendChild(el('div', {cls:'t-section-label'}, 'Overview'));
+      os.appendChild(el('p', {cls:'t-content-text'}, mod.overview));
+      contentCard.appendChild(os);
+    }
+    if (mod.legalUses && mod.legalUses.length) {
+      var ls = el('div', {cls:'t-section'});
+      ls.appendChild(el('div', {cls:'t-section-label'}, 'Approved uses'));
+      var ll = el('ul', {cls:'t-list'});
+      mod.legalUses.forEach(function(u) {
+        var li = el('li', {cls:'t-list-item green'});
+        li.appendChild(el('span', {style:'color:var(--green);flex-shrink:0'}, '✓'));
+        li.appendChild(el('span', {}, u));
+        ll.appendChild(li);
+      });
+      ls.appendChild(ll);
+      contentCard.appendChild(ls);
+    }
+    if (mod.prohibitedUses && mod.prohibitedUses.length) {
+      var ps = el('div', {cls:'t-section'});
+      ps.appendChild(el('div', {cls:'t-section-label'}, 'Do not use for'));
+      var pl = el('ul', {cls:'t-list'});
+      mod.prohibitedUses.forEach(function(u) {
+        var li = el('li', {cls:'t-list-item red'});
+        li.appendChild(el('span', {style:'flex-shrink:0'}, '✕'));
+        li.appendChild(el('span', {}, u));
+        pl.appendChild(li);
+      });
+      ps.appendChild(pl);
+      contentCard.appendChild(ps);
+    }
+    if (mod.bestPractices && mod.bestPractices.length) {
+      var bs = el('div', {cls:'t-section'});
+      bs.appendChild(el('div', {cls:'t-section-label'}, 'Best practices'));
+      var bl = el('ul', {cls:'t-list'});
+      mod.bestPractices.forEach(function(u) {
+        var li = el('li', {cls:'t-list-item'});
+        li.appendChild(el('span', {style:'color:var(--ink-3);flex-shrink:0'}, '→'));
+        li.appendChild(el('span', {}, u));
+        bl.appendChild(li);
+      });
+      bs.appendChild(bl);
+      contentCard.appendChild(bs);
+    }
+    if (mod.complianceNote) {
+      var cn = el('div', {cls:'t-compliance-note'});
+      cn.innerHTML = '<span class="t-compliance-label">Compliance note</span>' + mod.complianceNote;
+      contentCard.appendChild(cn);
+    }
+    wrap.appendChild(contentCard);
+
+    // Quiz
+    if (mod.quiz && mod.quiz.length) {
+      var qcard = el('div', {cls:'t-quiz-card'});
+      qcard.appendChild(el('div', {cls:'t-quiz-title'}, 'Knowledge check — ' + mod.quiz.length + ' questions'));
+
+      if (!T.quizSubmitted) {
+        mod.quiz.forEach(function(q, qi) {
+          var qitem = el('div', {cls:'t-q'});
+          qitem.appendChild(el('div', {cls:'t-q-text'}, (qi + 1) + '. ' + q.q));
+          q.opts.forEach(function(opt, oi) {
+            var optEl = el('div', {cls:'t-q-opt' + (T.quizAnswers[qi] === oi ? ' selected' : '')});
+            var dot = el('div', {cls:'t-q-dot'});
+            optEl.appendChild(dot);
+            optEl.appendChild(el('span', {}, opt));
+            optEl.addEventListener('click', (function(qIdx, oIdx) {
+              return function() {
+                T.quizAnswers[qIdx] = oIdx;
+                render();
+              };
+            })(qi, oi));
+            qitem.appendChild(optEl);
+          });
+          qcard.appendChild(qitem);
+        });
+
+        var answered = Object.keys(T.quizAnswers).length;
+        var submitBtn = el('button', {cls:'t-btn'}, answered === mod.quiz.length ? 'Submit answers' : 'Answer all questions to continue');
+        submitBtn.disabled = answered < mod.quiz.length;
+        submitBtn.addEventListener('click', function() {
+          var score = 0;
+          mod.quiz.forEach(function(q, qi) {
+            var correct = q.opts.indexOf(q.answer);
+            if (T.quizAnswers[qi] === correct) score++;
+          });
+          T.quizScore = score;
+          T.quizPassed = Math.round((score / mod.quiz.length) * 100) >= T.passThreshold;
+          T.quizSubmitted = true;
+          T.attempts[mod.toolName] = (T.attempts[mod.toolName] || 0) + 1;
+          render();
+        });
+        qcard.appendChild(submitBtn);
+
+      } else {
+        // Show results
+        mod.quiz.forEach(function(q, qi) {
+          var qitem = el('div', {cls:'t-q'});
+          qitem.appendChild(el('div', {cls:'t-q-text'}, (qi + 1) + '. ' + q.q));
+          var correctIdx = q.opts.indexOf(q.answer);
+          q.opts.forEach(function(opt, oi) {
+            var isSelected = T.quizAnswers[qi] === oi;
+            var isCorrect = oi === correctIdx;
+            var cls = 't-q-opt';
+            if (isCorrect) cls += ' correct';
+            else if (isSelected && !isCorrect) cls += ' wrong';
+            var optEl = el('div', {cls:cls});
+            optEl.appendChild(el('div', {cls:'t-q-dot'}));
+            optEl.appendChild(el('span', {}, opt));
+            qitem.appendChild(optEl);
+          });
+          if (q.explanation) {
+            qitem.appendChild(el('div', {cls:'t-q-exp'}, q.explanation));
+          }
+          qcard.appendChild(qitem);
+        });
+
+        var resultBox = el('div', {cls:'t-quiz-result'});
+        var pct = Math.round((T.quizScore / mod.quiz.length) * 100);
+        var scoreEl = el('div', {cls:'t-quiz-score', style:'color:' + (T.quizPassed ? 'var(--green)' : 'var(--red)')});
+        scoreEl.textContent = pct + '%';
+        resultBox.appendChild(scoreEl);
+        resultBox.appendChild(el('div', {cls:'t-quiz-msg', style:'color:' + (T.quizPassed ? 'var(--green)' : 'var(--red)')}, T.quizPassed ? 'Passed' : 'Not passed — ' + T.passThreshold + '% required'));
+        resultBox.appendChild(el('div', {cls:'t-quiz-sub'}, T.quizScore + ' of ' + mod.quiz.length + ' correct · Attempt ' + T.attempts[mod.toolName]));
+        qcard.appendChild(resultBox);
+
+        if (T.quizPassed) {
+          T.completed.push({ tool: mod.toolName, passed: true, attempts: T.attempts[mod.toolName] });
+          var allDone = T.completed.length === T.modules.length;
+          var nextBtn = el('button', {cls:'t-btn'}, allDone ? 'Get your certificate' : 'Next module');
+          nextBtn.addEventListener('click', function() {
+            if (allDone) {
+              T.screen = 'complete';
+              saveCompletion();
+            } else {
+              var nextIdx = T.modules.findIndex(function(m) {
+                return !T.completed.some(function(c) { return c.tool === m.toolName; });
+              });
+              T.currentModule = nextIdx;
+              T.quizAnswers = {};
+              T.quizSubmitted = false;
+              T.screen = 'module';
+            }
+            render();
+          });
+          qcard.appendChild(nextBtn);
+        } else {
+          var retryBtn = el('button', {cls:'t-btn'}, 'Review and try again');
+          retryBtn.addEventListener('click', function() {
+            T.quizAnswers = {};
+            T.quizSubmitted = false;
+            render();
+          });
+          qcard.appendChild(retryBtn);
+        }
+      }
+      wrap.appendChild(qcard);
+    }
+
+  } else if (T.screen === 'complete') {
+    var today = new Date();
+    var dateStr = today.getDate() + ' ' + ['January','February','March','April','May','June','July','August','September','October','November','December'][today.getMonth()] + ' ' + today.getFullYear();
+
+    var cert = el('div', {cls:'t-cert'});
+    cert.appendChild(el('div', {cls:'t-cert-gem'}));
+    cert.appendChild(el('div', {cls:'t-cert-eyebrow'}, 'Certificate of AI Compliance'));
+    cert.appendChild(el('div', {cls:'t-cert-title'}, 'This certifies that'));
+    cert.appendChild(el('div', {cls:'t-cert-name'}, T.staffName));
+    cert.appendChild(el('div', {cls:'t-cert-firm'}, 'of ' + T.firmName));
+    var tools2 = el('div', {cls:'t-cert-tools'});
+    T.completed.forEach(function(c) {
+      tools2.appendChild(el('span', {cls:'t-cert-tool'}, c.tool));
+    });
+    cert.appendChild(tools2);
+    cert.appendChild(el('div', {cls:'t-cert-eyebrow', style:'margin-bottom:4px'}, 'has completed AI compliance training'));
+    cert.appendChild(el('div', {cls:'t-cert-date'}, 'Issued ' + dateStr + ' · Theia-Stack'));
+    wrap.appendChild(cert);
+
+    wrap.appendChild(el('div', {cls:'t-eyebrow'}, 'All modules completed'));
+    wrap.appendChild(el('h1', {cls:'t-h1', style:'margin-bottom:12px'}, 'Well done, ' + T.staffName + '.'));
+
+    var summaryCard = el('div', {cls:'t-card'});
+    summaryCard.appendChild(el('div', {style:'font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:14px'}, 'Your results'));
+    T.completed.forEach(function(c) {
+      var row = el('div', {style:'display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--rule)'});
+      row.appendChild(el('span', {style:'font-size:13px;color:var(--ink);font-weight:500'}, c.tool));
+      var right = el('div', {style:'display:flex;align-items:center;gap:8px;flex-shrink:0'});
+      right.appendChild(el('span', {style:'font-size:12px;color:var(--ink-3)'}, c.attempts + ' attempt' + (c.attempts !== 1 ? 's' : '')));
+      right.appendChild(el('span', {style:'font-size:11px;font-weight:600;padding:3px 10px;background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)'}, 'Passed'));
+      row.appendChild(right);
+      summaryCard.appendChild(row);
+    });
+    wrap.appendChild(summaryCard);
+
+    wrap.appendChild(el('p', {style:'font-size:12px;color:var(--ink-3);text-align:center;margin-top:16px;line-height:1.6'}, 'Your completion has been recorded. Your firm administrator has been notified.'));
+  }
+
+  page.appendChild(wrap);
+}
+
+async function saveCompletion() {
+  try {
+    // Read current session_data
+    var res = await sb.from('audit_sessions').select('session_data').eq('firm_id', T.firmId).maybeSingle();
+    if (res.error || !res.data) return;
+    var sessionData = res.data.session_data || {};
+    var completions = sessionData.staffCompletions || [];
+
+    completions.push({
+      id: Date.now().toString(),
+      name: T.staffName,
+      completedAt: new Date().toISOString(),
+      modules: T.completed
+    });
+
+    sessionData.staffCompletions = completions;
+
+    await sb.from('audit_sessions').upsert(
+      { firm_id: T.firmId, session_data: sessionData, updated_at: new Date().toISOString() },
+      { onConflict: 'firm_id' }
+    );
+  } catch(e) {
+    console.warn('Could not save completion:', e);
+  }
+}
+
+// Init — read firm_id from URL
+(async function() {
+  var params = new URLSearchParams(window.location.search);
+  var firmId = params.get('firm');
+  if (!firmId) {
+    T.errorMsg = 'No firm identifier found in this link. Please ask your administrator to resend the training link.';
+    T.screen = 'error';
+    render();
+    return;
+  }
+  T.firmId = firmId;
+
+  try {
+    var res = await sb.from('audit_sessions').select('session_data').eq('firm_id', firmId).maybeSingle();
+    if (res.error || !res.data || !res.data.session_data) {
+      T.errorMsg = 'Training modules could not be found for this firm. Your administrator may need to generate them first.';
+      T.screen = 'error';
+      render();
+      return;
+    }
+    var data = res.data.session_data;
+    if (!data.modules || !data.modules.length) {
+      T.errorMsg = 'Training modules have not been generated yet. Please ask your administrator to generate them from the platform.';
+      T.screen = 'error';
+      render();
+      return;
+    }
+    T.modules = data.modules;
+    T.firmName = data.firmName || 'Your firm';
+    T.passThreshold = (typeof data.passThreshold === 'number') ? data.passThreshold : 90;
+    T.screen = 'name';
+    render();
+  } catch(e) {
+    T.errorMsg = 'There was a problem loading your training. Please try again or contact your administrator.';
+    T.screen = 'error';
+    render();
+  }
+})();
+</script>
+</body>
+</html>
