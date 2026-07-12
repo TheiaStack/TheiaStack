@@ -240,6 +240,7 @@ function render() {
     var modCard = el('div', {cls:'t-card'});
     var mlist = el('ul', {cls:'t-module-list'});
     T.modules.forEach(function(m, i) {
+      if (!m) return;
       var done = T.completed.some(function(c) { return c.tool === m.toolName; });
       var item = el('li', {cls:'t-module-item'});
       var dot = el('div', {cls:'t-module-dot' + (done ? ' done' : (i === 0 ? ' current' : ''))});
@@ -361,9 +362,8 @@ function render() {
 
       if (!T.quizSubmitted) {
         mod.quiz.forEach(function(q, qi) {
+          if (!q || !Array.isArray(q.opts)) return;
           var qitem = el('div', {cls:'t-q'});
-          qitem.appendChild(el('div', {cls:'t-q-text'}, (qi + 1) + '. ' + q.q));
-          q.opts.forEach(function(opt, oi) {
             var optEl = el('div', {cls:'t-q-opt' + (T.quizAnswers[qi] === oi ? ' selected' : '')});
             var dot = el('div', {cls:'t-q-dot'});
             optEl.appendChild(dot);
@@ -385,6 +385,7 @@ function render() {
         submitBtn.addEventListener('click', function() {
           var score = 0;
           mod.quiz.forEach(function(q, qi) {
+            if (!q || !Array.isArray(q.opts)) return;
             var correct = q.opts.indexOf(q.answer);
             if (T.quizAnswers[qi] === correct) score++;
           });
@@ -399,6 +400,7 @@ function render() {
       } else {
         // Show results
         mod.quiz.forEach(function(q, qi) {
+          if (!q || !Array.isArray(q.opts)) return;
           var qitem = el('div', {cls:'t-q'});
           qitem.appendChild(el('div', {cls:'t-q-text'}, (qi + 1) + '. ' + q.q));
           var correctIdx = q.opts.indexOf(q.answer);
