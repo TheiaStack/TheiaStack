@@ -645,6 +645,7 @@ var S={
   alerts:[],
   staffCompletions:[],
   passThreshold:90,
+  trainingCode:'',
   openModule:-1,quizAnswers:{},quizSubmitted:{},quizResults:{},
   certName:'',showCert:false,
   selectedModules:null,
@@ -665,7 +666,7 @@ var PERSIST=['step','firmName','staffCount','practiceAreas','software','tools','
   'clientData','dataStorage','hasPolicy','hasTraining','painPoints','goals','concerns',
   'detectMethod','billingText','detected','checklist','report','policy','modules',
   'openModule','quizAnswers','quizSubmitted','quizResults','certName','showCert','activeTab',
-  'staffCompletions','passThreshold'];
+  'staffCompletions','passThreshold','trainingCode'];
 
 async function saveAuditSession(){
   if(!_sbClient||!window.THEIA_USER)return;
@@ -1190,6 +1191,16 @@ function renderTraining(){
 
   // Share link — shown whenever modules exist
   if(S.modules&&S.modules.length&&window.THEIA_USER&&window.THEIA_USER.firmId){
+    // Generate a readable training code if not already set — set directly to avoid render loop
+    if(!S.trainingCode&&S.firmName){
+      var slug=(S.firmName||'firm').toLowerCase().replace(/[^a-z0-9\s]/g,'').replace(/\s+/g,'').slice(0,20);
+      var today=new Date();
+      var dateStr=today.getFullYear().toString()+String(today.getMonth()+1).padStart(2,'0')+String(today.getDate()).padStart(2,'0');
+      S.trainingCode=slug+'-training-'+dateStr;
+      // Save in background without triggering re-render
+      setTimeout(saveAuditSession,100);
+    }
+
     var shareCard=el('div',{cls:'card',sty:{marginBottom:'20px',background:'var(--navy)',border:'none'}});
     var shTop=el('div',{sty:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'12px'}});
     var shLeft=el('div',{});
@@ -1197,7 +1208,7 @@ function renderTraining(){
     shLeft.appendChild(el('div',{sty:{fontSize:'13px',color:'rgba(255,255,255,.8)',fontWeight:'500'}},'Share this link with your staff to begin training'));
     shTop.appendChild(shLeft);
     shareCard.appendChild(shTop);
-    var linkVal='https://theiastack.com.au/training?firm='+window.THEIA_USER.firmId;
+    var linkVal='https://theiastack.com.au/training?session='+S.trainingCode;
     var linkRow=el('div',{sty:{display:'flex',gap:'8px',alignItems:'center'}});
     var linkInput=el('input',{type:'text',sty:{flex:'1',padding:'10px 12px',fontSize:'12px',background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.15)',color:'rgba(255,255,255,.8)',fontFamily:'monospace',outline:'none',borderRadius:'0'}});
     linkInput.value=linkVal;linkInput.readOnly=true;

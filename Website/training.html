@@ -362,17 +362,18 @@ function render() {
 
       if (!T.quizSubmitted) {
         mod.quiz.forEach(function(q, qi) {
-          if (!q || !Array.isArray(q.opts)) return;
+          if (!q) return;
+          var qText = q.question || q.q || '';
+          var qOpts = q.options || q.opts || [];
+          if (!qText || !Array.isArray(qOpts) || !qOpts.length) return;
           var qitem = el('div', {cls:'t-q'});
+          qitem.appendChild(el('div', {cls:'t-q-text'}, (qi + 1) + '. ' + qText));
+          qOpts.forEach(function(opt, oi) {
             var optEl = el('div', {cls:'t-q-opt' + (T.quizAnswers[qi] === oi ? ' selected' : '')});
-            var dot = el('div', {cls:'t-q-dot'});
-            optEl.appendChild(dot);
+            optEl.appendChild(el('div', {cls:'t-q-dot'}));
             optEl.appendChild(el('span', {}, opt));
             optEl.addEventListener('click', (function(qIdx, oIdx) {
-              return function() {
-                T.quizAnswers[qIdx] = oIdx;
-                render();
-              };
+              return function() { T.quizAnswers[qIdx] = oIdx; render(); };
             })(qi, oi));
             qitem.appendChild(optEl);
           });
@@ -385,9 +386,9 @@ function render() {
         submitBtn.addEventListener('click', function() {
           var score = 0;
           mod.quiz.forEach(function(q, qi) {
-            if (!q || !Array.isArray(q.opts)) return;
-            var correct = q.opts.indexOf(q.answer);
-            if (T.quizAnswers[qi] === correct) score++;
+            if (!q) return;
+            var correctIdx = (typeof q.correct === 'number') ? q.correct : (q.options||q.opts||[]).indexOf(q.answer);
+            if (T.quizAnswers[qi] === correctIdx) score++;
           });
           T.quizScore = score;
           T.quizPassed = Math.round((score / mod.quiz.length) * 100) >= T.passThreshold;
@@ -400,11 +401,14 @@ function render() {
       } else {
         // Show results
         mod.quiz.forEach(function(q, qi) {
-          if (!q || !Array.isArray(q.opts)) return;
+          if (!q) return;
+          var qText = q.question || q.q || '';
+          var qOpts = q.options || q.opts || [];
+          if (!qText || !Array.isArray(qOpts) || !qOpts.length) return;
+          var correctIdx = (typeof q.correct === 'number') ? q.correct : qOpts.indexOf(q.answer);
           var qitem = el('div', {cls:'t-q'});
-          qitem.appendChild(el('div', {cls:'t-q-text'}, (qi + 1) + '. ' + q.q));
-          var correctIdx = q.opts.indexOf(q.answer);
-          q.opts.forEach(function(opt, oi) {
+          qitem.appendChild(el('div', {cls:'t-q-text'}, (qi + 1) + '. ' + qText));
+          qOpts.forEach(function(opt, oi) {
             var isSelected = T.quizAnswers[qi] === oi;
             var isCorrect = oi === correctIdx;
             var cls = 't-q-opt';
@@ -530,27 +534,43 @@ async function saveCompletion() {
   }
 }
 
-// Init — read firm_id from URL
+// Init — read session code or firm_id from URL
 (async function() {
   var params = new URLSearchParams(window.location.search);
+  var sessionCode = params.get('session');
   var firmId = params.get('firm');
-  if (!firmId) {
-    T.errorMsg = 'No firm identifier found in this link. Please ask your administrator to resend the training link.';
+
+  if (!sessionCode && !firmId) {
+    T.errorMsg = 'No training link identifier found. Please ask your administrator to resend the training link.';
     T.screen = 'error';
     render();
     return;
   }
-  T.firmId = firmId;
 
   try {
-    var res = await sb.from('audit_sessions').select('session_data').eq('firm_id', firmId).maybeSingle();
+    var res;
+    if (sessionCode) {
+      // Look up by readable training code stored in session_data
+      res = await sb.from('audit_sessions')
+        .select('session_data, firm_id')
+        .filter('session_data->>trainingCode', 'eq', sessionCode)
+        .maybeSingle();
+    } else {
+      // Fallback: look up by firm_id (legacy links)
+      res = await sb.from('audit_sessions')
+        .select('session_data, firm_id')
+        .eq('firm_id', firmId)
+        .maybeSingle();
+    }
+
     if (res.error || !res.data || !res.data.session_data) {
-      T.errorMsg = 'Training modules could not be found for this firm. Your administrator may need to generate them first.';
+      T.errorMsg = 'Training could not be found for this link. Your administrator may need to regenerate the training modules.';
       T.screen = 'error';
       render();
       return;
     }
     var data = res.data.session_data;
+    T.firmId = res.data.firm_id;
     if (!data.modules || !data.modules.length) {
       T.errorMsg = 'Training modules have not been generated yet. Please ask your administrator to generate them from the platform.';
       T.screen = 'error';
