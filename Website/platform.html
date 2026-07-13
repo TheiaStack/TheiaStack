@@ -643,7 +643,6 @@ var S={
   openModule:-1,quizAnswers:{},quizSubmitted:{},quizResults:{},
   certName:'',showCert:false,
   selectedModules:null,
-  staffViewOpen:false,staffViewName:'',staffModuleOpen:-1,
   staffQuizAnswers:{},staffQuizSubmitted:{},
   policyVersions:[],pendingUpdates:[],newModuleQueue:[],updateCheckDone:false,
   toolSearch:'',toolSearchResults:[],toolSearchLoading:false,toolSearchDone:false,toolSearchHints:{}
@@ -1166,7 +1165,6 @@ function updateSidebar(){
       item.style.cursor='pointer';
       item.title='Click to go back and edit '+s;
       (function(idx2){item.addEventListener('click',function(){
-        if(S.staffViewOpen)ss({staffViewOpen:false});
         ss({step:idx2});
       });})(i);
     }
@@ -1634,189 +1632,12 @@ function staffQuizPass(mi){
   return correct>=Math.ceil(mod.quiz.length*0.8);
 }
 
-function renderStaffView(){
-  var ov=el('div',{cls:'staff-view-overlay'});
-  var hdr=el('div',{cls:'staff-view-header'});
-  var hbl=el('div',{sty:{display:'flex',alignItems:'center',gap:'12px'}});
-  var brandMark=el('div',{});brandMark.innerHTML='<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="28" height="28"><defs><clipPath id="dms"><polygon points="20,1 39,20 20,39 1,20"/></clipPath></defs><rect x="0" y="0" width="40" height="9" fill="#B83232" clip-path="url(#dms)"/><rect x="0" y="9" width="40" height="5.5" fill="#c94040" clip-path="url(#dms)"/><rect x="0" y="14.5" width="40" height="5" fill="#F2F2F2" clip-path="url(#dms)"/><rect x="0" y="19.5" width="40" height="5" fill="#D0D0D0" clip-path="url(#dms)"/><rect x="0" y="24.5" width="40" height="5" fill="#5A5A5A" clip-path="url(#dms)"/><rect x="0" y="29.5" width="40" height="4.5" fill="#2C2C2C" clip-path="url(#dms)"/><rect x="0" y="34" width="40" height="6" fill="#111111" clip-path="url(#dms)"/><polygon points="20,1 39,20 20,39 1,20" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1"/></svg>';
-  hbl.appendChild(brandMark);
-  var brandText=el('div',{});
-  brandText.appendChild(el('div',{cls:'staff-view-brand'},'Theia-Stack'));
-  brandText.appendChild(el('div',{cls:'staff-view-firm'},'AI Compliance Training — '+S.firmName));
-  hbl.appendChild(brandText);
-  // Progress indicator in header
-  var totalMods=S.modules.length;
-  var doneMods=S.modules.filter(function(m,mi){return !!S.staffQuizSubmitted[mi]&&staffQuizPass(mi);}).length;
-  if(totalMods>0){
-    var hdrProg=el('div',{sty:{marginLeft:'20px',display:'flex',alignItems:'center',gap:'10px'}});
-    hdrProg.appendChild(el('span',{sty:{fontSize:'12px',color:'#888'}},doneMods+'/'+totalMods+' complete'));
-    var hpbw=el('div',{sty:{width:'80px',height:'4px',background:'#333',borderRadius:'4px',overflow:'hidden'}});
-    var hpb=el('div',{sty:{height:'4px',background:'#1A7A46',borderRadius:'4px',width:Math.round((doneMods/totalMods)*100)+'%',transition:'width .4s ease'}});
-    hpbw.appendChild(hpb);hdrProg.appendChild(hpbw);hbl.appendChild(hdrProg);
-  }
-  hdr.appendChild(hbl);
-  var closeBtn=el('button',{cls:'staff-close-btn',onclick:function(){ss({staffViewOpen:false});}});
-  closeBtn.textContent='Exit staff view';hdr.appendChild(closeBtn);ov.appendChild(hdr);
-  var body=el('div',{cls:'staff-view-body'});
-  // Welcome
-  var welcome=el('div',{cls:'staff-welcome'});
-  welcome.appendChild(el('h2',{},'Your AI compliance training'));
-  welcome.appendChild(el('p',{},'Complete each module below and pass the knowledge check. Once all modules are done, your Certificate of AI Compliance will be issued.'));
-  body.appendChild(welcome);
-  // Name input
-  var nameSection=el('div',{cls:'staff-name-section'});
-  nameSection.appendChild(el('label',{},'Your full name (appears on your certificate)'));
-  var nameInput=el('input',{type:'text',cls:'staff-name-input',placeholder:'Enter your name'});
-  nameInput.value=S.staffViewName;
-  nameInput.addEventListener('input',function(e){S.staffViewName=e.target.value;});
-  nameSection.appendChild(nameInput);body.appendChild(nameSection);
-  // Policy
-  if(S.policy){
-    var polSec=el('div',{cls:'staff-policy-section'});
-    polSec.appendChild(el('h3',{},'AI Usage Policy — '+S.firmName));
-    polSec.appendChild(el('div',{cls:'staff-policy-meta'},'Read this policy before completing your training modules.'));
-    var polText=el('div',{cls:'staff-policy-text'});
-    S.policy.split('\n').forEach(function(line){
-      if(line.indexOf('## ')===0){polText.appendChild(el('h2',{},line.replace('## ','')));}
-      else if(line.trim()){var lp=el('p',{sty:{marginBottom:'6px',fontSize:'13px',color:'#ccc'}});lp.textContent=line;polText.appendChild(lp);}
-    });
-    polSec.appendChild(polText);body.appendChild(polSec);
-  }
-  // Modules
-  if(!S.modules.length){
-    var nm=el('div',{sty:{padding:'32px',textAlign:'center',color:'#666',fontSize:'14px'}});
-    nm.textContent='Training modules have not been generated yet. Ask your managing partner to generate them.';
-    body.appendChild(nm);
-  } else {
-    body.appendChild(el('div',{sty:{fontSize:'16px',fontWeight:'600',color:'#fff',marginBottom:'16px'}},'Training modules — '+S.modules.length+' required'));
-    var mlist=el('div',{cls:'staff-module-list'});
-    S.modules.forEach(function(mod,mi){
-      var submitted=!!S.staffQuizSubmitted[mi];
-      var passed=submitted&&staffQuizPass(mi);
-      var statusColor=passed?'#1A7A46':submitted?'#B83232':'#555';
-      var statusBg=passed?'rgba(26,122,70,.2)':submitted?'rgba(184,50,50,.2)':'rgba(255,255,255,.07)';
-      var statusTxt=passed?'Passed':submitted?'Retry':'Not started';
-      var mc=el('div',{cls:'staff-module-card'});
-      var mhdr=el('div',{cls:'staff-module-header'});
-      mhdr.appendChild(el('div',{cls:'staff-module-name'},mod.toolName||'Module '+(mi+1)));
-      mhdr.appendChild(el('span',{cls:'staff-module-status',sty:{background:statusBg,color:statusColor}},statusTxt));
-      var chevron=el('span',{sty:{color:'#555',fontSize:'18px',transition:'transform .2s',transform:S.staffModuleOpen===mi?'rotate(90deg)':'rotate(0deg)'}});chevron.textContent='›';mhdr.appendChild(chevron);
-      (function(idx){mhdr.addEventListener('click',function(){ss({staffModuleOpen:S.staffModuleOpen===idx?-1:idx});});})(mi);
-      mc.appendChild(mhdr);
-      if(S.staffModuleOpen===mi){
-        var mbody=el('div',{cls:'staff-module-body'});
-        if(mod.overview){var ov2=el('p',{sty:{fontSize:'14px',color:'#ccc',lineHeight:'1.7',paddingTop:'16px',marginBottom:'16px'}});ov2.textContent=mod.overview;mbody.appendChild(ov2);}
-        if(mod.legalUses&&mod.legalUses.length){
-          mbody.appendChild(el('div',{cls:'staff-section-title'},'Approved uses'));
-          mod.legalUses.forEach(function(u){var li=el('div',{cls:'staff-list-item'});li.textContent=u;mbody.appendChild(li);});
-        }
-        if(mod.prohibitedUses&&mod.prohibitedUses.length){
-          mbody.appendChild(el('div',{cls:'staff-section-title'},'Prohibited uses'));
-          mod.prohibitedUses.forEach(function(u){var li=el('div',{cls:'staff-list-item',sty:{color:'#f08080'}});li.textContent=u;mbody.appendChild(li);});
-        }
-        if(mod.bestPractices&&mod.bestPractices.length){
-          mbody.appendChild(el('div',{cls:'staff-section-title'},'Best practices'));
-          mod.bestPractices.forEach(function(u){var li=el('div',{cls:'staff-list-item'});li.textContent=u;mbody.appendChild(li);});
-        }
-        if(mod.complianceNote){
-          var cn=el('div',{sty:{padding:'14px 16px',background:'rgba(107,79,168,.1)',border:'1px solid rgba(107,79,168,.3)',borderRadius:'8px',fontSize:'13px',color:'#b89ce8',margin:'16px 0',lineHeight:'1.6'}});
-          cn.innerHTML='<strong style="color:#d4bbff">⚖️ Australian compliance note:</strong> '+mod.complianceNote;mbody.appendChild(cn);
-        }
-        if(mod.quiz&&mod.quiz.length){
-          mbody.appendChild(el('div',{cls:'staff-section-title'},'Knowledge check'));
-          var ans=S.staffQuizAnswers[mi]||{};
-          // Map of qi → [optEl, optEl, ...] so click handlers can update siblings directly
-          var optElMap={};
-          mod.quiz.forEach(function(q,qi){
-            var qblock=el('div',{cls:'staff-quiz-q'});
-            var qt=el('div',{cls:'staff-quiz-q-text'});qt.textContent=(qi+1)+'. '+q.question;qblock.appendChild(qt);
-            optElMap[qi]=[];
-            q.options.forEach(function(opt,oi){
-              var cls2='staff-quiz-opt';
-              if(ans[qi]===oi)cls2+=' selected';
-              if(submitted&&oi===q.correct)cls2+=' correct';
-              if(submitted&&ans[qi]===oi&&oi!==q.correct)cls2+=' wrong';
-              var optEl=el('div',{cls:cls2});optEl.textContent=String.fromCharCode(65+oi)+'. '+cleanOpt(opt);
-              optElMap[qi][oi]=optEl;
-              if(!submitted){
-                // Update DOM directly — no ss(), no re-render
-                (function(qi2,oi2){optEl.addEventListener('click',function(){
-                  if(!S.staffQuizAnswers[mi])S.staffQuizAnswers[mi]={};
-                  S.staffQuizAnswers[mi][qi2]=oi2;
-                  // Visually update only this question's options
-                  var siblings=optElMap[qi2];
-                  if(siblings){siblings.forEach(function(sib,sibOi){sib.className='staff-quiz-opt'+(sibOi===oi2?' selected':'');});}
-                });})(qi,oi);
-              }
-              qblock.appendChild(optEl);
-              if(submitted&&ans[qi]===oi&&q.explanation){var exp=el('div',{sty:{fontSize:'12px',color:'#888',marginTop:'6px',paddingLeft:'8px'}});exp.textContent=q.explanation;qblock.appendChild(exp);}
-            });
-            mbody.appendChild(qblock);
-          });
-          if(!submitted){
-            var sbtn=el('button',{cls:'staff-quiz-submit'});
-            sbtn.textContent='Submit answers';
-            (function(mi2,mod2){sbtn.addEventListener('click',function(){
-              var a2=S.staffQuizAnswers[mi2]||{};
-              if(Object.keys(a2).length<mod2.quiz.length){alert('Please answer all '+mod2.quiz.length+' questions.');return;}
-              var subm=Object.assign({},S.staffQuizSubmitted);subm[mi2]=true;
-              ss({staffQuizSubmitted:subm,staffModuleOpen:mi2});
-            });})(mi,mod);
-            mbody.appendChild(sbtn);
-          }
-          if(submitted){
-            var correct2=mod.quiz.filter(function(q2,qi2){return (S.staffQuizAnswers[mi]||{})[qi2]===q2.correct;}).length;
-            var pass2=correct2>=Math.ceil(mod.quiz.length*0.8);
-            var res=el('div',{cls:'staff-quiz-result',sty:{background:pass2?'rgba(26,122,70,.15)':'rgba(184,50,50,.15)',border:'1px solid '+(pass2?'rgba(26,122,70,.4)':'rgba(184,50,50,.4)'),color:pass2?'#4de89a':'#f08080'}});
-            res.textContent=pass2?'Passed — '+correct2+'/'+mod.quiz.length+' correct.':''+correct2+'/'+mod.quiz.length+' correct — review the material and retry.';
-            mbody.appendChild(res);
-            if(!pass2){
-              var retryBtn=el('button',{cls:'staff-quiz-submit',sty:{marginTop:'10px',background:'#333'}});
-              retryBtn.textContent='Retry quiz';
-              (function(mi3){retryBtn.addEventListener('click',function(){var subm=Object.assign({},S.staffQuizSubmitted);delete subm[mi3];var a3=Object.assign({},S.staffQuizAnswers);delete a3[mi3];ss({staffQuizSubmitted:subm,staffQuizAnswers:a3});});})(mi);
-              mbody.appendChild(retryBtn);
-            }
-          }
-        }
-        mc.appendChild(mbody);
-      }
-      mlist.appendChild(mc);
-    });
-    body.appendChild(mlist);
-    // Certificate
-    var allPassed=S.modules.length>0&&S.modules.every(function(mod,mi){return !!S.staffQuizSubmitted[mi]&&staffQuizPass(mi);});
-    if(allPassed&&S.staffViewName.trim()){
-      var certSec=el('div',{cls:'staff-cert-section'});
-      certSec.appendChild(el('div',{cls:'staff-cert-title'},'Certificate of AI Compliance'));
-      var certName=el('div',{sty:{fontSize:'18px',color:'#ccc',margin:'8px 0'}});certName.textContent=S.staffViewName;certSec.appendChild(certName);
-      var certMeta=el('div',{sty:{fontSize:'13px',color:'#666',marginBottom:'20px'}});
-      certMeta.textContent='Issued: '+new Date().toLocaleDateString('en-AU')+' | Modules: '+S.modules.map(function(m){return m.toolName;}).join(', ');
-      certSec.appendChild(certMeta);
-      var printBtn=el('button',{cls:'staff-cert-print',onclick:function(){window.print();}});
-      printBtn.textContent='Print certificate';certSec.appendChild(printBtn);
-      body.appendChild(certSec);
-    } else if(allPassed){
-      var np=el('div',{cls:'staff-cert-section'});
-      np.appendChild(el('div',{cls:'staff-cert-title'},'All modules complete!'));
-      np.appendChild(el('div',{cls:'staff-cert-sub'},'Enter your name above to generate your certificate.'));
-      body.appendChild(np);
-    }
-  }
-  ov.appendChild(body);return ov;
-}
-
 function renderDashboard(){
   var wrap=el('div',{cls:'fade-in'});
   var score=calcHealthScore();
   var scorecol=score>=80?'var(--green)':score>=50?'var(--amber)':'var(--red)';
   var scoreLabel=score>=80?'Compliant':score>=50?'Needs attention':'At risk';
 
-  // Staff access button row
-  var staffRow=el('div',{sty:{display:'flex',justifyContent:'flex-end',marginBottom:'12px'}});
-  var staffBtn=el('button',{cls:'btn-secondary btn-sm',onclick:function(){ss({staffViewOpen:true,staffModuleOpen:-1,staffQuizAnswers:{},staffQuizSubmitted:{}});}});
-  staffBtn.textContent='Open staff training view';
-  staffRow.appendChild(staffBtn);
-  wrap.appendChild(staffRow);
   // Dynamic update notification banner
   var policyUpdates=S.pendingUpdates.filter(function(u){return u.action==='policy'||u.action==='both';});
   var trainingUpdates=S.newModuleQueue;
@@ -2004,10 +1825,6 @@ function render(){
   }
 
   if(S.step===6&&S.report){
-    // Staff view overlay - renders over everything
-    if(S.staffViewOpen){
-      app.appendChild(renderStaffView());return;
-    }
     var r=S.report;var sp=spend();
     var wrap=el('div',{});
 
