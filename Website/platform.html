@@ -591,6 +591,7 @@ textarea{resize:vertical;line-height:1.6;min-height:100px;}
       <div id="sb-steps"></div>
     </div>
     <div class="sb-footer">
+      <button onclick="handleLogout()" style="background:none;border:none;cursor:pointer;font-size:11px;color:rgba(255,255,255,.35);font-family:var(--font-body);padding:0 0 6px;transition:color .15s;display:block;text-align:left;" onmouseover="this.style.color='rgba(255,255,255,.7)'" onmouseout="this.style.color='rgba(255,255,255,.35)'">Sign out</button>
       <div class="sb-footer-text">v4.0 · Built for Australian law firms</div>
     </div>
   </aside>
@@ -1414,12 +1415,10 @@ function renderTraining(){
   // ── Staff completions log ───────────────────────────────────
   var comps=S.staffCompletions||[];
   var logCard=el('div',{cls:'card',sty:{marginTop:'20px'}});
-  var logHeader=el('div',{sty:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'16px'}});
-  logHeader.appendChild(el('div',{cls:'card-title',sty:{margin:'0'}},'Staff training log'));
-  if(comps.length){
-    logHeader.appendChild(el('span',{sty:{fontSize:'12px',color:'var(--muted)',fontWeight:'400'}},comps.length+' completion'+(comps.length!==1?'s':'')));
-  }
-  logCard.appendChild(logHeader);
+  var logTitle=el('div',{sty:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'16px'}});
+  var lt1=el('div',{cls:'card-title',sty:{margin:'0'}});lt1.textContent='Staff training log';logTitle.appendChild(lt1);
+  if(comps.length){var lt2=el('span',{sty:{fontSize:'12px',color:'var(--muted)',fontWeight:'400'}});lt2.textContent=comps.length+' completion'+(comps.length!==1?'s':'');logTitle.appendChild(lt2);}
+  logCard.appendChild(logTitle);
 
   if(!comps.length){
     var noComp=el('div',{sty:{fontSize:'13px',color:'var(--muted)',lineHeight:'1.6',paddingBottom:'4px'}});
@@ -1428,70 +1427,59 @@ function renderTraining(){
   } else {
     // Table header
     var tbl=el('div',{sty:{width:'100%'}});
-    var thdr=el('div',{sty:{display:'grid',gridTemplateColumns:'1fr 140px 90px 90px',gap:'0',borderBottom:'2px solid var(--border)',paddingBottom:'8px',marginBottom:'0'}});
+    var thdr=el('div',{sty:{display:'grid',gridTemplateColumns:'1fr 140px 90px 90px',borderBottom:'2px solid var(--border)',paddingBottom:'8px'}});
     ['Staff member','Completed','Modules','Attempts'].forEach(function(h){
-      thdr.appendChild(el('div',{sty:{fontSize:'10px',fontWeight:'700',letterSpacing:'.08em',textTransform:'uppercase',color:'var(--muted)',padding:'0 8px 0 0'}},''));
-      thdr.lastChild.textContent=h;
+      var th=el('div',{sty:{fontSize:'10px',fontWeight:'700',letterSpacing:'.08em',textTransform:'uppercase',color:'var(--muted)',paddingRight:'8px'}});th.textContent=h;thdr.appendChild(th);
     });
     tbl.appendChild(thdr);
 
-    // Sort most recent first
     var sorted=comps.slice().sort(function(a,b){return new Date(b.completedAt)-new Date(a.completedAt);});
     sorted.forEach(function(c){
-      var row=el('div',{sty:{display:'grid',gridTemplateColumns:'1fr 140px 90px 90px',gap:'0',borderBottom:'1px solid var(--border)',padding:'12px 0',alignItems:'start'}});
+      var row=el('div',{sty:{display:'grid',gridTemplateColumns:'1fr 140px 90px 90px',borderBottom:'1px solid var(--border)',padding:'12px 0',alignItems:'start'}});
 
-      // Name
+      // Name cell
       var nameCell=el('div',{sty:{paddingRight:'8px'}});
-      nameCell.appendChild(el('div',{sty:{fontSize:'13px',fontWeight:'500',color:'var(--navy)',marginBottom:'2px'}},c.name));
+      var nm=el('div',{sty:{fontSize:'13px',fontWeight:'500',color:'var(--navy)',marginBottom:'2px'}});nm.textContent=c.name||'—';nameCell.appendChild(nm);
       if(c.modules&&c.modules.length){
-        var modNames=c.modules.map(function(m){return m.tool;}).join(', ');
-        nameCell.appendChild(el('div',{sty:{fontSize:'11px',color:'var(--muted)'}},modNames));
+        var modNames=el('div',{sty:{fontSize:'11px',color:'var(--muted)'}});modNames.textContent=c.modules.map(function(m){return m.tool;}).join(', ');nameCell.appendChild(modNames);
       }
       row.appendChild(nameCell);
 
-      // Date + time
+      // Date cell
       var dateCell=el('div',{});
       if(c.completedAt){
         var d=new Date(c.completedAt);
-        var dateStr=d.toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'});
-        var timeStr=d.toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'});
-        dateCell.appendChild(el('div',{sty:{fontSize:'12px',color:'var(--navy)'}},dateStr));
-        dateCell.appendChild(el('div',{sty:{fontSize:'11px',color:'var(--muted)'}},timeStr));
-      }else{
-        dateCell.appendChild(el('div',{sty:{fontSize:'12px',color:'var(--muted)'}},'—'));
-      }
+        var ds=el('div',{sty:{fontSize:'12px',color:'var(--navy)'}});ds.textContent=d.toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'});dateCell.appendChild(ds);
+        var ts=el('div',{sty:{fontSize:'11px',color:'var(--muted)'}});ts.textContent=d.toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'});dateCell.appendChild(ts);
+      }else{var da=el('div',{sty:{fontSize:'12px',color:'var(--muted)'}});da.textContent='—';dateCell.appendChild(da);}
       row.appendChild(dateCell);
 
-      // Modules passed
+      // Modules cell
       var modCount=c.modules?c.modules.filter(function(m){return m.passed;}).length:0;
       var modTotal=c.modules?c.modules.length:0;
       var modCell=el('div',{});
-      modCell.appendChild(el('div',{sty:{fontSize:'12px',color:modCount===modTotal?'var(--green)':'var(--amber)',fontWeight:'600'}},modCount+'/'+modTotal));
-      modCell.appendChild(el('div',{sty:{fontSize:'11px',color:'var(--muted)'}},'passed'));
+      var mv=el('div',{sty:{fontSize:'12px',fontWeight:'600',color:modCount===modTotal&&modTotal>0?'var(--green)':'var(--amber)'}});mv.textContent=modCount+'/'+modTotal;modCell.appendChild(mv);
+      var ml=el('div',{sty:{fontSize:'11px',color:'var(--muted)'}});ml.textContent='passed';modCell.appendChild(ml);
       row.appendChild(modCell);
 
-      // Total attempts
+      // Attempts cell
       var totalAttempts=c.modules?c.modules.reduce(function(a,m){return a+(m.attempts||1);},0):1;
+      var attCol=totalAttempts===modTotal?'var(--green)':totalAttempts<=modTotal*2?'var(--amber)':'var(--red)';
       var attCell=el('div',{});
-      attCell.appendChild(el('div',{sty:{fontSize:'12px',color:totalAttempts===modTotal?'var(--green)':totalAttempts<=modTotal*2?'var(--amber)':'var(--red)',fontWeight:'600'}},String(totalAttempts)));
-      attCell.appendChild(el('div',{sty:{fontSize:'11px',color:'var(--muted)'}},'total'));
+      var av=el('div',{sty:{fontSize:'12px',fontWeight:'600',color:attCol}});av.textContent=String(totalAttempts);attCell.appendChild(av);
+      var al=el('div',{sty:{fontSize:'11px',color:'var(--muted)'}});al.textContent='total';attCell.appendChild(al);
       row.appendChild(attCell);
-
       tbl.appendChild(row);
 
-      // Per-module attempt breakdown (expandable row)
-      if(c.modules&&c.modules.length>1){
-        var breakdown=el('div',{sty:{gridColumn:'1/-1',paddingLeft:'12px',paddingBottom:'8px',display:'flex',gap:'8px',flexWrap:'wrap'}});
-        // (appended to tbl separately)
-        var breakRow=el('div',{sty:{display:'grid',gridTemplateColumns:'1fr 140px 90px 90px',paddingBottom:'10px',borderBottom:'1px solid var(--border)'}});
-        var bList=el('div',{sty:{gridColumn:'1/-1',display:'flex',flexWrap:'wrap',gap:'6px',padding:'6px 0 10px'}});
+      // Per-module chip breakdown
+      if(c.modules&&c.modules.length){
+        var chipRow=el('div',{sty:{display:'flex',flexWrap:'wrap',gap:'6px',padding:'8px 0 10px',borderBottom:'1px solid var(--border)'}});
         c.modules.forEach(function(m){
           var chip=el('div',{sty:{fontSize:'11px',padding:'3px 10px',background:m.passed?'var(--green-bg)':'var(--red-bg)',color:m.passed?'var(--green)':'var(--red)',border:'1px solid '+(m.passed?'var(--green-border)':'var(--red-border)')}});
-          chip.textContent=m.tool+' — '+(m.attempts||1)+' attempt'+(m.attempts!==1?'s':'');
-          bList.appendChild(chip);
+          chip.textContent=m.tool+' — '+(m.attempts||1)+' attempt'+((m.attempts||1)!==1?'s':'');
+          chipRow.appendChild(chip);
         });
-        breakRow.appendChild(bList);
-        tbl.appendChild(breakRow);
+        tbl.appendChild(chipRow);
       }
     });
     logCard.appendChild(tbl);
@@ -1500,6 +1488,8 @@ function renderTraining(){
 
   return wrap;
 }
+
+function renderCert(){
   var toolNames=S.tools.map(function(t){return t.name;}).filter(Boolean);
   var outer=el('div',{cls:'cert-outer'});
   var inner=el('div',{cls:'cert-inner'});
@@ -2014,7 +2004,8 @@ function render(){
         rb.appendChild(pb2);
       }
     }
-    if(S.activeTab==='training')rb.appendChild(renderTraining());
+    if(S.activeTab==='training'){try{rb.appendChild(renderTraining());}catch(e){console.error('renderTraining error:',e);rb.appendChild(el('div',{sty:{padding:'24px',color:'var(--muted)',fontSize:'13px'}},'Training tab encountered an error. Please refresh the page.'));}}
+
     wrap.appendChild(rb);
     app.appendChild(wrap);return;
   }
