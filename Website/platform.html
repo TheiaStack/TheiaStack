@@ -722,8 +722,8 @@ function cleanOpt(opt){return (opt||'').replace(/^[A-Da-d][.)]\s*/,'').trim();}
 
 /* ── Core API helpers ────────────────────────────────────────── */
 var API_HDR={'Content-Type':'application/json','anthropic-version':'2023-06-01'};
-var API_MODEL='claude-sonnet-4-20250514';
-var API_URL='https://api.anthropic.com/v1/messages';
+var API_MODEL='claude-sonnet-4-6';
+var API_URL='/.netlify/functions/claude';
 
 async function _apiFetch(body){
   var res=await fetch(API_URL,{method:'POST',headers:API_HDR,body:JSON.stringify(body)});
