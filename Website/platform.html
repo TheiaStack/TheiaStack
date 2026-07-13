@@ -539,11 +539,6 @@ var _sbClient = null;
     window.location.replace('/login');
   }
 })();
-
-async function handleLogout() {
-  try { if (_sbClient) await _sbClient.auth.signOut(); } catch(e) {}
-  window.location.replace('/login');
-}
 </script>
 
 <div id="detect-overlay">
@@ -655,6 +650,11 @@ var S={
 };
 
 function ss(p){Object.assign(S,p);render();}
+
+window.handleLogout=async function(){
+  try{if(window._sbClient)await window._sbClient.auth.signOut();}catch(e){}
+  window.location.replace('/login');
+};
 function tog(arr,v){return arr.indexOf(v)>-1?arr.filter(function(x){return x!==v;}):arr.concat([v]);}
 function spend(){return S.tools.reduce(function(a,t){return a+(parseFloat(t.cost)||0);},0);}
 function missing(){var m=[];if(!S.firmName)m.push('firm name');if(!S.staffCount)m.push('staff count');if(!S.practiceAreas.length)m.push('practice area');return m;}
