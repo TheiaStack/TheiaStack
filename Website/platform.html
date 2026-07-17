@@ -831,13 +831,17 @@ async function runDetect(){
 async function genReport(){
   ss({loading:true});var sp=spend();
   try{
-    var ctx='Firm: '+S.firmName+', '+S.staffCount+' staff. Practice areas: '+S.practiceAreas.join(', ')+'. Software: '+S.software.join(', ')+'. AI tools: '+S.tools.map(function(t){return (t.name||'unnamed')+' ($'+(t.cost||0)+'/mo, use: '+(t.useCase||'unspecified')+')'}).join('; ')+'. Monthly AI spend: $'+sp.toFixed(0)+'. Client data accessed via AI: '+S.clientData+'. Data storage location: '+S.dataStorage+'. Existing AI policy: '+S.hasPolicy+'. Existing staff training: '+S.hasTraining+'. Pain points: '+S.painPoints.join(', ')+'. Goals: '+S.goals+'. Concerns: '+S.concerns.join(', ')+'.';
+    // Calculate risk level deterministically before calling Claude
+    var calculatedRisk=calcRiskLevel();
+    var ctx='Firm: '+S.firmName+', '+S.staffCount+' staff. Practice areas: '+S.practiceAreas.join(', ')+'. Software: '+S.software.join(', ')+'. AI tools: '+S.tools.map(function(t){return (t.name||'unnamed')+' ($'+(t.cost||0)+'/mo, use: '+(t.useCase||'unspecified')+')'}).join('; ')+'. Monthly AI spend: $'+sp.toFixed(0)+'. Client data accessed via AI: '+S.clientData+'. Data storage location: '+S.dataStorage+'. Existing AI policy: '+S.hasPolicy+'. Existing staff training: '+S.hasTraining+'. Pain points: '+S.painPoints.join(', ')+'. Goals: '+S.goals+'. Concerns: '+S.concerns.join(', ')+'. Pre-assessed risk level: '+calculatedRisk+'.';
     var auCtx='Australian compliance context: Privacy Act 1988 APPs apply to all personal information in AI systems. Privacy and Other Legislation Amendment Act 2024 (Dec 2024) introduces transparency requirements for automated decisions. OAIC Oct 2024 guidance requires AI vendor due diligence. National AI Centre AI6 Guidance (Oct 2025) has 6 essential practices. Legal Profession Uniform Law obligations on client confidentiality apply regardless of tool used.';
-    var schema='Return JSON: {"riskLevel":"Low|Medium|High","riskSummary":"2 sentences based strictly on the information provided above — cite specific AU obligations that apply to these tools and this firm","keyFindings":["finding based only on information above","finding based only on information above","finding based only on information above"],"recommendations":[{"title":"t","description":"one sentence — actionable step this firm can take","priority":"Immediate|Short-term|Long-term"},{"title":"t","description":"s","priority":"Immediate|Short-term|Long-term"},{"title":"t","description":"s","priority":"Immediate|Short-term|Long-term"}]}';
-    var systemPrompt='You are an AI compliance specialist for Australian law firms. Output ONLY valid JSON. CRITICAL RULES: (1) Base every finding and recommendation ONLY on the information explicitly provided — do not invent staff names, incident details, specific settings, or any information not stated. (2) Do not include estimatedWaste or potentialSavings — you cannot know these figures. (3) If the firm has not confirmed a detail, do not assume it. (4) Every finding must be directly evidenced by something in the firm data provided.';
+    var schema='Return JSON: {"riskSummary":"2 sentences based strictly on the information provided above, consistent with the pre-assessed risk level of '+calculatedRisk+' — cite specific AU obligations that apply to these tools and this firm","keyFindings":["finding based only on information above","finding based only on information above","finding based only on information above"],"recommendations":[{"title":"t","description":"one sentence — actionable step this firm can take","priority":"Immediate|Short-term|Long-term"},{"title":"t","description":"s","priority":"Immediate|Short-term|Long-term"},{"title":"t","description":"s","priority":"Immediate|Short-term|Long-term"}]}';
+    var systemPrompt='You are an AI compliance specialist for Australian law firms. Output ONLY valid JSON. CRITICAL RULES: (1) Base every finding and recommendation ONLY on the information explicitly provided — do not invent staff names, incident details, specific settings, or any information not stated. (2) If the firm has not confirmed a detail, do not assume it. (3) Every finding must be directly evidenced by something in the firm data provided. (4) The risk level has already been determined — write findings and recommendations consistent with a '+calculatedRisk+' risk position.';
     var raw=await callClaudeJSON(systemPrompt,ctx+' '+auCtx+' '+schema,2000);
     var r=parseJSON(raw);
-    if(!r||!r.riskLevel)throw new Error('Invalid report JSON');
+    if(!r||!r.riskSummary)throw new Error('Invalid report JSON');
+    // Set risk level from rules-based calculation — not from Claude
+    r.riskLevel=calculatedRisk;
     ss({report:r,loading:false,step:6});setTimeout(function(){checkForUpdates();},1000);
   }catch(e){console.error('genReport error:',e);ss({loading:false,reportError:e.message||'Report generation failed. Please try again.'});}
 }
@@ -1609,10 +1613,43 @@ function renderCert(){
 }
 
 
+function calcRiskLevel(){
+  var pts=0;
+  // Client data access (max 35)
+  if(S.clientData==='Yes — directly')pts+=35;
+  else if(S.clientData==='Possibly — we paste content in')pts+=20;
+  else if(S.clientData==='Not sure')pts+=15;
+  // Data storage (max 25)
+  if(S.dataStorage==='Overseas servers')pts+=25;
+  else if(S.dataStorage==='Not sure')pts+=20;
+  else if(S.dataStorage==='Mixture')pts+=12;
+  // AI policy (max 20)
+  if(S.hasPolicy==='No')pts+=20;
+  else if(S.hasPolicy==='In progress')pts+=12;
+  else if(S.hasPolicy==='Informal guidelines only')pts+=8;
+  // Staff training (max 15)
+  if(S.hasTraining==='No training')pts+=15;
+  else if(S.hasTraining==='Planned but not done')pts+=12;
+  else if(S.hasTraining==='Some staff have')pts+=6;
+  // Tool risk profile (max 10)
+  var toolPts=0;
+  Object.keys(S.toolLookups||{}).forEach(function(t){
+    var rl=(S.toolLookups[t]||{}).riskLevel;
+    if(rl==='High')toolPts+=3;
+    else if(rl==='Medium')toolPts+=1;
+  });
+  pts+=Math.min(toolPts,10);
+  // Thresholds
+  if(pts<=30)return 'Low';
+  if(pts<=65)return 'Medium';
+  return 'High';
+}
+
 function calcHealthScore(){
   var score=0;var max=0;
-  // Risk level
-  max+=25;if(S.report){if(S.report.riskLevel==='Low')score+=25;else if(S.report.riskLevel==='Medium')score+=15;else score+=5;}
+  // Risk level (now uses rules-based calculation)
+  max+=25;var rl=S.report?S.report.riskLevel:calcRiskLevel();
+  if(rl==='Low')score+=25;else if(rl==='Medium')score+=15;else score+=5;
   // Has policy
   max+=20;if(S.hasPolicy==='Yes, a formal one')score+=20;else if(S.hasPolicy==='Informal guidelines only'||S.hasPolicy==='In progress')score+=10;
   // Has training
@@ -1879,7 +1916,6 @@ function render(){
         var rc=el('div',{cls:'rec'});
         var rh=el('div',{cls:'rec-header'});rh.appendChild(el('span',{cls:'rec-title'},rec.title));rh.appendChild(el('span',{cls:'pri-tag',sty:{background:pcol(rec.priority)+'22',color:pcol(rec.priority)}},rec.priority));rc.appendChild(rh);
         rc.appendChild(el('div',{cls:'rec-desc'},rec.description));
-        var ri=el('div',{cls:'rec-impact'});ri.textContent='↑ '+rec.impact;rc.appendChild(ri);
         rb.appendChild(rc);
       });
     }
