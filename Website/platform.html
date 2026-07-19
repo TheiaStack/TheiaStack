@@ -73,12 +73,12 @@ a{color:var(--navy);text-decoration:none;}
 .field:last-child{margin-bottom:0;}
 .field-label{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;display:block;}
 .field-hint{font-size:12px;color:var(--text-light);margin-top:6px;}
-input[type=text],input[type=number],textarea,select{
+input[type=text],input[type=number],input[type=password],textarea,select{
   width:100%;padding:11px 14px;border-radius:var(--radius);border:1.5px solid var(--border);
   font-size:14px;font-family:var(--font-body);color:var(--text);background:var(--cream);
   outline:none;transition:border-color .15s,box-shadow .15s;
 }
-input[type=text]:focus,input[type=number]:focus,textarea:focus{border-color:var(--navy);background:var(--white);box-shadow:0 0 0 3px rgba(13,31,60,.06);}
+input[type=text]:focus,input[type=number]:focus,input[type=password]:focus,textarea:focus{border-color:var(--navy);background:var(--white);box-shadow:0 0 0 3px rgba(13,31,60,.06);}
 textarea{resize:vertical;line-height:1.6;min-height:100px;}
 
 /* Pills */
@@ -543,10 +543,11 @@ textarea{resize:vertical;line-height:1.6;min-height:100px;}
 .faq-item.open .faq-q-mark{transform:rotate(180deg);}
 .briefing-body{background:var(--cream);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;margin-top:16px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-wrap;}
 
-/* High-contrast display mode */
-body.high-contrast{--border:#7a7a7a;--border-strong:#4a4a4a;--muted:#1a1a1a;--text-light:#2c2c2c;--cream:#e6e6e6;}
-body.high-contrast .card,body.high-contrast .tool-block{border-width:2px;}
-body.high-contrast .sidebar{background:#000;}
+/* High-contrast display mode — inverts background/text/widget colours in the main content area
+   (the sidebar is already a deliberate high-contrast dark treatment and is left as-is).
+   Scoped to .main rather than body so the fixed sidebar isn't drawn into a new filter
+   containing block, which would otherwise make it scroll away on long pages. */
+body.high-contrast .main{filter:invert(1) hue-rotate(180deg);}
 </style>
 </head>
 <body>
@@ -682,7 +683,7 @@ var S={
   _cqOpen:-1,
   contrastMode:(function(){try{return localStorage.getItem('theia_contrast')||'normal';}catch(e){return 'normal';}})(),
   briefingPack:null,briefingLoading:false,briefingError:'',
-  settingsNewPw:'',settingsPwLoading:false,settingsPwMsg:'',settingsPwErr:false,
+  settingsNewPw:'',settingsCurPw:'',settingsPwLoading:false,settingsPwMsg:'',settingsPwErr:false,
   faqOpen:-1
 };
 
@@ -913,14 +914,23 @@ async function genBriefingPack(){
 }
 
 async function changePassword(){
-  var pw=S.settingsNewPw;
-  if(!pw||pw.length<8){ss({settingsPwMsg:'Password must be at least 8 characters.',settingsPwErr:true});return;}
-  if(!window._sbClient){ss({settingsPwMsg:'Not available — no active session.',settingsPwErr:true});return;}
+  var curPw=S.settingsCurPw;
+  var newPw=S.settingsNewPw;
+  if(!curPw){ss({settingsPwMsg:'Enter your current password to continue.',settingsPwErr:true});return;}
+  if(!newPw||newPw.length<8){ss({settingsPwMsg:'New password must be at least 8 characters.',settingsPwErr:true});return;}
+  if(newPw===curPw){ss({settingsPwMsg:'New password must be different from your current password.',settingsPwErr:true});return;}
+  if(!window._sbClient||!window.THEIA_USER||!window.THEIA_USER.email){ss({settingsPwMsg:'Not available — no active session.',settingsPwErr:true});return;}
   ss({settingsPwLoading:true,settingsPwMsg:''});
   try{
-    var res=await window._sbClient.auth.updateUser({password:pw});
+    // Re-authenticate with the current password first — this is the verification step.
+    // Supabase's client SDK has no separate "check password" call, so signing in again
+    // with the supplied current password is the standard way to confirm it before
+    // allowing updateUser() to change it.
+    var verify=await window._sbClient.auth.signInWithPassword({email:window.THEIA_USER.email,password:curPw});
+    if(verify.error)throw new Error('Current password is incorrect.');
+    var res=await window._sbClient.auth.updateUser({password:newPw});
     if(res.error)throw res.error;
-    ss({settingsPwLoading:false,settingsPwMsg:'Password updated successfully.',settingsPwErr:false,settingsNewPw:''});
+    ss({settingsPwLoading:false,settingsPwMsg:'Password updated successfully.',settingsPwErr:false,settingsNewPw:'',settingsCurPw:''});
   }catch(e){
     ss({settingsPwLoading:false,settingsPwMsg:e.message||'Could not update password. Please try again.',settingsPwErr:true});
   }
@@ -1979,15 +1989,20 @@ function renderSettings(){
   /* FAQ */
   var fc=el('div',{cls:'card'});
   fc.appendChild(el('div',{cls:'card-title'},'FAQ'));
-  var faqItems=['What does the AI Risk Management Report cover?','How often does the platform re-audit our AI stack?','Who can see our audit data?','How do we add or remove staff from training?'];
-  faqItems.forEach(function(q,i){
+  var faqItems=[
+    {q:'What does the AI Risk Management Report cover?',a:'A timestamped, self-reported record of your firm\u2019s AI tool stack, the risks identified during your audit, the AI usage policy you have in place, and staff training completion. It is not an externally accredited certificate.'},
+    {q:'How often does the platform re-audit our AI stack?',a:'Automatically every 90 days. You\u2019ll be prompted to review and update your tool list, and the platform regenerates your findings, recommendations, and policy from the updated data \u2014 no call or manual review required.'},
+    {q:'Who can see our audit data?',a:'Your audit data is tied to your firm\u2019s account and accessed by whoever is signed in to it. If you have specific questions about our data handling and security practices, contact hello@theiastack.com.au.'},
+    {q:'How do we add or remove staff from training?',a:'Staff join using the shared training link on your Training tab \u2014 no individual invitations are needed. There is currently no self-service option to remove a completion record; email hello@theiastack.com.au if one needs to be corrected.'}
+  ];
+  faqItems.forEach(function(item,i){
     var open=S.faqOpen===i;
     var fi=el('div',{cls:'faq-item'+(open?' open':'')});
     var fq=el('div',{cls:'faq-q',onclick:function(){ss({faqOpen:open?-1:i});}});
-    fq.appendChild(el('span',{},q));
+    fq.appendChild(el('span',{},item.q));
     fq.appendChild(el('span',{cls:'faq-q-mark'},'\u25be'));
     fi.appendChild(fq);
-    fi.appendChild(el('div',{cls:'faq-a'},'Content for this answer is being finalised and will appear here shortly.'));
+    fi.appendChild(el('div',{cls:'faq-a'},item.a));
     fc.appendChild(fi);
   });
   wrap.appendChild(fc);
@@ -1998,17 +2013,25 @@ function renderSettings(){
 
   var pwRow=el('div',{});
   pwRow.appendChild(el('div',{cls:'settings-row-label'},'Change password'));
-  pwRow.appendChild(el('div',{cls:'settings-row-desc'},'Choose a new password of at least 8 characters.'));
-  var pwInputRow=el('div',{cls:'settings-input-row'});
-  var pwInput=el('input',{type:'password',placeholder:'New password'});
-  pwInput.value=S.settingsNewPw;
-  pwInput.addEventListener('input',function(e){S.settingsNewPw=e.target.value;});
-  pwInputRow.appendChild(pwInput);
+  pwRow.appendChild(el('div',{cls:'settings-row-desc'},'Enter your current password to verify it\u2019s you, then choose a new one of at least 8 characters.'));
+  var curField=el('div',{cls:'field',sty:{marginTop:'14px',marginBottom:'12px'}});
+  curField.appendChild(el('label',{cls:'field-label'},'Current password'));
+  var curInput=el('input',{type:'password',placeholder:'Current password'});
+  curInput.value=S.settingsCurPw;
+  curInput.addEventListener('input',function(e){S.settingsCurPw=e.target.value;});
+  curField.appendChild(curInput);
+  pwRow.appendChild(curField);
+  var newField=el('div',{cls:'field',sty:{marginBottom:'14px'}});
+  newField.appendChild(el('label',{cls:'field-label'},'New password'));
+  var newInput=el('input',{type:'password',placeholder:'New password'});
+  newInput.value=S.settingsNewPw;
+  newInput.addEventListener('input',function(e){S.settingsNewPw=e.target.value;});
+  newField.appendChild(newInput);
+  pwRow.appendChild(newField);
   var pwBtn=el('button',{cls:'btn-secondary btn-sm',onclick:changePassword});
-  pwBtn.textContent=S.settingsPwLoading?'Updating\u2026':'Update password';
+  pwBtn.textContent=S.settingsPwLoading?'Verifying\u2026':'Update password';
   if(S.settingsPwLoading)pwBtn.disabled=true;
-  pwInputRow.appendChild(pwBtn);
-  pwRow.appendChild(pwInputRow);
+  pwRow.appendChild(pwBtn);
   if(S.settingsPwMsg)pwRow.appendChild(el('div',{cls:'settings-msg '+(S.settingsPwErr?'err':'ok')},S.settingsPwMsg));
   ac.appendChild(pwRow);
 
