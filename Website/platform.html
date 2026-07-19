@@ -516,6 +516,37 @@ textarea{resize:vertical;line-height:1.6;min-height:100px;}
 .cq-saved-q{color:var(--navy);font-weight:500;flex:1;line-height:1.5;}
 .cq-saved-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0 0 0 12px;flex-shrink:0;transition:color .15s;}
 .cq-saved-del:hover{color:var(--red);}
+
+/* ── Admin Settings tab ─────────────────────────── */
+.settings-row{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:14px 0;border-bottom:1px solid var(--border);}
+.settings-row:last-child{border-bottom:none;}
+.settings-row-label{font-size:14px;font-weight:500;color:var(--navy);margin-bottom:3px;}
+.settings-row-desc{font-size:12px;color:var(--muted);line-height:1.5;max-width:440px;}
+.toggle-switch{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;cursor:pointer;}
+.toggle-switch input{opacity:0;width:0;height:0;position:absolute;}
+.toggle-slider{position:absolute;top:0;left:0;right:0;bottom:0;background:var(--border-strong);border-radius:24px;transition:background .15s;}
+.toggle-slider::before{position:absolute;content:'';height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:transform .15s;box-shadow:0 1px 2px rgba(0,0,0,.2);}
+.toggle-switch input:checked+.toggle-slider{background:var(--navy);}
+.toggle-switch input:checked+.toggle-slider::before{transform:translateX(20px);}
+.settings-input-row{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap;}
+.settings-input-row input[type=password],.settings-input-row input[type=text]{max-width:260px;}
+.settings-msg{font-size:12px;margin-top:10px;padding:8px 12px;border-radius:8px;}
+.settings-msg.ok{background:var(--green-bg);color:#0a5c30;}
+.settings-msg.err{background:var(--red-bg);color:#7a1a1a;}
+.settings-billing-placeholder{padding:16px;background:var(--cream);border:1px dashed var(--border);border-radius:var(--radius);font-size:13px;color:var(--muted);line-height:1.6;}
+.faq-item{border-bottom:1px solid var(--border);}
+.faq-item:last-child{border-bottom:none;}
+.faq-q{display:flex;justify-content:space-between;align-items:center;padding:14px 0;cursor:pointer;font-size:14px;font-weight:500;color:var(--navy);}
+.faq-q-mark{color:var(--muted);font-size:13px;transition:transform .15s;}
+.faq-a{font-size:13px;color:var(--muted);line-height:1.6;padding:0 0 16px;display:none;}
+.faq-item.open .faq-a{display:block;}
+.faq-item.open .faq-q-mark{transform:rotate(180deg);}
+.briefing-body{background:var(--cream);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;margin-top:16px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-wrap;}
+
+/* High-contrast display mode */
+body.high-contrast{--border:#7a7a7a;--border-strong:#4a4a4a;--muted:#1a1a1a;--text-light:#2c2c2c;--cream:#e6e6e6;}
+body.high-contrast .card,body.high-contrast .tool-block{border-width:2px;}
+body.high-contrast .sidebar{background:#000;}
 </style>
 </head>
 <body>
@@ -648,10 +679,19 @@ var S={
   toolSearch:'',toolSearchResults:[],toolSearchLoading:false,toolSearchDone:false,toolSearchHints:{}
 ,
   checklistSearch:'',checklistSuggestions:[],checklistSearching:false,checklistSearchResult:null,
-  _cqOpen:-1
+  _cqOpen:-1,
+  contrastMode:(function(){try{return localStorage.getItem('theia_contrast')||'normal';}catch(e){return 'normal';}})(),
+  briefingPack:null,briefingLoading:false,briefingError:'',
+  settingsNewPw:'',settingsPwLoading:false,settingsPwMsg:'',settingsPwErr:false,
+  faqOpen:-1
 };
 
 function ss(p){Object.assign(S,p);render();}
+
+function applyContrast(mode){
+  try{document.body.classList.toggle('high-contrast',mode==='high');}catch(e){}
+}
+applyContrast(S.contrastMode);
 
 /* ── Session persistence ─────────────────────────── */
 var _saveTimer=null;
@@ -659,7 +699,7 @@ var PERSIST=['step','firmName','staffCount','practiceAreas','software','tools','
   'clientData','dataStorage','hasPolicy','hasTraining','painPoints','goals','concerns',
   'detectMethod','billingText','detected','checklist','report','policy','modules',
   'openModule','quizAnswers','quizSubmitted','quizResults','certName','showCert','activeTab',
-  'staffCompletions','passThreshold','trainingCode'];
+  'staffCompletions','passThreshold','trainingCode','briefingPack'];
 
 async function saveAuditSession(){
   if(!window._sbClient||!window.THEIA_USER)return;
@@ -854,6 +894,36 @@ async function genPolicy(){
     var txt=await callClaude(policyPrompt,2000);
     ss({policy:txt,policyLoading:false});
   }catch(e){ss({policyLoading:false});}
+}
+
+async function genBriefingPack(){
+  if(!S.report)return;
+  ss({briefingLoading:true,briefingError:''});
+  try{
+    var r=S.report;
+    var toolList=S.tools.map(function(t){return t.name;}).filter(Boolean).join(', ')||'none recorded';
+    var findingsStr=(r.keyFindings||[]).join(' | ')||'none recorded';
+    var recStr=(r.recommendations||[]).map(function(x){return x.title+' ('+x.priority+'): '+x.description;}).join(' | ')||'none recorded';
+    var trainingStr=S.modules.length?countPassed()+'/'+S.modules.length+' modules passed':'no training modules generated yet';
+    var policyStr=S.policy?'AI usage policy generated and on file.':'No AI usage policy generated yet.';
+    var prompt='You are drafting a one-page Partner Briefing Pack summarising an AI compliance audit for an Australian law firm partner meeting. Use ONLY the information provided below — do not invent findings, statistics, names, or any detail not stated. If something is not recorded, say so plainly rather than filling a gap. Write in clear, professional, plain English. Use ## for section headings. Return ONLY the document — no preamble, no commentary, no JSON.\n\nFirm: '+S.firmName+' ('+S.staffCount+' staff, '+S.practiceAreas.join(', ')+').\nRisk level: '+r.riskLevel+'.\nRisk summary: '+r.riskSummary+'.\nKey findings: '+findingsStr+'.\nRecommendations: '+recStr+'.\nAI tools in use: '+toolList+'.\nStaff training status: '+trainingStr+'.\nPolicy status: '+policyStr+'.\n\nStructure:\n## Executive summary\n## Current AI tool stack\n## Key risks identified\n## Recommended actions\n## Compliance status';
+    var txt=await callClaude(prompt,1400);
+    ss({briefingPack:txt,briefingLoading:false});
+  }catch(e){console.error('genBriefingPack error:',e);ss({briefingLoading:false,briefingError:e.message||'Could not generate the briefing pack. Please try again.'});}
+}
+
+async function changePassword(){
+  var pw=S.settingsNewPw;
+  if(!pw||pw.length<8){ss({settingsPwMsg:'Password must be at least 8 characters.',settingsPwErr:true});return;}
+  if(!window._sbClient){ss({settingsPwMsg:'Not available — no active session.',settingsPwErr:true});return;}
+  ss({settingsPwLoading:true,settingsPwMsg:''});
+  try{
+    var res=await window._sbClient.auth.updateUser({password:pw});
+    if(res.error)throw res.error;
+    ss({settingsPwLoading:false,settingsPwMsg:'Password updated successfully.',settingsPwErr:false,settingsNewPw:''});
+  }catch(e){
+    ss({settingsPwLoading:false,settingsPwMsg:e.message||'Could not update password. Please try again.',settingsPwErr:true});
+  }
 }
 
 async function genModules(){
@@ -1853,6 +1923,105 @@ function renderAlerts(){
   return wrap;
 }
 
+function renderSettings(){
+  var wrap=el('div',{cls:'fade-in'});
+
+  /* Display card — contrast mode */
+  var dc=el('div',{cls:'card'});
+  dc.appendChild(el('div',{cls:'card-title'},'Display'));
+  var dRow=el('div',{cls:'settings-row'});
+  var dInfo=el('div',{});
+  dInfo.appendChild(el('div',{cls:'settings-row-label'},'High-contrast mode'));
+  dInfo.appendChild(el('div',{cls:'settings-row-desc'},'Increases border and text contrast across the platform. Useful in bright rooms or for improved readability.'));
+  dRow.appendChild(dInfo);
+  var dToggleLabel=el('label',{cls:'toggle-switch'});
+  var dToggleInput=el('input',{type:'checkbox'});
+  dToggleInput.checked=S.contrastMode==='high';
+  dToggleInput.addEventListener('change',function(e){
+    var mode=e.target.checked?'high':'normal';
+    try{localStorage.setItem('theia_contrast',mode);}catch(err){}
+    applyContrast(mode);
+    ss({contrastMode:mode});
+  });
+  dToggleLabel.appendChild(dToggleInput);
+  dToggleLabel.appendChild(el('span',{cls:'toggle-slider'}));
+  dRow.appendChild(dToggleLabel);
+  dc.appendChild(dRow);
+  wrap.appendChild(dc);
+
+  /* Partner Briefing Pack */
+  var bc=el('div',{cls:'card'});
+  bc.appendChild(el('div',{cls:'card-title'},'Partner Briefing Pack'));
+  if(!S.report){
+    bc.appendChild(el('div',{sty:{fontSize:'13px',color:'var(--muted)',lineHeight:'1.6'}},'Complete the audit and generate your AI Risk Management Report first — the briefing pack is built from your report data.'));
+  } else {
+    bc.appendChild(el('div',{sty:{fontSize:'13px',color:'var(--muted)',lineHeight:'1.6',marginBottom:'16px'}},'Generates a one-page summary of your audit — findings, recommendations, tool stack, and compliance status — for a partners\u2019 meeting. Built only from the data already in your report.'));
+    var bBtnRow=el('div',{sty:{display:'flex',gap:'10px',alignItems:'center'}});
+    var bBtn=el('button',{cls:'btn-primary btn-sm',onclick:genBriefingPack});
+    bBtn.textContent=S.briefingLoading?'Generating\u2026':(S.briefingPack?'Regenerate briefing pack':'Generate briefing pack');
+    if(S.briefingLoading)bBtn.disabled=true;
+    bBtnRow.appendChild(bBtn);
+    if(S.briefingPack){
+      var bCopy=el('button',{cls:'btn-secondary btn-sm',onclick:function(){navigator.clipboard.writeText(S.briefingPack);ss({copied:true});setTimeout(function(){ss({copied:false});},2000);}});
+      bCopy.textContent=S.copied?'Copied!':'Copy to clipboard';
+      bBtnRow.appendChild(bCopy);
+    }
+    bc.appendChild(bBtnRow);
+    if(S.briefingError)bc.appendChild(el('div',{cls:'settings-msg err'},S.briefingError));
+    if(S.briefingPack){
+      var bBody=el('div',{cls:'briefing-body'});
+      bBody.textContent=S.briefingPack;
+      bc.appendChild(bBody);
+    }
+  }
+  wrap.appendChild(bc);
+
+  /* FAQ */
+  var fc=el('div',{cls:'card'});
+  fc.appendChild(el('div',{cls:'card-title'},'FAQ'));
+  var faqItems=['What does the AI Risk Management Report cover?','How often does the platform re-audit our AI stack?','Who can see our audit data?','How do we add or remove staff from training?'];
+  faqItems.forEach(function(q,i){
+    var open=S.faqOpen===i;
+    var fi=el('div',{cls:'faq-item'+(open?' open':'')});
+    var fq=el('div',{cls:'faq-q',onclick:function(){ss({faqOpen:open?-1:i});}});
+    fq.appendChild(el('span',{},q));
+    fq.appendChild(el('span',{cls:'faq-q-mark'},'\u25be'));
+    fi.appendChild(fq);
+    fi.appendChild(el('div',{cls:'faq-a'},'Content for this answer is being finalised and will appear here shortly.'));
+    fc.appendChild(fi);
+  });
+  wrap.appendChild(fc);
+
+  /* Account settings */
+  var ac=el('div',{cls:'card'});
+  ac.appendChild(el('div',{cls:'card-title'},'Account'));
+
+  var pwRow=el('div',{});
+  pwRow.appendChild(el('div',{cls:'settings-row-label'},'Change password'));
+  pwRow.appendChild(el('div',{cls:'settings-row-desc'},'Choose a new password of at least 8 characters.'));
+  var pwInputRow=el('div',{cls:'settings-input-row'});
+  var pwInput=el('input',{type:'password',placeholder:'New password'});
+  pwInput.value=S.settingsNewPw;
+  pwInput.addEventListener('input',function(e){S.settingsNewPw=e.target.value;});
+  pwInputRow.appendChild(pwInput);
+  var pwBtn=el('button',{cls:'btn-secondary btn-sm',onclick:changePassword});
+  pwBtn.textContent=S.settingsPwLoading?'Updating\u2026':'Update password';
+  if(S.settingsPwLoading)pwBtn.disabled=true;
+  pwInputRow.appendChild(pwBtn);
+  pwRow.appendChild(pwInputRow);
+  if(S.settingsPwMsg)pwRow.appendChild(el('div',{cls:'settings-msg '+(S.settingsPwErr?'err':'ok')},S.settingsPwMsg));
+  ac.appendChild(pwRow);
+
+  var billWrap=el('div',{sty:{marginTop:'24px',paddingTop:'20px',borderTop:'1px solid var(--border)'}});
+  billWrap.appendChild(el('div',{cls:'settings-row-label'},'Billing details'));
+  billWrap.appendChild(el('div',{cls:'settings-billing-placeholder'},'Billing management is not yet available here \u2014 payment and subscription details will appear once billing integration is complete. In the meantime, contact hello@theiastack.com.au for any billing questions.'));
+  ac.appendChild(billWrap);
+
+  wrap.appendChild(ac);
+
+  return wrap;
+}
+
 function render(){
   updateSidebar();
   var app=document.getElementById('app');app.innerHTML='';
@@ -1895,6 +2064,7 @@ function render(){
       ['policy','AI policy'],
       ['training','Training ('+(canCert()?'✓':countPassed()+'/'+S.modules.length)+')'],
       ['alerts','Alerts ('+S.alerts.filter(function(a){return a.type==='policy';}).length+')'],
+      ['settings','Settings'],
     ];
     tabItems.forEach(function(t){
       var btn=el('button',{cls:'report-tab'+(S.activeTab===t[0]?' on':''),onclick:(function(id){return function(){ss({activeTab:id});};})(t[0])},t[1]);
@@ -1955,6 +2125,7 @@ function render(){
       }
     }
     if(S.activeTab==='training'){try{rb.appendChild(renderTraining());}catch(e){console.error('renderTraining error:',e);rb.appendChild(el('div',{sty:{padding:'24px',color:'var(--muted)',fontSize:'13px'}},'Training tab encountered an error. Please refresh the page.'));}}
+    if(S.activeTab==='settings'){try{rb.appendChild(renderSettings());}catch(e){console.error('renderSettings error:',e);rb.appendChild(el('div',{sty:{padding:'24px',color:'var(--muted)',fontSize:'13px'}},'Settings tab encountered an error. Please refresh the page.'));}}
 
     wrap.appendChild(rb);
     app.appendChild(wrap);return;
