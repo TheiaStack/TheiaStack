@@ -510,37 +510,24 @@ function render() {
 
 async function saveCompletion() {
   try {
-    // Read current session_data
-    var res = await sb.from('audit_sessions').select('session_data').eq('firm_id', T.firmId).maybeSingle();
-    if (res.error || !res.data) return;
-    var sessionData = res.data.session_data || {};
-    var completions = sessionData.staffCompletions || [];
-
-    completions.push({
-      id: Date.now().toString(),
-      name: T.staffName,
-      completedAt: new Date().toISOString(),
-      modules: T.completed
+    await sb.rpc('save_training_completion', {
+      p_code: T.trainingCode,
+      p_staff_name: T.staffName,
+      p_modules: T.completed
     });
-
-    sessionData.staffCompletions = completions;
-
-    await sb.from('audit_sessions').upsert(
-      { firm_id: T.firmId, session_data: sessionData, updated_at: new Date().toISOString() },
-      { onConflict: 'firm_id' }
-    );
   } catch(e) {
     console.warn('Could not save completion:', e);
   }
 }
 
-// Init — read session code or firm_id from URL
+// Init — read session code from URL. Legacy firm_id-only links are
+// no longer supported: RLS now locks audit_sessions down for anonymous
+// users, and this is the only permitted anonymous access path.
 (async function() {
   var params = new URLSearchParams(window.location.search);
   var sessionCode = params.get('session');
-  var firmId = params.get('firm');
 
-  if (!sessionCode && !firmId) {
+  if (!sessionCode) {
     T.errorMsg = 'No training link identifier found. Please ask your administrator to resend the training link.';
     T.screen = 'error';
     render();
@@ -548,29 +535,17 @@ async function saveCompletion() {
   }
 
   try {
-    var res;
-    if (sessionCode) {
-      // Look up by readable training code stored in session_data
-      res = await sb.from('audit_sessions')
-        .select('session_data, firm_id')
-        .filter('session_data->>trainingCode', 'eq', sessionCode)
-        .maybeSingle();
-    } else {
-      // Fallback: look up by firm_id (legacy links)
-      res = await sb.from('audit_sessions')
-        .select('session_data, firm_id')
-        .eq('firm_id', firmId)
-        .maybeSingle();
-    }
+    var res = await sb.rpc('get_training_session', { p_code: sessionCode });
 
-    if (res.error || !res.data || !res.data.session_data) {
+    if (res.error || !res.data || !res.data.length || !res.data[0].session_data) {
       T.errorMsg = 'Training could not be found for this link. Your administrator may need to regenerate the training modules.';
       T.screen = 'error';
       render();
       return;
     }
-    var data = res.data.session_data;
-    T.firmId = res.data.firm_id;
+    var data = res.data[0].session_data;
+    T.firmId = res.data[0].firm_id;
+    T.trainingCode = sessionCode;
     if (!data.modules || !data.modules.length) {
       T.errorMsg = 'Training modules have not been generated yet. Please ask your administrator to generate them from the platform.';
       T.screen = 'error';
