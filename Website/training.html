@@ -518,6 +518,25 @@ async function saveCompletion() {
   } catch(e) {
     console.warn('Could not save completion:', e);
   }
+  // Fire-and-forget admin notification — makes the "Your firm
+  // administrator has been notified" copy on the completion screen
+  // actually true. Never blocks or throws into the caller: if this
+  // fails, the staff member's completion is still saved above, they
+  // just don't get told (silently, via console) that the notify step
+  // itself failed.
+  try {
+    await fetch('/.netlify/functions/notify-training-completion', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        trainingCode: T.trainingCode,
+        staffName: T.staffName,
+        moduleNames: T.completed.map(function(c) { return c.tool; })
+      })
+    });
+  } catch(e) {
+    console.warn('Could not send completion notification:', e);
+  }
 }
 
 // Init — read session code from URL. Legacy firm_id-only links are
