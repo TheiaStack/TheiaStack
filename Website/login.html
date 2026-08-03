@@ -322,6 +322,28 @@ body {
         <p class="form-footer"><a href="#" onclick="showLogin(event)">Back to log in</a></p>
       </div>
 
+      <!-- SET NEW PASSWORD FORM (shown after clicking a reset link) -->
+      <div id="setPasswordSection" style="display:none">
+        <p class="form-eyebrow">Reset password</p>
+        <h2 class="form-title">Choose a new password.</h2>
+
+        <form class="form" id="setPasswordForm" onsubmit="handleSetPassword(event)">
+          <div class="msg error" id="setPwError"></div>
+
+          <div class="field">
+            <label for="newPassword">New password</label>
+            <input type="password" id="newPassword" name="newPassword" required minlength="8" placeholder="••••••••" autocomplete="new-password">
+          </div>
+
+          <div class="field">
+            <label for="confirmPassword">Confirm new password</label>
+            <input type="password" id="confirmPassword" name="confirmPassword" required minlength="8" placeholder="••••••••" autocomplete="new-password">
+          </div>
+
+          <button type="submit" class="btn-login" id="setPwBtn">Set new password</button>
+        </form>
+      </div>
+
     </div>
 
     <div class="right-footer">
@@ -338,8 +360,19 @@ const SUPABASE_URL  = 'https://rkqnrpyctllxcnknjsby.supabase.co';
 const SUPABASE_KEY  = 'sb_publishable_7gIWX3E2pS_4UfEKJylqpw_V3CIY1b9';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// If already logged in and has a profile, go straight to platform
+// A recovery link puts '#access_token=...&type=recovery' in the URL.
+// Detecting it here, synchronously, before any async session check,
+// means the "already logged in, go to platform" logic below can
+// reliably skip itself — otherwise a recovery session (which IS a
+// valid session) would race with the PASSWORD_RECOVERY handler
+// further down and redirect to /platform before the customer ever
+// sees the set-new-password form.
+const isRecoveryFlow = window.location.hash.includes('type=recovery');
+
+// If already logged in and has a profile, go straight to platform —
+// but never during a recovery flow, see isRecoveryFlow above.
 (async () => {
+  if (isRecoveryFlow) return;
   const { data: { session } } = await sb.auth.getSession();
   if (session) {
     const { data: profile } = await sb.from('profiles').select('id').eq('id', session.user.id).maybeSingle();
@@ -350,7 +383,9 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // Show/hide sections
 const loginSection = document.getElementById('loginSection');
 const resetSection = document.getElementById('resetSection');
+const setPasswordSection = document.getElementById('setPasswordSection');
 resetSection.style.display = 'none';
+if (isRecoveryFlow) loginSection.style.display = 'none'; // avoid a flash of the login form before PASSWORD_RECOVERY fires below
 
 function showReset(e) {
   e.preventDefault();
@@ -360,8 +395,22 @@ function showReset(e) {
 function showLogin(e) {
   e.preventDefault();
   resetSection.style.display = 'none';
+  setPasswordSection.style.display = 'none';
   loginSection.style.display = 'block';
 }
+
+// Detect the recovery session created when a customer clicks the
+// password-reset link from their email. Supabase establishes a
+// temporary session and fires this event — without this listener,
+// the customer would just look logged in with no way to actually
+// set a new password.
+sb.auth.onAuthStateChange((event, session) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    loginSection.style.display = 'none';
+    resetSection.style.display = 'none';
+    setPasswordSection.style.display = 'block';
+  }
+});
 
 // Login
 async function handleLogin(e) {
@@ -416,7 +465,7 @@ async function handleReset(e) {
   succEl.classList.remove('show');
 
   const { error } = await sb.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin + '/platform'
+    redirectTo: window.location.origin + '/login'
   });
 
   if (error) {
@@ -430,6 +479,56 @@ async function handleReset(e) {
     btn.disabled = false;
     btn.textContent = 'Send reset link';
   }
+}
+
+// Set new password (after clicking a reset link — PASSWORD_RECOVERY flow)
+async function handleSetPassword(e) {
+  e.preventDefault();
+  const btn        = document.getElementById('setPwBtn');
+  const errEl       = document.getElementById('setPwError');
+  const newPw       = document.getElementById('newPassword').value;
+  const confirmPw   = document.getElementById('confirmPassword').value;
+
+  errEl.classList.remove('show');
+
+  if (newPw !== confirmPw) {
+    errEl.textContent = 'Passwords do not match.';
+    errEl.classList.add('show');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  const { error } = await sb.auth.updateUser({ password: newPw });
+
+  if (error) {
+    errEl.textContent = error.message;
+    errEl.classList.add('show');
+    btn.disabled = false;
+    btn.textContent = 'Set new password';
+    return;
+  }
+
+  // Fire the same password_changed notification the Settings-page
+  // password change already uses (built and tested earlier today).
+  // Fire-and-forget — must never block the redirect below even if
+  // this fails.
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const token = session && session.access_token;
+    if (token) {
+      await fetch('/.netlify/functions/notify', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ triggerKey: 'password_changed' })
+      });
+    }
+  } catch (e) {
+    console.warn('notify call failed after password reset:', e);
+  }
+
+  window.location.replace('/platform');
 }
 </script>
 
