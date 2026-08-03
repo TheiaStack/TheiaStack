@@ -788,6 +788,19 @@ async function _apiFetch(body){
   return data;
 }
 
+// Fire-and-forget notification trigger. Deliberately never throws and
+// never blocks the caller — a notification failing must not break the
+// actual user-facing action (report generation, password change) that
+// triggered it. Errors are logged to console only.
+async function notifyEvent(triggerKey){
+  try{
+    var hdr=await _authHeader();
+    if(!hdr['Authorization'])return; // no session — nothing to notify with
+    hdr['Content-Type']='application/json';
+    await fetch('/.netlify/functions/notify',{method:'POST',headers:hdr,body:JSON.stringify({triggerKey:triggerKey})});
+  }catch(e){console.warn('notifyEvent failed for',triggerKey,e);}
+}
+
 // Plain text call (policy generation, free-form responses)
 async function callClaude(prompt,maxT,model){
   var data=await _apiFetch({model:model||API_MODEL,max_tokens:maxT||2000,messages:[{role:'user',content:prompt}]});
@@ -899,7 +912,7 @@ async function genReport(){
     if(!r||!r.riskSummary)throw new Error('Invalid report JSON');
     // Set risk level from rules-based calculation — not from Claude
     r.riskLevel=calculatedRisk;
-    ss({report:r,loading:false,step:6});setTimeout(function(){checkForUpdates();},1000);
+    ss({report:r,loading:false,step:6});setTimeout(function(){checkForUpdates();},1000);notifyEvent('audit_completed');
   }catch(e){console.error('genReport error:',e);ss({loading:false,reportError:e.message||'Report generation failed. Please try again.'});}
 }
 
@@ -946,7 +959,7 @@ async function changePassword(){
     if(verify.error)throw new Error('Current password is incorrect.');
     var res=await window._sbClient.auth.updateUser({password:newPw});
     if(res.error)throw res.error;
-    ss({settingsPwLoading:false,settingsPwMsg:'Password updated successfully.',settingsPwErr:false,settingsNewPw:'',settingsCurPw:''});
+    ss({settingsPwLoading:false,settingsPwMsg:'Password updated successfully.',settingsPwErr:false,settingsNewPw:'',settingsCurPw:''});notifyEvent('password_changed');
   }catch(e){
     ss({settingsPwLoading:false,settingsPwMsg:e.message||'Could not update password. Please try again.',settingsPwErr:true});
   }
