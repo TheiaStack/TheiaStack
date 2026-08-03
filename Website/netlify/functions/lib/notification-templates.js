@@ -28,7 +28,7 @@ const TRIGGERS = {
       bodyHtml: `
         <p>The audit for <strong>${ctx.firmName}</strong> is complete. Your AI Risk Management Report and tailored AI usage policy are ready to view.</p>
         <p>This report is dated and valid for the information captured at date of generation.</p>
-        <p>Next step: assign staff training so completion is tracked against this report.</p>
+        <p>Next step: Assign staff training so completion is tracked against this report.</p>
       `,
       ctaText: 'View your report',
       ctaUrl: `${PLATFORM_URL}/dashboard`,
