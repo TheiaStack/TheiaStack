@@ -664,7 +664,7 @@ var S={
   painPoints:[],goals:'',concerns:[],
   detectMethod:'billing',billingText:'',detected:[],checklist:[],
   detecting:false,loading:false,toolLookups:{},policyVersions:[],pendingUpdates:[],newModuleQueue:[],updateCheckDone:false,
-  report:null,policy:null,policyLoading:false,
+  report:null,policy:null,policyLoading:false,policyError:'',
   activeTab:'dashboard',copied:false,
   modules:[],modulesLoading:false,moduleProgress:0,
   dashStaff:[],
@@ -934,11 +934,14 @@ async function genPolicy(){
     var groupB=base+'Write these sections only:\n## 5. Cross-border data transfers and data sovereignty\n## 6. Automated decision-making transparency (Privacy and Other Legislation Amendment Act 2024)\n## 7. Staff responsibilities and training requirements\n## 8. Vendor due diligence and tool assessment\n\nMust reference: Privacy and Other Legislation Amendment Act 2024 (Royal Assent 10 December 2024) — new transparency obligations for automated decision-making using personal information. OAIC October 2024 Guidance on privacy and the use of commercially available AI products — vendor due diligence, data minimisation, staff awareness. National AI Centre AI6 Guidance for AI Adoption (October 2025) — 6 essential practices: accountability, transparency, human oversight, fairness, privacy, security. APP 8 as it relates to where each tool processes and stores data.';
     var groupC=base+'Write these sections only:\n## 9. Incident reporting and breach response\n## 10. Policy review and version control\n## 11. Acknowledgement\n\nMust reference: Privacy Act 1988 (Cth) notifiable data breach obligations where relevant, and Legal Profession Uniform Law (LPUL) duty of competence in relation to technology.';
 
-    var parts=await Promise.all([callClaude(groupA,900),callClaude(groupB,900),callClaude(groupC,700)]);
+    var parts=await Promise.all([callClaude(groupA,1200),callClaude(groupB,1400),callClaude(groupC,900)]);
     var txt=parts.map(function(p){return (p||'').trim();}).join('\n\n');
     if(!txt)throw new Error('Policy generation returned no content. Please try again.');
-    ss({policy:txt,policyLoading:false});
-  }catch(e){ss({policyLoading:false});}
+    ss({policy:txt,policyLoading:false,policyError:''});
+  }catch(e){
+    console.error('genPolicy error:',e);
+    ss({policyLoading:false,policyError:(e&&e.message)||'Policy generation failed. Please try again.'});
+  }
 }
 
 async function genBriefingPack(){
@@ -2162,6 +2165,7 @@ function render(){
         var gi=el('div',{cls:'generate-prompt-icon'});gi.innerHTML='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>';
         gp2.appendChild(gi);gp2.appendChild(el('h3',{},'Generate AI usage policy'));
         gp2.appendChild(el('p',{},'Your policy will be tailored to the specific tools your firm uses — '+S.tools.map(function(t){return t.name;}).filter(Boolean).join(', ')+'.'));
+        if(S.policyError){gp2.appendChild(el('p',{sty:{color:'var(--red)',fontSize:'13px',marginTop:'4px'}},'⚠️ '+S.policyError));}
         gp2.appendChild(el('button',{cls:'btn-primary',onclick:genPolicy},'Generate policy document'));
         rb.appendChild(gp2);
       } else if(S.policyLoading){
