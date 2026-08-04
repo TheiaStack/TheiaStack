@@ -994,10 +994,12 @@ function escHtml(s){
 }
 
 // Strips stray markdown formatting a model can still slip in despite
-// prompt instructions (bold markers, bullet dashes) so nothing renders
-// as literal #/** characters in the final document.
+// prompt instructions (bold markers, bullet dashes), and unescapes
+// markdown's escaped-underscore convention (\_\_\_\_) that shows up in
+// signature/date blank lines — otherwise those render as literal
+// backslash-underscore characters instead of a blank space to sign.
 function stripMd(s){
-  return String(s==null?'':s).replace(/\*\*/g,'').replace(/\*/g,'').replace(/^[-•]\s+/,'').trim();
+  return String(s==null?'':s).replace(/\\_/g,'_').replace(/\*\*/g,'').replace(/\*/g,'').replace(/^[-•]\s+/,'').trim();
 }
 
 // Turns the raw "## N. Title" + "N.n clause text" output from genPolicy
@@ -1015,6 +1017,22 @@ function parsePolicyText(raw){
     else{current.clauses.push({num:'',text:stripMd(l)});}
   });
   return sections.filter(function(s){return s.title||s.clauses.length;});
+}
+
+// Splits clause text on runs of 3+ underscores (e.g. signature/date
+// blanks like "Name: ____") into alternating text/blank segments, so
+// callers can render an actual blank space to write on rather than a
+// row of underscore characters.
+function splitSignatureBlanks(text){
+  var parts=[],re=/_{3,}/g,lastIndex=0,m;
+  while((m=re.exec(text))){
+    if(m.index>lastIndex)parts.push({type:'text',value:text.slice(lastIndex,m.index)});
+    parts.push({type:'blank',len:m[0].length});
+    lastIndex=re.lastIndex;
+  }
+  if(lastIndex<text.length)parts.push({type:'text',value:text.slice(lastIndex)});
+  if(!parts.length)parts.push({type:'text',value:text});
+  return parts;
 }
 
 function theiaDiamondSVG(clipId){
@@ -1037,9 +1055,16 @@ function buildPolicyDocumentHTML(){
   var firm=escHtml(S.firmName||'Firm');
   var footerLine=firm+' · AI Usage Policy · '+dateStr;
 
+  function clauseTextHTML(text){
+    return splitSignatureBlanks(text).map(function(seg){
+      if(seg.type==='blank')return '<span class="sig-blank" style="display:inline-block;min-width:'+Math.max(90,seg.len*6)+'px;height:1em;border-bottom:1px solid var(--mid);vertical-align:bottom;margin:0 3px;"></span>';
+      return escHtml(seg.value);
+    }).join('');
+  }
+
   var sectionsHTML=sections.map(function(s){
     var clausesHTML=s.clauses.map(function(c){
-      return '<div class="clause">'+(c.num?'<div class="clause-num">'+escHtml(c.num)+'</div>':'<div class="clause-num"></div>')+'<div class="clause-text">'+escHtml(c.text)+'</div></div>';
+      return '<div class="clause">'+(c.num?'<div class="clause-num">'+escHtml(c.num)+'</div>':'<div class="clause-num"></div>')+'<div class="clause-text">'+clauseTextHTML(c.text)+'</div></div>';
     }).join('');
     return '<div class="policy-section"><div class="policy-section-title">'+escHtml((s.num?s.num+'. ':'')+s.title)+'</div><div class="clause-list">'+clausesHTML+'</div></div>';
   }).join('');
@@ -2381,7 +2406,15 @@ function render(){
           sec.clauses.forEach(function(c){
             var row=el('div',{cls:'policy-p',sty:{display:'flex',gap:'10px'}});
             if(c.num)row.appendChild(el('span',{sty:{color:'var(--red)',fontWeight:'700',flexShrink:'0'}},c.num));
-            row.appendChild(el('span',{},c.text));
+            var textSpan=el('span',{});
+            splitSignatureBlanks(c.text).forEach(function(seg){
+              if(seg.type==='blank'){
+                textSpan.appendChild(el('span',{sty:{display:'inline-block',minWidth:Math.max(90,seg.len*6)+'px',height:'1em',borderBottom:'1px solid var(--muted)',verticalAlign:'bottom',margin:'0 3px'}}));
+              } else {
+                textSpan.appendChild(document.createTextNode(seg.value));
+              }
+            });
+            row.appendChild(textSpan);
             pb2.appendChild(row);
           });
         });
