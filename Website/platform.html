@@ -932,28 +932,40 @@ async function genPolicy(){
     // generous token budget while still finishing quickly. The retry
     // wrapper now guards against real flakiness (a slow moment, a
     // network blip) rather than a fight it can't win.
+    // Section list carries an explicit numeral (num) so each section's
+    // Claude call can correctly produce its own numbered sub-clauses
+    // (e.g. 4.1, 4.2, 4.3) — matching the formal institutional policy
+    // register the founder asked for, rather than plain prose under a
+    // heading.
     var sections=[
-      {h:'## 1. Purpose and scope',ref:''},
-      {h:'## 2. Approved AI tools and permitted uses (address each tool by name)',ref:'',maxT:700},
-      {h:'## 3. Prohibited uses and client data protections',ref:'Legal Profession Uniform Law (LPUL) obligations on client confidentiality.'},
-      {h:'## 4. Compliance with the Australian Privacy Principles',ref:'Privacy Act 1988 (Cth) and the 13 Australian Privacy Principles — especially APP 3 (collection), APP 6 (use and disclosure), APP 8 (cross-border disclosure), APP 11 (security of personal information).',maxT:700},
-      {h:'## 5. Cross-border data transfers and data sovereignty',ref:'APP 8 as it relates to where each tool processes and stores data.'},
-      {h:'## 6. Automated decision-making transparency (Privacy and Other Legislation Amendment Act 2024)',ref:'Privacy and Other Legislation Amendment Act 2024 (Royal Assent 10 December 2024) — new transparency obligations for automated decision-making using personal information.'},
-      {h:'## 7. Staff responsibilities and training requirements',ref:'National AI Centre AI6 Guidance for AI Adoption (October 2025) — 6 essential practices: accountability, transparency, human oversight, fairness, privacy, security.'},
-      {h:'## 8. Vendor due diligence and tool assessment',ref:'OAIC October 2024 Guidance on privacy and the use of commercially available AI products — vendor due diligence, data minimisation, staff awareness.'},
-      {h:'## 9. Incident reporting and breach response',ref:'Privacy Act 1988 (Cth) notifiable data breach obligations where relevant.'},
-      {h:'## 10. Policy review and version control',ref:''},
-      {h:'## 11. Acknowledgement',ref:''}
+      {num:1,title:'Purpose and scope',ref:''},
+      {num:2,title:'Approved AI tools and permitted uses (address each tool by name)',ref:'',maxT:700},
+      {num:3,title:'Prohibited uses and client data protections',ref:'Legal Profession Uniform Law (LPUL) obligations on client confidentiality.'},
+      {num:4,title:'Compliance with the Australian Privacy Principles',ref:'Privacy Act 1988 (Cth) and the 13 Australian Privacy Principles — especially APP 3 (collection), APP 6 (use and disclosure), APP 8 (cross-border disclosure), APP 11 (security of personal information).',maxT:700},
+      {num:5,title:'Cross-border data transfers and data sovereignty',ref:'APP 8 as it relates to where each tool processes and stores data.'},
+      {num:6,title:'Automated decision-making transparency (Privacy and Other Legislation Amendment Act 2024)',ref:'Privacy and Other Legislation Amendment Act 2024 (Royal Assent 10 December 2024) — new transparency obligations for automated decision-making using personal information.'},
+      {num:7,title:'Staff responsibilities and training requirements',ref:'National AI Centre AI6 Guidance for AI Adoption (October 2025) — 6 essential practices: accountability, transparency, human oversight, fairness, privacy, security.'},
+      {num:8,title:'Vendor due diligence and tool assessment',ref:'OAIC October 2024 Guidance on privacy and the use of commercially available AI products — vendor due diligence, data minimisation, staff awareness.'},
+      {num:9,title:'Incident reporting and breach response',ref:'Privacy Act 1988 (Cth) notifiable data breach obligations where relevant.'},
+      {num:10,title:'Policy review and version control',ref:''},
+      {num:11,title:'Acknowledgement',ref:''}
     ];
 
+    // Formal institutional-policy style guide — modelled on the register
+    // and structure of published university/government IT policies
+    // (numbered sub-clauses, defined terms, formal third-person modal
+    // language), not on their content.
+    var styleGuide='Write in the register of a formal institutional policy document — objective, precise, third person throughout. Do NOT use marketing language, rhetorical questions, exclamation points, or a conversational tone. Use "must" for mandatory obligations and "may" for discretionary ones, in the manner of formal policy drafting. Structure the section as numbered sub-clauses in the form '+'X.1, X.2, X.3'+' (not bullet points, not unstructured prose) — each sub-clause a single, precise statement. On first use, capitalise and define key terms in parentheses where helpful (e.g. "artificial intelligence tools (AI Tools)"), then use the defined term consistently.';
+
     function sectionPrompt(s){
-      return 'You are an AI compliance specialist for Australian law firms, writing ONE section of a comprehensive AI Usage Policy for '+S.firmName+'. Write in clear, plain English suitable for all staff. Return ONLY this section, starting with its exact heading below — no JSON, no preamble, no commentary, no other sections. Keep it focused and specific to this firm — roughly 120-200 words.\n\n'+firmCtx+'\n\nWrite this section:\n'+s.h+(s.ref?('\n\nMust reference: '+s.ref):'');
+      var heading='## '+s.num+'. '+s.title;
+      return 'You are drafting ONE numbered section of a formal AI Usage Policy for '+S.firmName+', an Australian law firm. '+styleGuide+' Return ONLY this section, starting with its exact heading below, followed by numbered sub-clauses '+s.num+'.1, '+s.num+'.2 etc. — no JSON, no preamble, no commentary, no other sections. Aim for roughly 120-200 words in total across the sub-clauses.\n\n'+firmCtx+'\n\nWrite this section:\n'+heading+(s.ref?('\n\nMust reference: '+s.ref):'');
     }
 
     function callSectionWithRetry(s){
       var prompt=sectionPrompt(s),maxT=s.maxT||500;
       return callClaude(prompt,maxT).catch(function(e){
-        console.warn('policy section "'+s.h+'" failed, retrying once:',e);
+        console.warn('policy section "'+s.title+'" failed, retrying once:',e);
         return callClaude(prompt,maxT);
       });
     }
@@ -966,6 +978,23 @@ async function genPolicy(){
     console.error('genPolicy error:',e);
     ss({policyLoading:false,policyError:(e&&e.message)||'Policy generation failed. Please try again.'});
   }
+}
+
+// Saves the policy straight to the browser's downloads folder rather
+// than the clipboard — removes the "copy, then forget to paste it
+// anywhere, then lose it" failure mode a busy practice manager could
+// easily hit.
+function downloadPolicy(){
+  if(!S.policy)return;
+  var safeName=(S.firmName||'Firm').replace(/[^a-z0-9]+/gi,'-').replace(/^-+|-+$/g,'')||'Firm';
+  var dateStr=new Date().toISOString().slice(0,10);
+  var filename=safeName+'-AI-Usage-Policy-'+dateStr+'.txt';
+  var blob=new Blob([S.policy],{type:'text/plain;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;a.download=filename;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(url);},1000);
 }
 
 async function genBriefingPack(){
@@ -2208,8 +2237,8 @@ function render(){
           pbtnrow.appendChild(upb);
         }
         if(S.policyLoading){var spb=el('div',{sty:{display:'flex',alignItems:'center',gap:'8px',fontSize:'13px',color:'var(--muted)'}});spb.appendChild(el('div',{cls:'mini-spin'}));spb.appendChild(el('span',{},'Updating policy...'));pbtnrow.appendChild(spb);}
-        var cpb=el('button',{cls:'btn-secondary btn-sm',onclick:function(){navigator.clipboard.writeText(S.policy);ss({copied:true});setTimeout(function(){ss({copied:false});},2000);}});
-        cpb.textContent=S.copied?'Copied!':'Copy to clipboard';pbtnrow.appendChild(cpb);
+        var cpb=el('button',{cls:'btn-secondary btn-sm',onclick:function(){downloadPolicy();ss({copied:true});setTimeout(function(){ss({copied:false});},2000);}});
+        cpb.textContent=S.copied?'Saved!':'Save to desktop';pbtnrow.appendChild(cpb);
         ptb.appendChild(pbtnrow);rb.appendChild(ptb);
         var pb2=el('div',{cls:'policy-body'});
         S.policy.split('\n').filter(function(l){return l.trim();}).forEach(function(line){
