@@ -921,20 +921,36 @@ async function genPolicy(){
   try{
     var toolList=S.tools.map(function(t){return (t.name||'unnamed')+' ('+(t.useCase||'general use')+', $'+(t.cost||0)+'/mo)';}).filter(function(t){return t.indexOf('unnamed')<0;}).join('; ');
     var firmCtx='Firm: '+S.firmName+', '+S.staffCount+' staff, '+S.practiceAreas.join(', ')+' law. AI tools in use: '+toolList+'. Client data accessed via AI: '+S.clientData+'. Data storage: '+S.dataStorage+'. Concerns: '+S.concerns.join(', ')+'.';
-    var base='You are an AI compliance specialist for Australian law firms, generating part of a comprehensive AI Usage Policy for '+S.firmName+'. Write in clear, plain English suitable for all staff. Use ## for section headings exactly as listed below, in order. Return ONLY those section(s) — no JSON, no preamble, no commentary, no sections other than the ones listed.\n\n'+firmCtx+'\n\n';
+    var base='You are an AI compliance specialist for Australian law firms, generating part of a comprehensive AI Usage Policy for '+S.firmName+'. Write in clear, plain English suitable for all staff. Use ## for section headings exactly as listed below, in order. Return ONLY those section(s) — no JSON, no preamble, no commentary, no sections other than the ones listed. Keep each section focused and practical — roughly 100-150 words unless a section genuinely needs more to properly cite the relevant law. Do not pad or repeat points.\n\n'+firmCtx+'\n\n';
 
-    // The original single 2000-token / 11-section call reliably took
-    // 43-45s in production, which exceeds the fixed ~26s ceiling on
-    // Netlify's synchronous functions (a hard limit, not a plan setting)
-    // — the function completed server-side but the browser had already
-    // been given a 504 by the time it did. Splitting into three smaller
-    // calls run in PARALLEL keeps the same total content but brings wall
-    // clock time down to roughly the slowest of the three, not the sum.
-    var groupA=base+'Write these sections only:\n## 1. Purpose and scope\n## 2. Approved AI tools and permitted uses (address each tool by name)\n## 3. Prohibited uses and client data protections\n## 4. Compliance with the Australian Privacy Principles\n\nMust reference: Privacy Act 1988 (Cth) and the 13 Australian Privacy Principles — especially APP 3 (collection), APP 6 (use and disclosure), APP 8 (cross-border disclosure), APP 11 (security of personal information). Legal Profession Uniform Law (LPUL) obligations on client confidentiality.';
-    var groupB=base+'Write these sections only:\n## 5. Cross-border data transfers and data sovereignty\n## 6. Automated decision-making transparency (Privacy and Other Legislation Amendment Act 2024)\n## 7. Staff responsibilities and training requirements\n## 8. Vendor due diligence and tool assessment\n\nMust reference: Privacy and Other Legislation Amendment Act 2024 (Royal Assent 10 December 2024) — new transparency obligations for automated decision-making using personal information. OAIC October 2024 Guidance on privacy and the use of commercially available AI products — vendor due diligence, data minimisation, staff awareness. National AI Centre AI6 Guidance for AI Adoption (October 2025) — 6 essential practices: accountability, transparency, human oversight, fairness, privacy, security. APP 8 as it relates to where each tool processes and stores data.';
-    var groupC=base+'Write these sections only:\n## 9. Incident reporting and breach response\n## 10. Policy review and version control\n## 11. Acknowledgement\n\nMust reference: Privacy Act 1988 (Cth) notifiable data breach obligations where relevant, and Legal Profession Uniform Law (LPUL) duty of competence in relation to technology.';
+    // A single 2000-token / 11-section call reliably took 43-45s in
+    // production, exceeding the fixed ~26s ceiling on Netlify's
+    // synchronous functions. Splitting into 3 calls helped but each
+    // group (3-4 sections) was still occasionally slow enough to time
+    // out (504) or, when given more max_tokens headroom to avoid
+    // truncation, slow enough to approach the ceiling again. Splitting
+    // further into 4 smaller groups (2-3 sections each) keeps every
+    // individual call comfortably short on both fronts. Each group also
+    // gets one automatic retry — a single flaky/slow call no longer
+    // fails the whole policy.
+    var groupA=base+'Write these sections only:\n## 1. Purpose and scope\n## 2. Approved AI tools and permitted uses (address each tool by name)\n## 3. Prohibited uses and client data protections\n\nMust reference: Legal Profession Uniform Law (LPUL) obligations on client confidentiality.';
+    var groupB=base+'Write these sections only:\n## 4. Compliance with the Australian Privacy Principles\n## 5. Cross-border data transfers and data sovereignty\n\nMust reference: Privacy Act 1988 (Cth) and the 13 Australian Privacy Principles — especially APP 3 (collection), APP 6 (use and disclosure), APP 8 (cross-border disclosure), APP 11 (security of personal information), as they relate to where each tool processes and stores data.';
+    var groupC=base+'Write these sections only:\n## 6. Automated decision-making transparency (Privacy and Other Legislation Amendment Act 2024)\n## 7. Staff responsibilities and training requirements\n## 8. Vendor due diligence and tool assessment\n\nMust reference: Privacy and Other Legislation Amendment Act 2024 (Royal Assent 10 December 2024) — new transparency obligations for automated decision-making using personal information. OAIC October 2024 Guidance on privacy and the use of commercially available AI products — vendor due diligence, data minimisation, staff awareness. National AI Centre AI6 Guidance for AI Adoption (October 2025) — 6 essential practices: accountability, transparency, human oversight, fairness, privacy, security.';
+    var groupD=base+'Write these sections only:\n## 9. Incident reporting and breach response\n## 10. Policy review and version control\n## 11. Acknowledgement\n\nMust reference: Privacy Act 1988 (Cth) notifiable data breach obligations where relevant, and Legal Profession Uniform Law (LPUL) duty of competence in relation to technology.';
 
-    var parts=await Promise.all([callClaude(groupA,1200),callClaude(groupB,1400),callClaude(groupC,900)]);
+    function callGroupWithRetry(prompt,maxT){
+      return callClaude(prompt,maxT).catch(function(e){
+        console.warn('policy section failed, retrying once:',e);
+        return callClaude(prompt,maxT);
+      });
+    }
+
+    var parts=await Promise.all([
+      callGroupWithRetry(groupA,700),
+      callGroupWithRetry(groupB,700),
+      callGroupWithRetry(groupC,900),
+      callGroupWithRetry(groupD,500)
+    ]);
     var txt=parts.map(function(p){return (p||'').trim();}).join('\n\n');
     if(!txt)throw new Error('Policy generation returned no content. Please try again.');
     ss({policy:txt,policyLoading:false,policyError:''});
