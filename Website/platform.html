@@ -2511,7 +2511,7 @@ function renderHistory(){
   var closeBtn=el('button',{cls:'btn-secondary',onclick:closeHistory});closeBtn.textContent='← Back to current audit';mh.appendChild(closeBtn);
   wrap.appendChild(mh);
 
-  var mb=el('div',{cls:'main-body'});
+  var mb=el('div',{cls:'main-body',sty:{maxWidth:'1000px'}});
 
   if(S.historyView==='list'){
     if(S.historyLoading){
@@ -2642,9 +2642,22 @@ function renderHistory(){
       mb.appendChild(el('div',{cls:'card-title',sty:{margin:'24px 0 10px'}},'AI usage policy — as it stood at this date'));
       if(d.policy_snapshot){
         var pb2=el('div',{cls:'policy-body'});
-        d.policy_snapshot.split('\n').filter(function(l){return l.trim();}).forEach(function(line){
-          if(line.indexOf('## ')===0)pb2.appendChild(el('div',{cls:'policy-h'},line.replace('## ','')));
-          else pb2.appendChild(el('div',{cls:'policy-p'},line));
+        parsePolicyText(d.policy_snapshot).forEach(function(sec){
+          pb2.appendChild(el('div',{cls:'policy-h'},(sec.num?sec.num+'. ':'')+sec.title));
+          sec.clauses.forEach(function(c){
+            var row=el('div',{cls:'policy-p',sty:{display:'flex',gap:'10px'}});
+            if(c.num)row.appendChild(el('span',{sty:{color:'var(--red)',fontWeight:'700',flexShrink:'0'}},c.num));
+            var textSpan=el('span',{});
+            splitSignatureBlanks(c.text).forEach(function(seg){
+              if(seg.type==='blank'){
+                textSpan.appendChild(el('span',{sty:{display:'inline-block',minWidth:Math.max(90,seg.len*6)+'px',height:'1em',borderBottom:'1px solid var(--muted)',verticalAlign:'bottom',margin:'0 3px'}}));
+              } else {
+                textSpan.appendChild(document.createTextNode(seg.value));
+              }
+            });
+            row.appendChild(textSpan);
+            pb2.appendChild(row);
+          });
         });
         mb.appendChild(pb2);
       } else {
