@@ -2190,6 +2190,9 @@ function renderDashboard(){
   var score=calcHealthScore();
   var scorecol=score>=80?'var(--green)':score>=50?'var(--amber)':'var(--red)';
   var scoreLabel=score>=80?'Compliant':score>=50?'Needs attention':'At risk';
+  var sp=spend();
+  var knownTools=S.tools.filter(function(t){return t.name;});
+  var certCount=S.dashStaff.filter(function(s){return s.status==='certified';}).length;
 
   // Dynamic update notification banner
   var policyUpdates=S.pendingUpdates.filter(function(u){return u.action==='policy'||u.action==='both';});
@@ -2209,16 +2212,27 @@ function renderDashboard(){
     wrap.appendChild(notif);
   }
 
-  // Top grid: health score + staff status
+  // Stat strip — the three headline numbers at a glance, replacing the
+  // oversized single health-score card that used to force its sparse
+  // neighbour to stretch into empty space.
+  var stripWrap=el('div',{cls:'metrics-row',sty:{padding:'0',background:'transparent',borderBottom:'none',marginBottom:'20px'}});
+  [
+    {label:'Compliance health',val:score+'',col:scorecol,sub:scoreLabel},
+    {label:'Staff certified',val:certCount+'/'+S.dashStaff.length,col:'var(--navy)',sub:S.dashStaff.length?'as of today':'no staff added yet'},
+    {label:'Monthly AI spend',val:'$'+sp.toFixed(0),col:'var(--navy)',sub:'across '+knownTools.length+' tool'+(knownTools.length!==1?'s':'')}
+  ].forEach(function(m){
+    var mc=el('div',{cls:'metric'});mc.appendChild(el('div',{cls:'metric-label'},m.label));mc.appendChild(el('div',{cls:'metric-value',sty:{color:m.col}},m.val));mc.appendChild(el('div',{cls:'metric-sub'},m.sub));stripWrap.appendChild(mc);
+  });
+  wrap.appendChild(stripWrap);
+
+  // Balanced two-column row: compliance breakdown list paired with staff
+  // detail — both are list-shaped, so they fill the row evenly instead of
+  // one card dwarfing the other.
   var topGrid=el('div',{cls:'dash-grid'});
 
-  // Health score card
   var hc=el('div',{cls:'dash-card'});
-  hc.appendChild(el('div',{cls:'dash-card-title'},'Compliance health score'));
-  hc.appendChild(el('div',{cls:'health-score',sty:{color:scorecol}},score+''));
-  hc.appendChild(el('div',{cls:'health-label',sty:{color:scorecol}},scoreLabel));
-  hc.appendChild(el('div',{cls:'health-sub'},'Updated today'));
-  var hbw=el('div',{cls:'health-bar-wrap'});var hb=el('div',{cls:'health-bar',sty:{width:score+'%',background:scorecol}});hbw.appendChild(hb);hc.appendChild(hbw);
+  hc.appendChild(el('div',{cls:'dash-card-title'},'Compliance breakdown'));
+  var hbw=el('div',{cls:'health-bar-wrap',sty:{marginTop:'2px'}});var hb=el('div',{cls:'health-bar',sty:{width:score+'%',background:scorecol}});hbw.appendChild(hb);hc.appendChild(hbw);
   var breakdown=el('div',{cls:'score-breakdown'});
   [
     {label:'AI policy',val:S.hasPolicy==='Yes, a formal one'?'✓ In place':S.hasPolicy==='In progress'?'In progress':'✗ Missing',col:S.hasPolicy==='Yes, a formal one'?'var(--green)':S.hasPolicy==='In progress'?'var(--amber)':'var(--red)'},
@@ -2234,14 +2248,13 @@ function renderDashboard(){
   var sc2=el('div',{cls:'dash-card'});
   sc2.appendChild(el('div',{cls:'dash-card-title'},'Staff certification'));
   if(S.dashStaff.length===0){
-    sc2.appendChild(el('div',{cls:'health-score',sty:{color:'var(--muted)'}},'—'));
-    sc2.appendChild(el('div',{cls:'health-label',sty:{color:'var(--muted)'}},'No staff added yet'));
-    sc2.appendChild(el('div',{cls:'health-sub',sty:{marginBottom:'14px'}},'Staff complete training via the training tab. Their progress will appear here once they have started.'));
+    sc2.appendChild(el('div',{sty:{fontSize:'13px',color:'var(--muted)',lineHeight:'1.6',marginBottom:'16px'}},'No staff have started training yet. Share the training link to get your team certified — their progress will appear here once they begin.'));
+    var goTrainBtn=el('button',{cls:'btn-secondary btn-sm',onclick:function(){ss({activeTab:'training'});}});
+    goTrainBtn.textContent='Go to training →';
+    sc2.appendChild(goTrainBtn);
   } else {
-    var certCount=S.dashStaff.filter(function(s){return s.status==='certified';}).length;
-    sc2.appendChild(el('div',{cls:'health-score',sty:{color:'var(--navy)'}},certCount+'/'+S.dashStaff.length));
-    sc2.appendChild(el('div',{cls:'health-label',sty:{color:'var(--navy)'}},'Staff certified'));
-    sc2.appendChild(el('div',{cls:'health-sub',sty:{marginBottom:'14px'}},'As of today'));
+    var slHead=el('div',{sty:{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'12px'}});
+    slHead.appendChild(el('span',{sty:{fontSize:'13px',color:'var(--muted)'}},certCount+' of '+S.dashStaff.length+' certified'));
     var sl=el('div',{cls:'staff-list'});
     S.dashStaff.forEach(function(staff){
       var si=el('div',{cls:'staff-item'});
@@ -2276,7 +2289,11 @@ function renderDashboard(){
   }
   pv.appendChild(pvh);
   if(!S.policy){
-    pv.appendChild(el('div',{sty:{fontSize:'13px',color:'var(--muted)',marginTop:'10px',lineHeight:'1.6'}},'Your AI usage policy will appear here after it is generated. Go to the AI Policy tab to generate it.'));
+    var pvEmpty=el('div',{sty:{fontSize:'13px',color:'var(--muted)',marginTop:'10px',lineHeight:'1.6'}},'Your AI usage policy will appear here after it is generated.');
+    pv.appendChild(pvEmpty);
+    var goPolBtn=el('button',{cls:'btn-secondary btn-sm',sty:{marginTop:'12px'},onclick:function(){ss({activeTab:'policy'});}});
+    goPolBtn.textContent='Generate policy →';
+    pv.appendChild(goPolBtn);
   } else {
     pv.appendChild(el('div',{cls:'dash-card-title',sty:{marginBottom:'10px',marginTop:'16px'}},'Version history'));
     var vh=el('div',{cls:'version-history'});
@@ -2294,15 +2311,13 @@ function renderDashboard(){
   }
   wrap.appendChild(pv);
 
-  // Bottom grid: renewals + tool risk
-  var botGrid=el('div',{cls:'dash-grid'});
-
-  // Subscription renewals
-  var rc=el('div',{cls:'dash-card'});
-  rc.appendChild(el('div',{cls:'dash-card-title'},'AI tool subscriptions'));
-  var knownTools=S.tools.filter(function(t){return t.name;});
+  // AI tool stack — merged: previously two separate cards ("AI tool
+  // subscriptions" and "Tool risk snapshot") duplicated the same tool list
+  // with overlapping information. One card, one pass, cost and risk together.
+  var tc=el('div',{cls:'dash-card',sty:{marginTop:'16px'}});
+  tc.appendChild(el('div',{cls:'dash-card-title'},'AI tool stack'));
   if(!knownTools.length){
-    rc.appendChild(el('div',{sty:{fontSize:'13px',color:'var(--muted)',lineHeight:'1.6'}},'No tools recorded yet. Complete the audit to populate this.'));
+    tc.appendChild(el('div',{sty:{fontSize:'13px',color:'var(--muted)',lineHeight:'1.6'}},'No tools recorded yet. Complete the audit to populate this.'));
   } else {
     knownTools.forEach(function(t){
       var ri=el('div',{cls:'renewal-item'});
@@ -2311,35 +2326,14 @@ function renderDashboard(){
       rinfo.appendChild(el('div',{cls:'renewal-date'},t.cost?'$'+t.cost+'/mo':'Cost not recorded'));
       ri.appendChild(rinfo);
       var lookup=S.toolLookups[t.name];
-      var rl=lookup&&lookup.riskLevel?lookup.riskLevel:'Unknown';
-      var rbg=rl==='Low'?'var(--green-bg)':rl==='Medium'?'var(--amber-bg)':rl==='High'?'var(--red-bg)':'var(--cream)';
-      var rcol2=rl==='Low'?'var(--green)':rl==='Medium'?'var(--amber)':rl==='High'?'var(--red)':'var(--muted)';
-      ri.appendChild(el('span',{cls:'renewal-badge',sty:{background:rbg,color:rcol2}},rl+' risk'));
-      rc.appendChild(ri);
-    });
-  }
-  botGrid.appendChild(rc);
-
-  // Tool risk snapshot
-  var trc=el('div',{cls:'dash-card'});
-  trc.appendChild(el('div',{cls:'dash-card-title'},'Tool risk snapshot'));
-  var toolNames=S.tools.map(function(t){return t.name;}).filter(Boolean);
-  if(!toolNames.length){
-    trc.appendChild(el('div',{sty:{fontSize:'13px',color:'var(--muted)',lineHeight:'1.6'}},'No tools recorded yet.'));
-  } else {
-    toolNames.forEach(function(t){
-      var ri=el('div',{cls:'renewal-item'});
-      ri.appendChild(el('div',{cls:'renewal-name'},t));
-      var lookup=S.toolLookups[t];
       var rl=lookup&&lookup.riskLevel?lookup.riskLevel:'Not assessed';
       var rbg=rl==='Low'?'var(--green-bg)':rl==='Medium'?'var(--amber-bg)':rl==='High'?'var(--red-bg)':'var(--cream)';
-      var rcol3=rl==='Low'?'var(--green)':rl==='Medium'?'var(--amber)':rl==='High'?'var(--red)':'var(--muted)';
-      ri.appendChild(el('span',{cls:'renewal-badge',sty:{background:rbg,color:rcol3}},rl));
-      trc.appendChild(ri);
+      var rcol2=rl==='Low'?'var(--green)':rl==='Medium'?'var(--amber)':rl==='High'?'var(--red)':'var(--muted)';
+      ri.appendChild(el('span',{cls:'renewal-badge',sty:{background:rbg,color:rcol2}},rl+(rl==='Low'||rl==='Medium'||rl==='High'?' risk':'')));
+      tc.appendChild(ri);
     });
   }
-  botGrid.appendChild(trc);
-  wrap.appendChild(botGrid);
+  wrap.appendChild(tc);
 
   return wrap;
 }
