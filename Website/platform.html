@@ -57,6 +57,29 @@ a{color:var(--navy);text-decoration:none;}
 .sb-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,.08);}
 .sb-footer-text{font-size:11px;color:rgba(255,255,255,.25);}
 
+/* Sidebar v2 — pinned Dashboard, collapsible Audit section with progress */
+.sb-section{margin-bottom:6px;}
+.sb-section-header{display:flex;align-items:center;justify-content:space-between;padding:8px 8px;cursor:pointer;border-radius:8px;transition:background .15s;}
+.sb-section-header:hover{background:rgba(255,255,255,.05);}
+.sb-section-header-label{font-size:10px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.06em;}
+.sb-section-chevron{color:rgba(255,255,255,.3);transition:transform .15s;flex-shrink:0;}
+.sb-section-chevron.open{transform:rotate(180deg);}
+.sb-dash-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:0 8px 8px 0;border-left:2px solid transparent;cursor:pointer;transition:all .15s;margin-bottom:4px;}
+.sb-dash-item:hover{background:rgba(255,255,255,.05);}
+.sb-dash-item.active{background:rgba(184,50,50,.16);border-left-color:var(--gold);}
+.sb-dash-item.active .sb-dash-label{color:#fff;font-weight:500;}
+.sb-dash-label{color:rgba(255,255,255,.65);font-size:13px;}
+.sb-progress-track{height:2px;background:rgba(255,255,255,.08);border-radius:2px;margin:4px 8px 10px;}
+.sb-progress-fill{height:2px;background:var(--green);border-radius:2px;transition:width .2s;}
+.sb-mini-step{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:6px;margin-bottom:1px;cursor:default;}
+.sb-mini-step.clickable{cursor:pointer;}
+.sb-mini-step.clickable:hover{background:rgba(255,255,255,.06);}
+.sb-mini-step.current{background:rgba(255,255,255,.08);}
+.sb-mini-label{font-size:12.5px;color:rgba(255,255,255,.35);}
+.sb-mini-step.done .sb-mini-label{color:rgba(255,255,255,.45);}
+.sb-mini-step.current .sb-mini-label{color:#fff;font-weight:500;}
+.sb-mini-icon{flex-shrink:0;display:flex;align-items:center;justify-content:center;width:15px;height:15px;}
+
 /* Main content */
 .main-header{background:var(--white);border-bottom:1px solid var(--border);padding:20px 40px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
 .main-header-left h1{font-family:var(--font-display);font-size:20px;color:var(--navy);font-weight:400;}
@@ -622,12 +645,17 @@ var _sbClient = null;
       <div class="sb-firm-name" id="sb-firm-name">—</div>
     </div>
     <div class="sb-nav">
-      <div class="sb-nav-label">Audit steps</div>
-      <div id="sb-steps"></div>
-    </div>
-    <div class="sb-nav" id="sb-reports-nav" style="display:none">
-      <div class="sb-nav-label">Reports</div>
-      <div id="sb-reports-link"></div>
+      <div class="sb-section" id="sb-dashboard-nav">
+        <div id="sb-dashboard-link"></div>
+      </div>
+      <div class="sb-section" id="sb-audit-nav">
+        <div id="sb-audit-header"></div>
+        <div id="sb-steps"></div>
+      </div>
+      <div class="sb-section" id="sb-reports-nav" style="display:none">
+        <div class="sb-section-header-label" style="padding:8px 8px 6px;">Reports</div>
+        <div id="sb-reports-link"></div>
+      </div>
     </div>
     <div class="sb-footer">
       <button onclick="handleLogout()" style="background:none;border:none;cursor:pointer;font-size:11px;color:rgba(255,255,255,.35);font-family:var(--font-body);padding:0 0 6px;transition:color .15s;display:block;text-align:left;" onmouseover="this.style.color='rgba(255,255,255,.7)'" onmouseout="this.style.color='rgba(255,255,255,.35)'">Sign out</button>
@@ -690,7 +718,8 @@ var S={
   settingsNewPw:'',settingsCurPw:'',settingsPwLoading:false,settingsPwMsg:'',settingsPwErr:false,
   faqOpen:-1,
   showHistory:false,historyView:'list',historyGroups:null,historyLoading:false,historyError:'',
-  historyDetail:null,historyDetailLoading:false,historyDetailError:'',historyOpenGroups:{}
+  historyDetail:null,historyDetailLoading:false,historyDetailError:'',historyOpenGroups:{},
+  showDashboard:false,auditNavOpen:true
 };
 
 function ss(p){Object.assign(S,p);render();}
@@ -1581,13 +1610,80 @@ function radioGroup(opts,val,onChange){
   return w;
 }
 
+function goToDashboard(){
+  // With a report already on file, "Dashboard" is the existing Dashboard tab
+  // inside the full report view — no new rendering needed, just navigate there.
+  // Without one yet, show the empty-state home screen instead.
+  if(S.report){ss({showDashboard:false,showHistory:false,step:6,activeTab:'dashboard'});}
+  else{ss({showDashboard:true,showHistory:false});}
+}
+
 function updateSidebar(){
   var firmDiv=document.getElementById('sb-firm');
-  var firmName=document.getElementById('sb-firm-name');
-  if(firmDiv&&firmName){
-    if(S.firmName){firmDiv.style.display='block';firmName.textContent=S.firmName;}
+  var firmNameEl=document.getElementById('sb-firm-name');
+  if(firmDiv&&firmNameEl){
+    if(S.firmName){firmDiv.style.display='block';firmNameEl.textContent=S.firmName;}
     else firmDiv.style.display='none';
   }
+
+  // ── Dashboard — pinned home item, always visible ──
+  var dashLink=document.getElementById('sb-dashboard-link');
+  if(dashLink){
+    dashLink.innerHTML='';
+    var dashActive=S.showDashboard||(S.step===6&&S.activeTab==='dashboard'&&!S.showHistory);
+    var dashItem=el('div',{cls:'sb-dash-item'+(dashActive?' active':''),onclick:goToDashboard});
+    var dashIconWrap=el('div',{sty:{display:'flex',color:dashActive?'#B83232':'rgba(255,255,255,.5)'}});
+    dashIconWrap.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg>';
+    dashItem.appendChild(dashIconWrap);
+    dashItem.appendChild(el('span',{cls:'sb-dash-label'},'Dashboard'));
+    dashLink.appendChild(dashItem);
+  }
+
+  // ── Audit — collapsible section with a progress bar ─
+  var auditHeader=document.getElementById('sb-audit-header');
+  var steps=document.getElementById('sb-steps');
+  if(auditHeader&&steps){
+    auditHeader.innerHTML='';
+    var currentStepNum=(S.step===6?6:S.step+1);
+    var auditLabel=S.step===6?'Audit — complete':'Audit — step '+currentStepNum+' of 6';
+    var hdr=el('div',{cls:'sb-section-header',onclick:function(){ss({auditNavOpen:!S.auditNavOpen});}});
+    hdr.appendChild(el('span',{cls:'sb-section-header-label'},auditLabel));
+    var chev=el('span',{cls:'sb-section-chevron'+(S.auditNavOpen?' open':'')});
+    chev.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+    hdr.appendChild(chev);
+    auditHeader.appendChild(hdr);
+
+    steps.innerHTML='';
+    if(S.auditNavOpen){
+      var maxStep=S.step===6?6:S.step;
+      var pct=Math.round((maxStep/6)*100);
+      var track=el('div',{cls:'sb-progress-track'});
+      track.appendChild(el('div',{cls:'sb-progress-fill',sty:{width:pct+'%'}}));
+      steps.appendChild(track);
+
+      STEPS.forEach(function(s,i){
+        var isDone=i<maxStep||(S.step===6&&i<=5);
+        var isActive=i===maxStep&&S.step!==6;
+        var cls='sb-mini-step'+(isDone?' done':'')+(isActive?' current':'')+((isDone||isActive)?' clickable':'');
+        var item=el('div',{cls:cls});
+        if(isDone||isActive){
+          if(!isActive)item.title='Click to go back and edit '+s;
+          (function(idx2){item.addEventListener('click',function(){
+            ss({step:idx2,showDashboard:false,showHistory:false});
+          });})(i);
+        }
+        var iconWrap=el('span',{cls:'sb-mini-icon'});
+        if(isDone)iconWrap.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1a7a46" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>';
+        else if(isActive)iconWrap.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6" fill="#B83232"/></svg>';
+        else iconWrap.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="2" stroke-dasharray="3 3"><circle cx="12" cy="12" r="9"/></svg>';
+        item.appendChild(iconWrap);
+        item.appendChild(el('span',{cls:'sb-mini-label'},s));
+        steps.appendChild(item);
+      });
+    }
+  }
+
+  // ── Reports — unchanged behaviour, restyled to match ─
   var reportsNav=document.getElementById('sb-reports-nav');
   var reportsLink=document.getElementById('sb-reports-link');
   if(reportsNav&&reportsLink){
@@ -1596,51 +1692,16 @@ function updateSidebar(){
     if(S.report){
       reportsNav.style.display='block';
       reportsLink.innerHTML='';
-      var cls='sb-item clickable'+(S.showHistory?' active':'');
-      var item=el('div',{cls:cls,onclick:openHistory});
-      item.style.cursor='pointer';
-      var num=el('div',{cls:'sb-step-num'});num.innerHTML='<span style="font-size:12px">&#128196;</span>';
-      item.appendChild(num);
-      var lw=el('div',{sty:{display:'flex',flexDirection:'column',gap:'1px',minWidth:0}});
-      lw.appendChild(el('span',{cls:'sb-step-label'},'Previous Reports'));
-      item.appendChild(lw);
-      reportsLink.appendChild(item);
+      var repActive=S.showHistory;
+      var repItem=el('div',{cls:'sb-dash-item'+(repActive?' active':''),onclick:openHistory});
+      var repIconWrap=el('div',{sty:{display:'flex',color:repActive?'#B83232':'rgba(255,255,255,.5)'}});
+      repIconWrap.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>';
+      repItem.appendChild(repIconWrap);
+      repItem.appendChild(el('span',{cls:'sb-dash-label'},'Previous Reports'));
+      reportsLink.appendChild(repItem);
     } else {
       reportsNav.style.display='none';
     }
-  }
-  var steps=document.getElementById('sb-steps');
-  if(!steps)return;
-  steps.innerHTML='';
-  var maxStep=S.step===6?5:S.step;
-  STEPS.forEach(function(s,i){
-    var isDone=i<maxStep||(S.step===6&&i<=5);
-    var isActive=i===maxStep&&S.step!==6;
-    var cls='sb-item';
-    if(isActive)cls+=' active';
-    else if(isDone)cls+=' done clickable';
-    var item=el('div',{cls:cls});
-    if(isDone){
-      item.style.cursor='pointer';
-      item.title='Click to go back and edit '+s;
-      (function(idx2){item.addEventListener('click',function(){
-        ss({step:idx2});
-      });})(i);
-    }
-    var num=el('div',{cls:'sb-step-num'+(isDone?' done-num':'')});
-    if(isDone)num.innerHTML='<span style="color:#4de89a;font-size:12px">✓</span>';
-    else num.textContent=String(i+1);
-    item.appendChild(num);
-    var lw=el('div',{sty:{display:'flex',flexDirection:'column',gap:'1px',minWidth:0}});
-    lw.appendChild(el('span',{cls:'sb-step-label'},s));
-    if(isDone){var eh=el('span',{sty:{fontSize:'10px',color:'rgba(255,255,255,.3)'}});eh.textContent='edit';lw.appendChild(eh);}
-    item.appendChild(lw);
-    steps.appendChild(item);
-  });
-  if(S.step===6){
-    var nt=el('div',{sty:{padding:'10px 12px',marginTop:'8px',borderRadius:'8px',background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.07)',fontSize:'11px',color:'rgba(255,255,255,.3)',lineHeight:'1.5'}});
-    nt.textContent='Click any step above to edit your answers.';
-    steps.appendChild(nt);
   }
 }
 
@@ -2420,6 +2481,27 @@ function renderSettings(){
   return wrap;
 }
 
+function renderDashboardEmptyState(){
+  var wrap=el('div',{cls:'fade-in'});
+  var mh=el('div',{cls:'main-header'});
+  var mhl=el('div',{cls:'main-header-left'});
+  mhl.appendChild(el('h1',{},'Dashboard'));
+  mhl.appendChild(el('p',{},"Your firm's AI compliance home screen."));
+  mh.appendChild(mhl);
+  wrap.appendChild(mh);
+
+  var mb=el('div',{cls:'main-body'});
+  var card=el('div',{cls:'card',sty:{textAlign:'center',padding:'48px 32px'}});
+  card.appendChild(el('div',{cls:'card-title',sty:{justifyContent:'center'}},'Run your first audit'));
+  card.appendChild(el('div',{sty:{fontSize:'14px',color:'var(--muted)',lineHeight:'1.6',margin:'12px 0 24px',maxWidth:'440px',marginLeft:'auto',marginRight:'auto'}},'Once your firm completes its first AI compliance audit, this becomes your home base — a live health score, staff certification status, subscription tracking, and policy version history, all in one place.'));
+  var cta=el('button',{cls:'btn-primary',onclick:function(){ss({showDashboard:false});}});
+  cta.textContent=(S.firmName?'Continue your audit →':'Start your audit →');
+  card.appendChild(cta);
+  mb.appendChild(card);
+  wrap.appendChild(mb);
+  return wrap;
+}
+
 function renderHistory(){
   var wrap=el('div',{cls:'fade-in'});
 
@@ -2618,6 +2700,10 @@ function render(){
 
   if(S.loading){
     var sw=el('div',{cls:'spin-full'});sw.appendChild(el('div',{cls:'spinner'}));sw.appendChild(el('div',{cls:'spin-text'},"Analysing your firm's AI health..."));app.appendChild(sw);return;
+  }
+
+  if(S.showDashboard){
+    app.appendChild(renderDashboardEmptyState());return;
   }
 
   if(S.showHistory){
