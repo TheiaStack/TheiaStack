@@ -2214,21 +2214,25 @@ function renderDashboard(){
 
   // Stat strip — the three headline numbers at a glance, replacing the
   // oversized single health-score card that used to force its sparse
-  // neighbour to stretch into empty space.
+  // neighbour to stretch into empty space. Status line under each number
+  // is bold and color-coded: red = bad, black = neutral, green = good.
+  var staffRatio=S.dashStaff.length===0?0:certCount/S.dashStaff.length;
+  var staffCol=S.dashStaff.length===0?'var(--navy)':(staffRatio>=0.8?'var(--green)':'var(--red)');
+  var staffSub=S.dashStaff.length===0?'no staff added yet':(certCount===S.dashStaff.length?'all staff certified':(staffRatio>=0.8?'certification on track':'certification incomplete'));
   var stripWrap=el('div',{cls:'metrics-row',sty:{padding:'0',background:'transparent',borderBottom:'none',marginBottom:'20px'}});
   [
-    {label:'Compliance health',val:score+'',col:scorecol,sub:scoreLabel},
-    {label:'Staff certified',val:certCount+'/'+S.dashStaff.length,col:'var(--navy)',sub:S.dashStaff.length?'as of today':'no staff added yet'},
-    {label:'Monthly AI spend',val:'$'+sp.toFixed(0),col:'var(--navy)',sub:'across '+knownTools.length+' tool'+(knownTools.length!==1?'s':'')}
+    {label:'Compliance health',val:score+'',col:scorecol,sub:scoreLabel,subCol:scorecol},
+    {label:'Staff certified',val:certCount+'/'+S.dashStaff.length,col:'var(--navy)',sub:staffSub,subCol:staffCol},
+    {label:'Monthly AI spend',val:'$'+sp.toFixed(0),col:'var(--navy)',sub:'across '+knownTools.length+' tool'+(knownTools.length!==1?'s':''),subCol:'var(--navy)'}
   ].forEach(function(m){
-    var mc=el('div',{cls:'metric'});mc.appendChild(el('div',{cls:'metric-label'},m.label));mc.appendChild(el('div',{cls:'metric-value',sty:{color:m.col}},m.val));mc.appendChild(el('div',{cls:'metric-sub'},m.sub));stripWrap.appendChild(mc);
+    var mc=el('div',{cls:'metric'});mc.appendChild(el('div',{cls:'metric-label'},m.label));mc.appendChild(el('div',{cls:'metric-value',sty:{color:m.col}},m.val));mc.appendChild(el('div',{cls:'metric-sub',sty:{fontSize:'14px',fontWeight:'700',color:m.subCol,marginTop:'4px'}},m.sub));stripWrap.appendChild(mc);
   });
   wrap.appendChild(stripWrap);
 
-  // Balanced two-column row: compliance breakdown list paired with staff
-  // detail — both are list-shaped, so they fill the row evenly instead of
-  // one card dwarfing the other.
-  var topGrid=el('div',{cls:'dash-grid'});
+  // Three-column row: compliance breakdown, staff detail, and the tool
+  // stack side by side — makes real use of the extra width this tab now
+  // has, instead of stacking everything full-width down the page.
+  var topGrid=el('div',{cls:'dash-grid three'});
 
   var hc=el('div',{cls:'dash-card'});
   hc.appendChild(el('div',{cls:'dash-card-title'},'Compliance breakdown'));
@@ -2268,6 +2272,30 @@ function renderDashboard(){
     sc2.appendChild(sl);
   }
   topGrid.appendChild(sc2);
+
+  // AI tool stack — merged: previously two separate cards ("AI tool
+  // subscriptions" and "Tool risk snapshot") duplicated the same tool list
+  // with overlapping information. One card, one pass, cost and risk together.
+  var tc=el('div',{cls:'dash-card'});
+  tc.appendChild(el('div',{cls:'dash-card-title'},'AI tool stack'));
+  if(!knownTools.length){
+    tc.appendChild(el('div',{sty:{fontSize:'13px',color:'var(--muted)',lineHeight:'1.6'}},'No tools recorded yet. Complete the audit to populate this.'));
+  } else {
+    knownTools.forEach(function(t){
+      var ri=el('div',{cls:'renewal-item'});
+      var rinfo=el('div',{});
+      rinfo.appendChild(el('div',{cls:'renewal-name'},t.name));
+      rinfo.appendChild(el('div',{cls:'renewal-date'},t.cost?'$'+t.cost+'/mo':'Cost not recorded'));
+      ri.appendChild(rinfo);
+      var lookup=S.toolLookups[t.name];
+      var rl=lookup&&lookup.riskLevel?lookup.riskLevel:'Not assessed';
+      var rbg=rl==='Low'?'var(--green-bg)':rl==='Medium'?'var(--amber-bg)':rl==='High'?'var(--red-bg)':'var(--cream)';
+      var rcol2=rl==='Low'?'var(--green)':rl==='Medium'?'var(--amber)':rl==='High'?'var(--red)':'var(--muted)';
+      ri.appendChild(el('span',{cls:'renewal-badge',sty:{background:rbg,color:rcol2}},rl+(rl==='Low'||rl==='Medium'||rl==='High'?' risk':'')));
+      tc.appendChild(ri);
+    });
+  }
+  topGrid.appendChild(tc);
   wrap.appendChild(topGrid);
 
   // Policy version tracker
@@ -2310,30 +2338,6 @@ function renderDashboard(){
     pv.appendChild(vh);
   }
   wrap.appendChild(pv);
-
-  // AI tool stack — merged: previously two separate cards ("AI tool
-  // subscriptions" and "Tool risk snapshot") duplicated the same tool list
-  // with overlapping information. One card, one pass, cost and risk together.
-  var tc=el('div',{cls:'dash-card',sty:{marginTop:'16px'}});
-  tc.appendChild(el('div',{cls:'dash-card-title'},'AI tool stack'));
-  if(!knownTools.length){
-    tc.appendChild(el('div',{sty:{fontSize:'13px',color:'var(--muted)',lineHeight:'1.6'}},'No tools recorded yet. Complete the audit to populate this.'));
-  } else {
-    knownTools.forEach(function(t){
-      var ri=el('div',{cls:'renewal-item'});
-      var rinfo=el('div',{});
-      rinfo.appendChild(el('div',{cls:'renewal-name'},t.name));
-      rinfo.appendChild(el('div',{cls:'renewal-date'},t.cost?'$'+t.cost+'/mo':'Cost not recorded'));
-      ri.appendChild(rinfo);
-      var lookup=S.toolLookups[t.name];
-      var rl=lookup&&lookup.riskLevel?lookup.riskLevel:'Not assessed';
-      var rbg=rl==='Low'?'var(--green-bg)':rl==='Medium'?'var(--amber-bg)':rl==='High'?'var(--red-bg)':'var(--cream)';
-      var rcol2=rl==='Low'?'var(--green)':rl==='Medium'?'var(--amber)':rl==='High'?'var(--red)':'var(--muted)';
-      ri.appendChild(el('span',{cls:'renewal-badge',sty:{background:rbg,color:rcol2}},rl+(rl==='Low'||rl==='Medium'||rl==='High'?' risk':'')));
-      tc.appendChild(ri);
-    });
-  }
-  wrap.appendChild(tc);
 
   return wrap;
 }
@@ -2747,6 +2751,7 @@ function render(){
     wrap.appendChild(tabs);
 
     var rb=el('div',{cls:'report-body fade-in'});
+    if(S.activeTab==='dashboard')rb.style.maxWidth='1240px';
 
     if(S.activeTab==='dashboard'){rb.appendChild(renderDashboard());}
     if(S.activeTab==='alerts'){rb.appendChild(renderAlerts());}
