@@ -209,6 +209,7 @@ textarea{resize:vertical;line-height:1.6;min-height:100px;}
 .risk-tooltip-title{font-weight:600;color:var(--navy);margin-bottom:6px;font-size:12px;}
 .tile-tip-wrap{position:relative;}
 .tile-tip-wrap:hover .risk-tooltip{opacity:1;}
+body.hover-info-off .risk-tooltip{opacity:0!important;pointer-events:none!important;}
 .metrics-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:24px 40px;background:var(--white);border-bottom:1px solid var(--border);}
 .metric{background:var(--cream);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 24px;}
 .metric-label{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:10px;font-weight:600;}
@@ -721,6 +722,7 @@ var S={
   checklistSearch:'',checklistSuggestions:[],checklistSearching:false,checklistSearchResult:null,
   _cqOpen:-1,
   contrastMode:(function(){try{return localStorage.getItem('theia_contrast')||'normal';}catch(e){return 'normal';}})(),
+  hoverInfoMode:(function(){try{return localStorage.getItem('theia_hover_info')||'on';}catch(e){return 'on';}})(),
   briefingPack:null,briefingLoading:false,briefingError:'',
   settingsNewPw:'',settingsCurPw:'',settingsPwLoading:false,settingsPwMsg:'',settingsPwErr:false,
   faqOpen:-1,
@@ -735,6 +737,11 @@ function applyContrast(mode){
   try{document.body.classList.toggle('high-contrast',mode==='high');}catch(e){}
 }
 applyContrast(S.contrastMode);
+
+function applyHoverInfo(mode){
+  try{document.body.classList.toggle('hover-info-off',mode==='off');}catch(e){}
+}
+applyHoverInfo(S.hoverInfoMode);
 
 /* ── Session persistence ─────────────────────────── */
 var _saveTimer=null;
@@ -2332,16 +2339,28 @@ function renderDashboard(){
     tc.appendChild(el('div',{sty:{fontSize:'13px',color:'var(--muted)',lineHeight:'1.6'}},'No tools recorded yet. Complete the audit to populate this.'));
   } else {
     knownTools.forEach(function(t){
+      var idx=S.tools.indexOf(t);
+      var lookup=S.toolLookups[idx];
       var ri=el('div',{cls:'renewal-item'});
       var rinfo=el('div',{});
       rinfo.appendChild(el('div',{cls:'renewal-name'},t.name));
       rinfo.appendChild(el('div',{cls:'renewal-date'},t.cost?'$'+t.cost+'/mo':'Cost not recorded'));
       ri.appendChild(rinfo);
-      var lookup=S.toolLookups[t.name];
-      var rl=lookup&&lookup.riskLevel?lookup.riskLevel:'Not assessed';
-      var rbg=rl==='Low'?'var(--green-bg)':rl==='Medium'?'var(--amber-bg)':rl==='High'?'var(--red-bg)':'var(--cream)';
-      var rcol2=rl==='Low'?'var(--green)':rl==='Medium'?'var(--amber)':rl==='High'?'var(--red)':'var(--muted)';
-      ri.appendChild(el('span',{cls:'renewal-badge',sty:{background:rbg,color:rcol2}},rl+(rl==='Low'||rl==='Medium'||rl==='High'?' risk':'')));
+      if(lookup&&lookup.status==='loading'){
+        ri.appendChild(el('span',{sty:{fontSize:'11px',color:'var(--muted)'}},'Assessing…'));
+      } else if(lookup&&lookup.status==='done'&&lookup.data&&lookup.data.riskLevel){
+        var rl=lookup.data.riskLevel;
+        var rbg=rl==='Low'?'var(--green-bg)':rl==='Medium'?'var(--amber-bg)':'var(--red-bg)';
+        var rc=rl==='Low'?'var(--green)':rl==='Medium'?'var(--amber)':'var(--red)';
+        ri.appendChild(el('span',{cls:'renewal-badge',sty:{background:rbg,color:rc}},rl+' risk'));
+      } else {
+        var naWrap=el('div',{sty:{display:'flex',alignItems:'center',gap:'8px'}});
+        naWrap.appendChild(el('span',{cls:'renewal-badge',sty:{background:'var(--cream)',color:'var(--muted)'}},'Not assessed'));
+        var assessBtn=el('button',{cls:'btn-secondary btn-sm',sty:{fontSize:'11px',padding:'3px 10px'},onclick:(function(name,i){return function(){lookupTool(name,i);};})(t.name,idx)});
+        assessBtn.textContent='Assess →';
+        naWrap.appendChild(assessBtn);
+        ri.appendChild(naWrap);
+      }
       tc.appendChild(ri);
     });
   }
@@ -2442,6 +2461,26 @@ function renderSettings(){
   dToggleLabel.appendChild(el('span',{cls:'toggle-slider'}));
   dRow.appendChild(dToggleLabel);
   dc.appendChild(dRow);
+
+  var hRow=el('div',{cls:'settings-row'});
+  var hInfo=el('div',{});
+  hInfo.appendChild(el('div',{cls:'settings-row-label'},'Hovering info'));
+  hInfo.appendChild(el('div',{cls:'settings-row-desc'},'Shows a brief explanation when you hover over dashboard tiles and the risk gauge. Turn off if you find the pop-ups distracting.'));
+  hRow.appendChild(hInfo);
+  var hToggleLabel=el('label',{cls:'toggle-switch'});
+  var hToggleInput=el('input',{type:'checkbox'});
+  hToggleInput.checked=S.hoverInfoMode==='on';
+  hToggleInput.addEventListener('change',function(e){
+    var mode=e.target.checked?'on':'off';
+    try{localStorage.setItem('theia_hover_info',mode);}catch(err){}
+    applyHoverInfo(mode);
+    ss({hoverInfoMode:mode});
+  });
+  hToggleLabel.appendChild(hToggleInput);
+  hToggleLabel.appendChild(el('span',{cls:'toggle-slider'}));
+  hRow.appendChild(hToggleLabel);
+  dc.appendChild(hRow);
+
   wrap.appendChild(dc);
 
   /* Partner Briefing Pack */
