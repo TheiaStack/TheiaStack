@@ -202,6 +202,13 @@ textarea{resize:vertical;line-height:1.6;min-height:100px;}
 .report-meta{font-size:13px;color:rgba(255,255,255,.5);margin-top:4px;}
 .risk-pill{padding:6px 18px;border-radius:20px;font-size:13px;font-weight:600;color:#fff;flex-shrink:0;}
 .report-summary{font-size:14px;color:rgba(255,255,255,.65);line-height:1.7;}
+.risk-gauge-wrap{flex-shrink:0;text-align:center;padding-left:28px;border-left:1px solid rgba(255,255,255,.1);position:relative;cursor:default;}
+.risk-gauge-label{font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em;margin-top:6px;}
+.risk-tooltip{position:absolute;top:calc(100% + 10px);right:0;width:260px;background:#fff;color:var(--text);border-radius:var(--radius);box-shadow:var(--shadow-lg);padding:14px 16px;font-size:12px;line-height:1.6;text-align:left;opacity:0;pointer-events:none;transition:opacity .15s;z-index:20;}
+.risk-gauge-wrap:hover .risk-tooltip{opacity:1;}
+.risk-tooltip-title{font-weight:600;color:var(--navy);margin-bottom:6px;font-size:12px;}
+.tile-tip-wrap{position:relative;}
+.tile-tip-wrap:hover .risk-tooltip{opacity:1;}
 .metrics-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:24px 40px;background:var(--white);border-bottom:1px solid var(--border);}
 .metric{background:var(--cream);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 24px;}
 .metric-label{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:10px;font-weight:600;}
@@ -849,6 +856,48 @@ function canNext(){
 }
 function rcol(r){return r==='High'?'#b83232':r==='Medium'?'#c97d10':'#1a7a46';}
 function pcol(p){return p==='Immediate'?'#b83232':p==='Short-term'?'#c97d10':'#1a7a46';}
+
+// Builds the hero's circular risk gauge with a hover tooltip explaining
+// what actually feeds into the risk level — mirrors the weighting used in
+// calcRiskLevel(): client data access, data storage location, AI policy
+// status, staff training status, and individual tool risk ratings.
+function buildRiskGauge(riskLevel){
+  var pctMap={High:0.85,Medium:0.55,Low:0.2};
+  var pct=pctMap[riskLevel]||0.5;
+  var radius=46,circumference=2*Math.PI*radius;
+  var offset=circumference*(1-pct);
+  var color=rcol(riskLevel);
+  var wrap=el('div',{cls:'risk-gauge-wrap'});
+  var svgWrap=el('div',{});
+  svgWrap.innerHTML='<svg width="110" height="110" viewBox="0 0 110 110">'+
+    '<circle cx="55" cy="55" r="'+radius+'" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="10"/>'+
+    '<circle cx="55" cy="55" r="'+radius+'" fill="none" stroke="'+color+'" stroke-width="10" stroke-linecap="round" stroke-dasharray="'+circumference.toFixed(1)+'" stroke-dashoffset="'+offset.toFixed(1)+'" transform="rotate(-90 55 55)"/>'+
+    '<text x="55" y="61" text-anchor="middle" font-family="Lora, Georgia, serif" font-size="20" fill="#fff">'+(riskLevel||'Unknown')+'</text>'+
+    '</svg>';
+  wrap.appendChild(svgWrap);
+  wrap.appendChild(el('div',{cls:'risk-gauge-label'},'Risk level'));
+  var tooltip=el('div',{cls:'risk-tooltip'});
+  tooltip.appendChild(el('div',{cls:'risk-tooltip-title'},'What this is based on'));
+  var tt=el('div',{});
+  tt.appendChild(el('div',{},'• Whether client data is entered into AI tools'));
+  tt.appendChild(el('div',{},'• Where that data is stored'));
+  tt.appendChild(el('div',{},'• Whether an AI usage policy is in place'));
+  tt.appendChild(el('div',{},'• Whether staff have completed training'));
+  tt.appendChild(el('div',{},'• The individual risk ratings of tools in use'));
+  tooltip.appendChild(tt);
+  wrap.appendChild(tooltip);
+  return wrap;
+}
+
+// Attaches a hover tooltip to any card/tile — reuses the same visual style
+// as the hero's risk gauge tooltip so hover explanations look consistent
+// across the whole Dashboard.
+function addTileTooltip(container,text){
+  container.classList.add('tile-tip-wrap');
+  var tip=el('div',{cls:'risk-tooltip'});
+  tip.appendChild(el('div',{},text));
+  container.appendChild(tip);
+}
 function countPassed(){var p=0;S.modules.forEach(function(_,i){if(S.quizResults[i]&&S.quizResults[i].passed)p++;});return p;}
 function canCert(){return S.modules.length>0&&countPassed()===S.modules.length;}
 function getModStatus(i){if(!S.quizResults[i])return 'pending';return S.quizResults[i].passed?'passed':'retry';}
@@ -2221,11 +2270,11 @@ function renderDashboard(){
   var staffSub=S.dashStaff.length===0?'no staff added yet':(certCount===S.dashStaff.length?'all staff certified':(staffRatio>=0.8?'certification on track':'certification incomplete'));
   var stripWrap=el('div',{cls:'metrics-row',sty:{padding:'0',background:'transparent',borderBottom:'none',marginBottom:'20px'}});
   [
-    {label:'Compliance health',val:score+'',col:scorecol,sub:scoreLabel,subCol:scorecol},
-    {label:'Staff certified',val:certCount+'/'+S.dashStaff.length,col:'var(--navy)',sub:staffSub,subCol:staffCol},
-    {label:'Monthly AI spend',val:'$'+sp.toFixed(0),col:'var(--navy)',sub:'across '+knownTools.length+' tool'+(knownTools.length!==1?'s':''),subCol:'var(--navy)'}
+    {label:'Compliance health',val:score+'',col:scorecol,sub:scoreLabel,subCol:scorecol,tip:'A weighted score out of 100, combining risk level, AI policy status, staff training completion, and data storage location. Higher is better.'},
+    {label:'Staff certified',val:certCount+'/'+S.dashStaff.length,col:'var(--navy)',sub:staffSub,subCol:staffCol,tip:'Staff who have completed AI compliance training, out of everyone added to training. Turns green once at least 80% are certified.'},
+    {label:'Monthly AI spend',val:'$'+sp.toFixed(0),col:'var(--navy)',sub:'across '+knownTools.length+' tool'+(knownTools.length!==1?'s':''),subCol:'var(--navy)',tip:'Total estimated monthly cost of the AI tools recorded in your audit, based on the costs you entered.'}
   ].forEach(function(m){
-    var mc=el('div',{cls:'metric'});mc.appendChild(el('div',{cls:'metric-label'},m.label));mc.appendChild(el('div',{cls:'metric-value',sty:{color:m.col}},m.val));mc.appendChild(el('div',{cls:'metric-sub',sty:{fontSize:'14px',fontWeight:'700',color:m.subCol,marginTop:'4px'}},m.sub));stripWrap.appendChild(mc);
+    var mc=el('div',{cls:'metric'});mc.appendChild(el('div',{cls:'metric-label'},m.label));mc.appendChild(el('div',{cls:'metric-value',sty:{color:m.col}},m.val));mc.appendChild(el('div',{cls:'metric-sub',sty:{fontSize:'14px',fontWeight:'700',color:m.subCol,marginTop:'4px'}},m.sub));addTileTooltip(mc,m.tip);stripWrap.appendChild(mc);
   });
   wrap.appendChild(stripWrap);
 
@@ -2246,7 +2295,7 @@ function renderDashboard(){
   ].forEach(function(item){
     var si=el('div',{cls:'score-item'});si.appendChild(el('span',{cls:'score-item-label'},item.label));si.appendChild(el('span',{cls:'score-item-val',sty:{color:item.col}},item.val));breakdown.appendChild(si);
   });
-  hc.appendChild(breakdown);topGrid.appendChild(hc);
+  hc.appendChild(breakdown);addTileTooltip(hc,'A closer look at the four factors that make up your compliance health score above.');topGrid.appendChild(hc);
 
   // Staff status card
   var sc2=el('div',{cls:'dash-card'});
@@ -2271,6 +2320,7 @@ function renderDashboard(){
     });
     sc2.appendChild(sl);
   }
+  addTileTooltip(sc2,'Each staff member\'s training status. Share the training link from the Training tab to get your team certified.');
   topGrid.appendChild(sc2);
 
   // AI tool stack — merged: previously two separate cards ("AI tool
@@ -2295,6 +2345,7 @@ function renderDashboard(){
       tc.appendChild(ri);
     });
   }
+  addTileTooltip(tc,'Every AI tool recorded in your audit, with estimated monthly cost and a risk rating based on how it handles data.');
   topGrid.appendChild(tc);
   wrap.appendChild(topGrid);
 
@@ -2566,15 +2617,17 @@ function renderHistory(){
 
       // Hero — matches the live report hero for continuity
       var hero=el('div',{cls:'report-hero'});
-      var htop=el('div',{cls:'report-hero-top'});
+      var htop=el('div',{cls:'report-hero-top',sty:{marginBottom:'0'}});
+      var hleft=el('div',{sty:{flex:'1'}});
       var hinfo=el('div',{});
       hinfo.appendChild(el('div',{cls:'report-eyebrow'},'AI Health Check Report — Theia-Stack'));
       hinfo.appendChild(el('div',{cls:'report-firm'},a.firmName||S.firmName));
       hinfo.appendChild(el('div',{cls:'report-meta'},(a.practiceAreas||[]).join(' · ')+' · '+(a.staffCount||'')+' staff'));
-      htop.appendChild(hinfo);
-      htop.appendChild(el('span',{cls:'risk-pill',sty:{background:rcol(r.riskLevel)}},(r.riskLevel||'Unknown')+' risk'));
+      hleft.appendChild(hinfo);
+      hleft.appendChild(el('div',{cls:'report-summary',sty:{marginTop:'12px',maxWidth:'560px'}},r.riskSummary||''));
+      htop.appendChild(hleft);
+      htop.appendChild(buildRiskGauge(r.riskLevel));
       hero.appendChild(htop);
-      hero.appendChild(el('div',{cls:'report-summary'},r.riskSummary||''));
       mb.appendChild(hero);
 
       // Metrics row — mirrors the live report's metric strip
@@ -2727,15 +2780,17 @@ function render(){
 
     // Hero
     var hero=el('div',{cls:'report-hero'});
-    var htop=el('div',{cls:'report-hero-top'});
+    var htop=el('div',{cls:'report-hero-top',sty:{marginBottom:'0'}});
+    var hleft=el('div',{sty:{flex:'1'}});
     var hinfo=el('div',{});
     hinfo.appendChild(el('div',{cls:'report-eyebrow'},'AI Health Check Report — Theia-Stack'));
     hinfo.appendChild(el('div',{cls:'report-firm'},S.firmName));
     hinfo.appendChild(el('div',{cls:'report-meta'},S.practiceAreas.join(' · ')+' · '+S.staffCount+' staff'));
-    htop.appendChild(hinfo);
-    htop.appendChild(el('span',{cls:'risk-pill',sty:{background:rcol(r.riskLevel)}},r.riskLevel+' risk'));
+    hleft.appendChild(hinfo);
+    hleft.appendChild(el('div',{cls:'report-summary',sty:{marginTop:'12px',maxWidth:'560px'}},r.riskSummary));
+    htop.appendChild(hleft);
+    htop.appendChild(buildRiskGauge(r.riskLevel));
     hero.appendChild(htop);
-    hero.appendChild(el('div',{cls:'report-summary'},r.riskSummary));
     wrap.appendChild(hero);
 
     // Metrics
