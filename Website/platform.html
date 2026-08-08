@@ -703,7 +703,7 @@ var S={
   clientData:'',dataStorage:'',hasPolicy:'',hasTraining:'',
   painPoints:[],goals:'',concerns:[],
   detectMethod:'billing',billingText:'',detected:[],checklist:[],
-  detecting:false,loading:false,toolLookups:{},policyVersions:[],pendingUpdates:[],newModuleQueue:[],updateCheckDone:false,
+  detecting:false,loading:true,toolLookups:{},policyVersions:[],pendingUpdates:[],newModuleQueue:[],updateCheckDone:false,
   report:null,policy:null,policyLoading:false,policyError:'',
   activeTab:'dashboard',copied:false,
   modules:[],modulesLoading:false,moduleProgress:0,regeneratingIdx:-1,
@@ -765,15 +765,20 @@ async function saveAuditSession(){
 }
 
 async function loadAuditSession(){
-  if(!window._sbClient||!window.THEIA_USER)return;
-  var fid=window.THEIA_USER.firmId;if(!fid)return;
+  // Every exit path below must clear the boot spinner (S.loading) and
+  // render — otherwise a firm with no saved session, a missing firmId,
+  // or a fetch error would leave the app stuck on the spinner forever,
+  // since the pre-fix code only rendered on the happy path.
+  function stopLoading(){ss({loading:false});}
+  if(!window._sbClient||!window.THEIA_USER){stopLoading();return;}
+  var fid=window.THEIA_USER.firmId;if(!fid){stopLoading();return;}
   try{
     var res=await window._sbClient.from('audit_sessions').select('session_data').eq('firm_id',fid).maybeSingle();
-    if(res.error||!res.data||!res.data.session_data)return;
+    if(res.error||!res.data||!res.data.session_data){stopLoading();return;}
     var saved=res.data.session_data;
     PERSIST.forEach(function(f){if(saved[f]!==undefined)S[f]=saved[f];});
-    render();
-  }catch(e){console.warn('Session load failed:',e);}
+    ss({loading:false});
+  }catch(e){console.warn('Session load failed:',e);stopLoading();}
 }
 
 /* ── Report history (read-only past audits) ─────────── */
