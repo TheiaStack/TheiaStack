@@ -1787,56 +1787,56 @@ function renderTraining(){
       S.trainingCode=slug+'-training-'+today.getFullYear().toString()+String(today.getMonth()+1).padStart(2,'0')+String(today.getDate()).padStart(2,'0');
       setTimeout(saveAuditSession,100);
     }
-    var shareCard=el('div',{cls:'card',sty:{marginBottom:'20px',background:'var(--navy)',border:'none'}});
-    var shLbl=el('div',{sty:{fontSize:'10px',fontWeight:'700',letterSpacing:'.1em',textTransform:'uppercase',color:'rgba(255,255,255,.35)',marginBottom:'4px'}});shLbl.textContent='Staff training link';shareCard.appendChild(shLbl);
-    var shSub=el('div',{sty:{fontSize:'13px',color:'rgba(255,255,255,.8)',fontWeight:'500',marginBottom:'12px'}});shSub.textContent='Share this link with your staff to begin training';shareCard.appendChild(shSub);
+    var shareCard=el('div',{cls:'card'});
+    var shLbl=el('div',{sty:{fontSize:'10px',fontWeight:'700',letterSpacing:'.1em',textTransform:'uppercase',color:'var(--muted)',marginBottom:'4px'}});shLbl.textContent='Staff training link';shareCard.appendChild(shLbl);
+    var shSub=el('div',{sty:{fontSize:'13px',color:'var(--navy)',fontWeight:'500',marginBottom:'12px'}});shSub.textContent='Share this link with your staff to begin training';shareCard.appendChild(shSub);
     var linkVal='https://theiastack.com.au/training?session='+S.trainingCode;
     var linkRow=el('div',{sty:{display:'flex',gap:'8px',alignItems:'center'}});
-    var linkInput=el('input',{type:'text',sty:{flex:'1',padding:'10px 12px',fontSize:'12px',background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.15)',color:'rgba(255,255,255,.8)',fontFamily:'var(--font-body)',outline:'none'},readonly:'true'});
+    var linkInput=el('input',{type:'text',sty:{flex:'1',padding:'10px 12px',fontSize:'12px',background:'var(--cream)',border:'1px solid var(--border)',color:'var(--text)',fontFamily:'var(--font-body)',outline:'none',borderRadius:'8px'},readonly:'true'});
     linkInput.value=linkVal;
-    var copyBtn=el('button',{cls:'btn-primary btn-sm',sty:{flexShrink:'0',background:'var(--gold)',border:'none'},onclick:function(){navigator.clipboard.writeText(linkVal).then(function(){copyBtn.textContent='Copied!';setTimeout(function(){copyBtn.textContent='Copy link';},2000);});}});
+    var copyBtn=el('button',{cls:'btn-primary btn-sm',sty:{flexShrink:'0'},onclick:function(){navigator.clipboard.writeText(linkVal).then(function(){copyBtn.textContent='Copied!';setTimeout(function(){copyBtn.textContent='Copy link';},2000);});}});
     copyBtn.textContent='Copy link';
     linkRow.appendChild(linkInput);linkRow.appendChild(copyBtn);
     shareCard.appendChild(linkRow);
     if(S.staffCompletions&&S.staffCompletions.length){
-      var compRow=el('div',{sty:{marginTop:'12px',paddingTop:'12px',borderTop:'1px solid rgba(255,255,255,.08)',fontSize:'12px',color:'rgba(255,255,255,.4)'}});
+      var compRow=el('div',{sty:{marginTop:'12px',paddingTop:'12px',borderTop:'1px solid var(--border)',fontSize:'12px',color:'var(--muted)'}});
       compRow.textContent=S.staffCompletions.length+' staff member'+(S.staffCompletions.length!==1?'s have':' has')+' completed training';
       shareCard.appendChild(compRow);
     }
     wrap.appendChild(shareCard);
 
     // ── Training settings — pass threshold + questions per module ──
-    var settingsCard=el('div',{cls:'card',sty:{marginBottom:'20px',background:'var(--navy)',border:'none'}});
-    var setLbl=el('div',{sty:{fontSize:'10px',fontWeight:'700',letterSpacing:'.1em',textTransform:'uppercase',color:'rgba(255,255,255,.35)',marginBottom:'14px'}});setLbl.textContent='Training settings';settingsCard.appendChild(setLbl);
+    var settingsCard=el('div',{cls:'card'});
+    var setLbl=el('div',{sty:{fontSize:'10px',fontWeight:'700',letterSpacing:'.1em',textTransform:'uppercase',color:'var(--muted)',marginBottom:'14px'}});setLbl.textContent='Training settings';settingsCard.appendChild(setLbl);
 
     // Pass threshold
-    var ptRow=el('div',{sty:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'16px',padding:'10px 0',borderTop:'1px solid rgba(255,255,255,.08)'}});
+    var ptRow=el('div',{sty:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'16px',padding:'10px 0',borderTop:'1px solid var(--border)'}});
     var ptLbl=el('div',{});
-    var ptL1=el('div',{sty:{fontSize:'12px',fontWeight:'500',color:'rgba(255,255,255,.6)',marginBottom:'2px'}});ptL1.textContent='Pass threshold';ptLbl.appendChild(ptL1);
-    var ptL2=el('div',{sty:{fontSize:'11px',color:'rgba(255,255,255,.3)'}});ptL2.textContent='Minimum score staff must achieve to pass each quiz';ptLbl.appendChild(ptL2);
+    var ptL1=el('div',{sty:{fontSize:'12px',fontWeight:'500',color:'var(--navy)',marginBottom:'2px'}});ptL1.textContent='Pass threshold';ptLbl.appendChild(ptL1);
+    var ptL2=el('div',{sty:{fontSize:'11px',color:'var(--muted)'}});ptL2.textContent='Minimum score staff must achieve to pass each quiz';ptLbl.appendChild(ptL2);
     ptRow.appendChild(ptLbl);
     var ptRight=el('div',{sty:{display:'flex',alignItems:'center',gap:'8px',flexShrink:'0'}});
-    var ptInput=el('input',{type:'number',sty:{width:'60px',padding:'6px 10px',background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.15)',color:'rgba(255,255,255,.8)',fontFamily:'var(--font-body)',fontSize:'14px',textAlign:'center',outline:'none'}});
+    var ptInput=el('input',{type:'number',sty:{width:'60px',padding:'6px 10px',background:'var(--cream)',border:'1px solid var(--border)',color:'var(--text)',fontFamily:'var(--font-body)',fontSize:'14px',textAlign:'center',outline:'none',borderRadius:'6px'}});
     ptInput.min='50';ptInput.max='100';ptInput.value=String(S.passThreshold||90);
     ptInput.addEventListener('change',function(){var v=parseInt(ptInput.value);if(v>=50&&v<=100)ss({passThreshold:v});else ptInput.value=String(S.passThreshold||90);});
     ptRight.appendChild(ptInput);
-    var ptPct=el('span',{sty:{fontSize:'13px',color:'rgba(255,255,255,.4)'}});ptPct.textContent='%';ptRight.appendChild(ptPct);
+    var ptPct=el('span',{sty:{fontSize:'13px',color:'var(--muted)'}});ptPct.textContent='%';ptRight.appendChild(ptPct);
     ptRow.appendChild(ptRight);
     settingsCard.appendChild(ptRow);
 
     // Questions per module
-    var qpmRow=el('div',{sty:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'16px',padding:'10px 0',borderTop:'1px solid rgba(255,255,255,.08)'}});
+    var qpmRow=el('div',{sty:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'16px',padding:'10px 0',borderTop:'1px solid var(--border)'}});
     var qpmLbl=el('div',{});
-    var qpmL1=el('div',{sty:{fontSize:'12px',fontWeight:'500',color:'rgba(255,255,255,.6)',marginBottom:'2px'}});qpmL1.textContent='Questions per module';qpmLbl.appendChild(qpmL1);
-    var qpmL2=el('div',{sty:{fontSize:'11px',color:'rgba(255,255,255,.3)'}});qpmL2.textContent='Applies to newly generated or updated modules';qpmLbl.appendChild(qpmL2);
+    var qpmL1=el('div',{sty:{fontSize:'12px',fontWeight:'500',color:'var(--navy)',marginBottom:'2px'}});qpmL1.textContent='Questions per module';qpmLbl.appendChild(qpmL1);
+    var qpmL2=el('div',{sty:{fontSize:'11px',color:'var(--muted)'}});qpmL2.textContent='Applies to newly generated or updated modules';qpmLbl.appendChild(qpmL2);
     qpmRow.appendChild(qpmLbl);
-    var qpmInput=el('input',{type:'number',sty:{width:'60px',padding:'6px 10px',background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.15)',color:'rgba(255,255,255,.8)',fontFamily:'var(--font-body)',fontSize:'14px',textAlign:'center',outline:'none',flexShrink:'0'}});
+    var qpmInput=el('input',{type:'number',sty:{width:'60px',padding:'6px 10px',background:'var(--cream)',border:'1px solid var(--border)',color:'var(--text)',fontFamily:'var(--font-body)',fontSize:'14px',textAlign:'center',outline:'none',borderRadius:'6px',flexShrink:'0'}});
     qpmInput.min='3';qpmInput.max='10';qpmInput.value=String(S.questionsPerModule||5);
     qpmInput.addEventListener('change',function(){var v=parseInt(qpmInput.value);if(v>=3&&v<=10)ss({questionsPerModule:v});else qpmInput.value=String(S.questionsPerModule||5);});
     qpmRow.appendChild(qpmInput);
     settingsCard.appendChild(qpmRow);
 
-    var setNote=el('div',{sty:{fontSize:'11px',color:'rgba(255,255,255,.3)',marginTop:'12px',paddingTop:'12px',borderTop:'1px solid rgba(255,255,255,.08)'}});
+    var setNote=el('div',{sty:{fontSize:'11px',color:'var(--muted)',marginTop:'12px',paddingTop:'12px',borderTop:'1px solid var(--border)'}});
     setNote.textContent='Custom questions can be added to individual modules below — expand a module card to add one.';
     settingsCard.appendChild(setNote);
     wrap.appendChild(settingsCard);
