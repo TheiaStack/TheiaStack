@@ -1376,6 +1376,26 @@ async function changePassword(){
   }
 }
 
+// Suggests a question count based on the firm's actual audit data — overall
+// risk level, how many tools are in the stack, and whether a sensitive
+// practice area is involved. Purely a heuristic over data already collected
+// during the audit; no extra API call. Clamped to the same 3–15 range the
+// setting itself allows.
+function suggestQuestionCount(){
+  var base=5;
+  var reasons=[];
+  var risk=calcRiskLevel();
+  if(risk==='High'){base+=2;reasons.push('High overall risk');}
+  else if(risk==='Medium'){base+=1;reasons.push('Medium overall risk');}
+  var toolCount=S.tools.filter(function(t){return t.name;}).length;
+  if(toolCount>=5){base+=1;reasons.push(toolCount+' tools in your stack');}
+  var sensitiveAreas=['Family law','Immigration','Estate planning'];
+  var hasSensitive=S.practiceAreas.some(function(p){return sensitiveAreas.indexOf(p)>-1;});
+  if(hasSensitive){base+=1;reasons.push('sensitive practice area involved');}
+  base=Math.max(3,Math.min(15,base));
+  return {count:base,reason:reasons.length?reasons.join(', '):'a standard baseline'};
+}
+
 // Builds a JSON quiz-question template string with the configured number of
 // questions, cycling through correct-answer positions for variety in the
 // example the model is shown. Used by both module generators so the
@@ -1817,8 +1837,8 @@ function renderTraining(){
     ptRow.appendChild(ptLbl);
     var ptRight=el('div',{sty:{display:'flex',alignItems:'center',gap:'8px',flexShrink:'0'}});
     var ptInput=el('input',{type:'number',sty:{width:'60px',padding:'6px 10px',background:'var(--cream)',border:'1px solid var(--border)',color:'var(--text)',fontFamily:'var(--font-body)',fontSize:'14px',textAlign:'center',outline:'none',borderRadius:'6px'}});
-    ptInput.min='50';ptInput.max='100';ptInput.value=String(S.passThreshold||90);
-    ptInput.addEventListener('blur',function(){var v=parseInt(ptInput.value);if(v>=50&&v<=100)ss({passThreshold:v});else ptInput.value=String(S.passThreshold||90);});
+    ptInput.min='1';ptInput.max='100';ptInput.value=String(S.passThreshold||90);
+    ptInput.addEventListener('blur',function(){var v=parseInt(ptInput.value);if(isNaN(v))v=S.passThreshold||90;v=Math.max(1,Math.min(100,v));ptInput.value=String(v);ss({passThreshold:v});});
     ptInput.addEventListener('keydown',function(e){if(e.key==='Enter')ptInput.blur();});
     ptRight.appendChild(ptInput);
     var ptPct=el('span',{sty:{fontSize:'13px',color:'var(--muted)'}});ptPct.textContent='%';ptRight.appendChild(ptPct);
@@ -1832,11 +1852,21 @@ function renderTraining(){
     var qpmL2=el('div',{sty:{fontSize:'11px',color:'var(--muted)'}});qpmL2.textContent='Applies to newly generated or updated modules';qpmLbl.appendChild(qpmL2);
     qpmRow.appendChild(qpmLbl);
     var qpmInput=el('input',{type:'number',sty:{width:'60px',padding:'6px 10px',background:'var(--cream)',border:'1px solid var(--border)',color:'var(--text)',fontFamily:'var(--font-body)',fontSize:'14px',textAlign:'center',outline:'none',borderRadius:'6px',flexShrink:'0'}});
-    qpmInput.min='3';qpmInput.max='10';qpmInput.value=String(S.questionsPerModule||5);
-    qpmInput.addEventListener('blur',function(){var v=parseInt(qpmInput.value);if(v>=3&&v<=10)ss({questionsPerModule:v});else qpmInput.value=String(S.questionsPerModule||5);});
+    qpmInput.min='3';qpmInput.max='15';qpmInput.value=String(S.questionsPerModule||5);
+    qpmInput.addEventListener('blur',function(){var v=parseInt(qpmInput.value);if(isNaN(v))v=S.questionsPerModule||5;v=Math.max(3,Math.min(15,v));qpmInput.value=String(v);ss({questionsPerModule:v});});
     qpmInput.addEventListener('keydown',function(e){if(e.key==='Enter')qpmInput.blur();});
     qpmRow.appendChild(qpmInput);
     settingsCard.appendChild(qpmRow);
+
+    var suggestion=suggestQuestionCount();
+    if(suggestion.count!==(S.questionsPerModule||5)){
+      var sugRow=el('div',{sty:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'12px',padding:'8px 0',fontSize:'11px',color:'var(--muted)'}});
+      sugRow.appendChild(el('span',{},'Suggested: '+suggestion.count+' questions, based on '+suggestion.reason+'.'));
+      var useSugBtn=el('button',{cls:'btn-secondary btn-sm',sty:{fontSize:'11px',padding:'3px 10px',flexShrink:'0'},onclick:function(){ss({questionsPerModule:suggestion.count});}});
+      useSugBtn.textContent='Use suggested';
+      sugRow.appendChild(useSugBtn);
+      settingsCard.appendChild(sugRow);
+    }
 
     var setNote=el('div',{sty:{fontSize:'11px',color:'var(--muted)',marginTop:'12px',paddingTop:'12px',borderTop:'1px solid var(--border)'}});
     setNote.textContent='Custom questions can be added to individual modules below — expand a module card to add one.';
