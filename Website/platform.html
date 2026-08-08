@@ -711,6 +711,7 @@ var S={
   alerts:[],
   staffCompletions:[],
   passThreshold:90,
+  questionsPerModule:5,
   trainingCode:'',
   openModule:-1,quizAnswers:{},quizSubmitted:{},quizResults:{},
   certName:'',showCert:false,
@@ -749,7 +750,7 @@ var PERSIST=['step','firmName','staffCount','practiceAreas','software','tools','
   'clientData','dataStorage','hasPolicy','hasTraining','painPoints','goals','concerns',
   'detectMethod','billingText','detected','checklist','report','policy','modules',
   'openModule','quizAnswers','quizSubmitted','quizResults','certName','showCert','activeTab',
-  'staffCompletions','passThreshold','trainingCode','briefingPack'];
+  'staffCompletions','passThreshold','questionsPerModule','trainingCode','briefingPack'];
 
 async function saveAuditSession(){
   if(!window._sbClient||!window.THEIA_USER)return;
@@ -841,7 +842,7 @@ ss=function(p){
   _ssSave(p);
   if(p.step!==undefined||p.report!==undefined||p.policy!==undefined||
      p.modules!==undefined||p.goals!==undefined||p.tools!==undefined||
-     p.staffCompletions!==undefined||p.passThreshold!==undefined){
+     p.staffCompletions!==undefined||p.passThreshold!==undefined||p.questionsPerModule!==undefined){
     if(_saveTimer)clearTimeout(_saveTimer);
     _saveTimer=setTimeout(saveAuditSession,1000);
   }
@@ -1375,6 +1376,18 @@ async function changePassword(){
   }
 }
 
+// Builds a JSON quiz-question template string with the configured number of
+// questions, cycling through correct-answer positions for variety in the
+// example the model is shown. Used by both module generators so the
+// question count setting applies consistently to new and updated modules.
+function buildQuizTemplate(n){
+  var arr=[];
+  for(var i=0;i<n;i++){
+    arr.push('{"question":"short AU compliance question","options":["short option","short option","short option","short option"],"correct":'+(i%4)+',"explanation":"short explanation"}');
+  }
+  return '['+arr.join(',')+']';
+}
+
 async function genModules(){
   ss({modulesLoading:true,moduleError:null});
   var allNames=S.tools.map(function(t){return t.name;}).filter(Boolean);
@@ -1389,7 +1402,8 @@ async function genModules(){
       // Keep strings SHORT to avoid max_tokens truncation:
       // overview ≤25 words, each list item ≤15 words, complianceNote ≤20 words
       // Each quiz question ≤20 words, each option ≤12 words, explanation ≤15 words
-      var userPrompt='Generate a compliance training module for "'+toolName+'" for '+S.firmName+' ('+practiceStr+' law firm, '+S.staffCount+' staff).\n\nBe CONCISE. Keep every string under 20 words. Return this exact JSON structure:\n{"toolName":"'+toolName+'","overview":"1-2 short sentences about the tool and its AU compliance risk","legalUses":["short approved use","short approved use","short approved use"],"prohibitedUses":["short prohibited use","short prohibited use","short prohibited use"],"bestPractices":["short AU-specific tip","short tip","short tip"],"complianceNote":"cite specific APP or LPUL obligation in one short sentence","quiz":[{"question":"short AU compliance question","options":["short option","short option","short option","short option"],"correct":0,"explanation":"short explanation"},{"question":"short question","options":["short option","short option","short option","short option"],"correct":1,"explanation":"short explanation"},{"question":"short question","options":["short option","short option","short option","short option"],"correct":2,"explanation":"short explanation"},{"question":"short question","options":["short option","short option","short option","short option"],"correct":0,"explanation":"short explanation"},{"question":"short question","options":["short option","short option","short option","short option"],"correct":3,"explanation":"short explanation"}]}\n\nAU compliance context: Privacy Act 1988 APPs, APP 8 cross-border transfers, Privacy Amendment Act 2024, LPUL client confidentiality.';
+      var qCount=S.questionsPerModule||5;
+      var userPrompt='Generate a compliance training module for "'+toolName+'" for '+S.firmName+' ('+practiceStr+' law firm, '+S.staffCount+' staff).\n\nBe CONCISE. Keep every string under 20 words. Include exactly '+qCount+' quiz questions. Return this exact JSON structure:\n{"toolName":"'+toolName+'","overview":"1-2 short sentences about the tool and its AU compliance risk","legalUses":["short approved use","short approved use","short approved use"],"prohibitedUses":["short prohibited use","short prohibited use","short prohibited use"],"bestPractices":["short AU-specific tip","short tip","short tip"],"complianceNote":"cite specific APP or LPUL obligation in one short sentence","quiz":'+buildQuizTemplate(qCount)+'}\n\nAU compliance context: Privacy Act 1988 APPs, APP 8 cross-border transfers, Privacy Amendment Act 2024, LPUL client confidentiality.';
       var raw=await callClaudeJSON('You are an AI compliance trainer for Australian law firms. Output ONLY valid JSON. Keep all string values concise — under 20 words each.',userPrompt,3000);
       var parsed=parseJSON(raw);
       if(!parsed||!parsed.overview){
@@ -1464,7 +1478,8 @@ async function autoUpdatePolicy(){
 async function generateUpdateModule(toolName){
   ss({modulesLoading:true});
   try{
-    var userPrompt='Generate an UPDATED training module for '+toolName+' reflecting recent changes. Focus on new features and updated data handling.\nFirm: '+S.firmName+'. Practice areas: '+S.practiceAreas.join(', ')+'.\nReturn JSON: {"toolName":"'+toolName+' (Updated)","overview":"2 sentences on what changed and why staff must update their knowledge","legalUses":["use1","use2","use3"],"prohibitedUses":["p1","p2","p3"],"bestPractices":["tip1","tip2","tip3"],"complianceNote":"1 sentence on new compliance considerations","quiz":[{"question":"question text","options":["first option text","second option text","third option text","fourth option text"],"correct":0,"explanation":"explanation"},{"question":"question text","options":["first option text","second option text","third option text","fourth option text"],"correct":1,"explanation":"explanation"},{"question":"question text","options":["first option text","second option text","third option text","fourth option text"],"correct":2,"explanation":"explanation"},{"question":"question text","options":["first option text","second option text","third option text","fourth option text"],"correct":0,"explanation":"explanation"},{"question":"question text","options":["first option text","second option text","third option text","fourth option text"],"correct":3,"explanation":"explanation"}]}';
+    var qCount2=S.questionsPerModule||5;
+    var userPrompt='Generate an UPDATED training module for '+toolName+' reflecting recent changes. Focus on new features and updated data handling.\nFirm: '+S.firmName+'. Practice areas: '+S.practiceAreas.join(', ')+'.\nInclude exactly '+qCount2+' quiz questions.\nReturn JSON: {"toolName":"'+toolName+' (Updated)","overview":"2 sentences on what changed and why staff must update their knowledge","legalUses":["use1","use2","use3"],"prohibitedUses":["p1","p2","p3"],"bestPractices":["tip1","tip2","tip3"],"complianceNote":"1 sentence on new compliance considerations","quiz":'+buildQuizTemplate(qCount2)+'}';
     var raw=await callClaudeJSON('You are an AI compliance trainer for Australian law firms. Output ONLY valid JSON. Keep all string values concise — under 20 words each.',userPrompt,3000);
     var parsed=parseJSON(raw);
     if(parsed){
@@ -1788,8 +1803,14 @@ function renderTraining(){
       compRow.textContent=S.staffCompletions.length+' staff member'+(S.staffCompletions.length!==1?'s have':' has')+' completed training';
       shareCard.appendChild(compRow);
     }
+    wrap.appendChild(shareCard);
+
+    // ── Training settings — pass threshold + questions per module ──
+    var settingsCard=el('div',{cls:'card',sty:{marginBottom:'20px',background:'var(--navy)',border:'none'}});
+    var setLbl=el('div',{sty:{fontSize:'10px',fontWeight:'700',letterSpacing:'.1em',textTransform:'uppercase',color:'rgba(255,255,255,.35)',marginBottom:'14px'}});setLbl.textContent='Training settings';settingsCard.appendChild(setLbl);
+
     // Pass threshold
-    var ptRow=el('div',{sty:{marginTop:'14px',paddingTop:'14px',borderTop:'1px solid rgba(255,255,255,.08)',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'16px'}});
+    var ptRow=el('div',{sty:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'16px',padding:'10px 0',borderTop:'1px solid rgba(255,255,255,.08)'}});
     var ptLbl=el('div',{});
     var ptL1=el('div',{sty:{fontSize:'12px',fontWeight:'500',color:'rgba(255,255,255,.6)',marginBottom:'2px'}});ptL1.textContent='Pass threshold';ptLbl.appendChild(ptL1);
     var ptL2=el('div',{sty:{fontSize:'11px',color:'rgba(255,255,255,.3)'}});ptL2.textContent='Minimum score staff must achieve to pass each quiz';ptLbl.appendChild(ptL2);
@@ -1801,8 +1822,24 @@ function renderTraining(){
     ptRight.appendChild(ptInput);
     var ptPct=el('span',{sty:{fontSize:'13px',color:'rgba(255,255,255,.4)'}});ptPct.textContent='%';ptRight.appendChild(ptPct);
     ptRow.appendChild(ptRight);
-    shareCard.appendChild(ptRow);
-    wrap.appendChild(shareCard);
+    settingsCard.appendChild(ptRow);
+
+    // Questions per module
+    var qpmRow=el('div',{sty:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'16px',padding:'10px 0',borderTop:'1px solid rgba(255,255,255,.08)'}});
+    var qpmLbl=el('div',{});
+    var qpmL1=el('div',{sty:{fontSize:'12px',fontWeight:'500',color:'rgba(255,255,255,.6)',marginBottom:'2px'}});qpmL1.textContent='Questions per module';qpmLbl.appendChild(qpmL1);
+    var qpmL2=el('div',{sty:{fontSize:'11px',color:'rgba(255,255,255,.3)'}});qpmL2.textContent='Applies to newly generated or updated modules';qpmLbl.appendChild(qpmL2);
+    qpmRow.appendChild(qpmLbl);
+    var qpmInput=el('input',{type:'number',sty:{width:'60px',padding:'6px 10px',background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.15)',color:'rgba(255,255,255,.8)',fontFamily:'var(--font-body)',fontSize:'14px',textAlign:'center',outline:'none',flexShrink:'0'}});
+    qpmInput.min='3';qpmInput.max='10';qpmInput.value=String(S.questionsPerModule||5);
+    qpmInput.addEventListener('change',function(){var v=parseInt(qpmInput.value);if(v>=3&&v<=10)ss({questionsPerModule:v});else qpmInput.value=String(S.questionsPerModule||5);});
+    qpmRow.appendChild(qpmInput);
+    settingsCard.appendChild(qpmRow);
+
+    var setNote=el('div',{sty:{fontSize:'11px',color:'rgba(255,255,255,.3)',marginTop:'12px',paddingTop:'12px',borderTop:'1px solid rgba(255,255,255,.08)'}});
+    setNote.textContent='Custom questions can be added to individual modules below — expand a module card to add one.';
+    settingsCard.appendChild(setNote);
+    wrap.appendChild(settingsCard);
   }
 
   // Show update-triggered module prompts
@@ -2248,7 +2285,7 @@ function renderDashboard(){
   var scoreLabel=score>=80?'Compliant':score>=50?'Needs attention':'At risk';
   var sp=spend();
   var knownTools=S.tools.filter(function(t){return t.name;});
-  var certCount=S.dashStaff.filter(function(s){return s.status==='certified';}).length;
+  var certCount=S.staffCompletions.length;
 
   // Dynamic update notification banner
   var policyUpdates=S.pendingUpdates.filter(function(u){return u.action==='policy'||u.action==='both';});
@@ -2272,13 +2309,15 @@ function renderDashboard(){
   // oversized single health-score card that used to force its sparse
   // neighbour to stretch into empty space. Status line under each number
   // is bold and color-coded: red = bad, black = neutral, green = good.
-  var staffRatio=S.dashStaff.length===0?0:certCount/S.dashStaff.length;
-  var staffCol=S.dashStaff.length===0?'var(--navy)':(staffRatio>=0.8?'var(--green)':'var(--red)');
-  var staffSub=S.dashStaff.length===0?'no staff added yet':(certCount===S.dashStaff.length?'all staff certified':(staffRatio>=0.8?'certification on track':'certification incomplete'));
+  // Staff certified shows a plain count rather than a fraction — there's no
+  // roster feature tracking an expected headcount, so "X/Y" was always
+  // going to be meaningless against an unknown denominator.
+  var staffCol=certCount===0?'var(--navy)':'var(--green)';
+  var staffSub=certCount===0?'no staff certified yet':(certCount===1?'1 staff certified':certCount+' staff certified');
   var stripWrap=el('div',{cls:'metrics-row',sty:{padding:'0',background:'transparent',borderBottom:'none',marginBottom:'20px'}});
   [
     {label:'Compliance health',val:score+'',col:scorecol,sub:scoreLabel,subCol:scorecol,tip:'A weighted score out of 100, combining risk level, AI policy status, staff training completion, and data storage location. Higher is better.'},
-    {label:'Staff certified',val:certCount+'/'+S.dashStaff.length,col:'var(--navy)',sub:staffSub,subCol:staffCol,tip:'Staff who have completed AI compliance training, out of everyone added to training. Turns green once at least 80% are certified.'},
+    {label:'Staff certified',val:certCount+'',col:'var(--navy)',sub:staffSub,subCol:staffCol,tip:'The number of staff who have completed and passed all required training modules.'},
     {label:'Monthly AI spend',val:'$'+sp.toFixed(0),col:'var(--navy)',sub:'across '+knownTools.length+' tool'+(knownTools.length!==1?'s':''),subCol:'var(--navy)',tip:'Total estimated monthly cost of the AI tools recorded in your audit, based on the costs you entered.'}
   ].forEach(function(m){
     var mc=el('div',{cls:'metric'});mc.appendChild(el('div',{cls:'metric-label'},m.label));mc.appendChild(el('div',{cls:'metric-value',sty:{color:m.col}},m.val));mc.appendChild(el('div',{cls:'metric-sub',sty:{fontSize:'14px',fontWeight:'700',color:m.subCol,marginTop:'4px'}},m.sub));addTileTooltip(mc,m.tip);stripWrap.appendChild(mc);
@@ -2307,22 +2346,25 @@ function renderDashboard(){
   // Staff status card
   var sc2=el('div',{cls:'dash-card'});
   sc2.appendChild(el('div',{cls:'dash-card-title'},'Staff certification'));
-  if(S.dashStaff.length===0){
+  if(S.staffCompletions.length===0){
     sc2.appendChild(el('div',{sty:{fontSize:'13px',color:'var(--muted)',lineHeight:'1.6',marginBottom:'16px'}},'No staff have started training yet. Share the training link to get your team certified — their progress will appear here once they begin.'));
     var goTrainBtn=el('button',{cls:'btn-secondary btn-sm',onclick:function(){ss({activeTab:'training'});}});
     goTrainBtn.textContent='Go to training →';
     sc2.appendChild(goTrainBtn);
   } else {
     var slHead=el('div',{sty:{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'12px'}});
-    slHead.appendChild(el('span',{sty:{fontSize:'13px',color:'var(--muted)'}},certCount+' of '+S.dashStaff.length+' certified'));
+    slHead.appendChild(el('span',{sty:{fontSize:'13px',color:'var(--muted)'}},certCount+' certified'));
+    sc2.appendChild(slHead);
     var sl=el('div',{cls:'staff-list'});
-    S.dashStaff.forEach(function(staff){
+    S.staffCompletions.forEach(function(comp){
       var si=el('div',{cls:'staff-item'});
-      var sinfo=el('div',{});sinfo.appendChild(el('div',{cls:'staff-name'},staff.name));sinfo.appendChild(el('div',{cls:'staff-role'},staff.role));si.appendChild(sinfo);
-      var sbg=staff.status==='certified'?'var(--green-bg)':staff.status==='in-progress'?'var(--amber-bg)':'var(--red-bg)';
-      var scol=staff.status==='certified'?'var(--green)':staff.status==='in-progress'?'var(--amber)':'var(--red)';
-      var stxt=staff.status==='certified'?'Certified':staff.status==='in-progress'?'In progress':'Not started';
-      si.appendChild(el('span',{cls:'staff-badge',sty:{background:sbg,color:scol}},stxt));
+      var sinfo=el('div',{});
+      sinfo.appendChild(el('div',{cls:'staff-name'},comp.name||'—'));
+      var dateLabel='';
+      if(comp.completedAt){var cd=new Date(comp.completedAt);dateLabel='Completed '+cd.toLocaleDateString('en-AU',{day:'2-digit',month:'short',year:'numeric'});}
+      sinfo.appendChild(el('div',{cls:'staff-role'},dateLabel));
+      si.appendChild(sinfo);
+      si.appendChild(el('span',{cls:'staff-badge',sty:{background:'var(--green-bg)',color:'var(--green)'}},'Certified'));
       sl.appendChild(si);
     });
     sc2.appendChild(sl);
