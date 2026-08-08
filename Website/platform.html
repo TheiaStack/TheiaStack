@@ -907,7 +907,26 @@ function addTileTooltip(container,text){
   container.appendChild(tip);
 }
 function countPassed(){var p=0;S.modules.forEach(function(_,i){if(S.quizResults[i]&&S.quizResults[i].passed)p++;});return p;}
-function canCert(){return S.modules.length>0&&countPassed()===S.modules.length;}
+// Real staff training coverage — checks S.staffCompletions (actual staff who
+// completed training via training.html) rather than S.quizResults (which
+// only reflects the admin's own preview click-through in this dashboard).
+// Used everywhere "staff training status" is represented to someone other
+// than the admin themselves: Health Score, Dashboard breakdown, the
+// Training tab label, the certificate, the Partner Briefing Pack, and
+// report snapshots. countPassed() itself is kept as-is for the admin's own
+// per-module preview badges (Pending/Passed/Retry on each module card),
+// which is a legitimately separate, admin-facing concept.
+function countStaffModulesPassed(){
+  var p=0;
+  S.modules.forEach(function(m){
+    var covered=S.staffCompletions.some(function(c){
+      return (c.modules||[]).some(function(cm){return cm.tool===m.toolName&&cm.passed;});
+    });
+    if(covered)p++;
+  });
+  return p;
+}
+function canCert(){return S.staffCompletions.length>0;}
 function getModStatus(i){if(!S.quizResults[i])return 'pending';return S.quizResults[i].passed?'passed':'retry';}
 // Strip any leading letter prefix the AI may have added (e.g. "A. text" → "text")
 function cleanOpt(opt){return (opt||'').replace(/^[A-Da-d][.)]\s*/,'').trim();}
@@ -1090,7 +1109,7 @@ async function saveReportSnapshot(report){
       },
       training_snapshot:{
         modules:S.modules.map(function(m){return {toolName:m.toolName,overview:m.overview,complianceNote:m.complianceNote};}),
-        completedCount:countPassed(),totalCount:S.modules.length,
+        completedCount:countStaffModulesPassed(),totalCount:S.modules.length,
         dashStaff:S.dashStaff,staffCompletions:S.staffCompletions
       },
       alerts_snapshot:S.alerts
@@ -1345,7 +1364,7 @@ async function genBriefingPack(){
     var toolList=S.tools.map(function(t){return t.name;}).filter(Boolean).join(', ')||'none recorded';
     var findingsStr=(r.keyFindings||[]).join(' | ')||'none recorded';
     var recStr=(r.recommendations||[]).map(function(x){return x.title+' ('+x.priority+'): '+x.description;}).join(' | ')||'none recorded';
-    var trainingStr=S.modules.length?countPassed()+'/'+S.modules.length+' modules passed':'no training modules generated yet';
+    var trainingStr=S.modules.length?countStaffModulesPassed()+'/'+S.modules.length+' modules passed by staff':'no training modules generated yet';
     var policyStr=S.policy?'AI usage policy generated and on file.':'No AI usage policy generated yet.';
     var prompt='You are drafting a one-page Partner Briefing Pack summarising an AI compliance audit for an Australian law firm partner meeting. Use ONLY the information provided below — do not invent findings, statistics, names, or any detail not stated. If something is not recorded, say so plainly rather than filling a gap. Write in clear, professional, plain English. Use ## for section headings. Return ONLY the document — no preamble, no commentary, no JSON.\n\nFirm: '+S.firmName+' ('+S.staffCount+' staff, '+S.practiceAreas.join(', ')+').\nRisk level: '+r.riskLevel+'.\nRisk summary: '+r.riskSummary+'.\nKey findings: '+findingsStr+'.\nRecommendations: '+recStr+'.\nAI tools in use: '+toolList+'.\nStaff training status: '+trainingStr+'.\nPolicy status: '+policyStr+'.\n\nStructure:\n## Executive summary\n## Current AI tool stack\n## Key risks identified\n## Recommended actions\n## Compliance status';
     var txt=await callClaude(prompt,1400);
@@ -1960,7 +1979,7 @@ function renderTraining(){
   }
 
   // Progress
-  var passed=countPassed();var total2=S.modules.length;var pct2=total2>0?Math.round((passed/total2)*100):0;
+  var passed=countStaffModulesPassed();var total2=S.modules.length;var pct2=total2>0?Math.round((passed/total2)*100):0;
   var tp=el('div',{cls:'train-progress'});
   var tph=el('div',{cls:'train-progress-header'});
   tph.appendChild(el('div',{cls:'train-progress-title'},'Completion progress'));
@@ -2240,13 +2259,24 @@ function renderCert(){
   inner.appendChild(seal);
   inner.appendChild(el('div',{cls:'cert-eyebrow'},'Certificate of AI Compliance'));
   inner.appendChild(el('div',{cls:'cert-sub'},'This certifies that'));
-  var ni=el('input',{type:'text',cls:'cert-name-input',placeholder:'Enter staff member name'});
-  ni.value=S.certName;ni.addEventListener('input',function(e){S.certName=e.target.value;});inner.appendChild(ni);
+  // Real staff selector — pulls from actual completed staff records instead
+  // of a free-text field anyone could type any name into, so the
+  // certificate reflects genuine completion data.
+  var validNames=S.staffCompletions.map(function(c){return c.name;});
+  if(!S.certName||validNames.indexOf(S.certName)===-1){S.certName=validNames[0]||'';}
+  var sel=el('select',{cls:'cert-name-input'});
+  S.staffCompletions.forEach(function(c){
+    var opt=el('option',{value:c.name});opt.textContent=c.name;if(c.name===S.certName)opt.selected=true;sel.appendChild(opt);
+  });
+  sel.addEventListener('change',function(e){ss({certName:e.target.value});});
+  inner.appendChild(sel);
   inner.appendChild(el('div',{cls:'cert-sub'},'of'));
   inner.appendChild(el('div',{cls:'cert-firm'},S.firmName));
   inner.appendChild(el('div',{cls:'cert-body'},'has successfully completed the Theia-Stack AI Compliance Training Programme and demonstrated understanding of safe, ethical, and policy-compliant use of artificial intelligence tools in a legal practice context.'));
   var ct=el('div',{cls:'cert-tools'});toolNames.forEach(function(t){ct.appendChild(el('span',{cls:'cert-tool'},t));});inner.appendChild(ct);
-  inner.appendChild(el('div',{cls:'cert-date'},'Issued: '+(new Date().toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'}))));
+  var selectedComp=S.staffCompletions.filter(function(c){return c.name===S.certName;})[0];
+  var issuedDateStr=(selectedComp&&selectedComp.completedAt)?new Date(selectedComp.completedAt).toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'}):new Date().toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'});
+  inner.appendChild(el('div',{cls:'cert-date'},'Issued: '+issuedDateStr));
   outer.appendChild(inner);
   var pb=el('button',{cls:'btn-secondary',sty:{marginTop:'16px'},onclick:function(){window.print();}});pb.textContent='Print / Save as PDF';
   outer.appendChild(pb);
@@ -2296,7 +2326,7 @@ function calcHealthScore(){
   // Has training
   max+=20;if(S.hasTraining==='Yes, formal training')score+=20;else if(S.hasTraining==='Some staff have')score+=10;
   // Training modules completed
-  max+=20;var passed=countPassed();var total=S.modules.length;if(total>0)score+=Math.round((passed/total)*20);
+  max+=20;var passed=countStaffModulesPassed();var total=S.modules.length;if(total>0)score+=Math.round((passed/total)*20);
   // Data storage
   max+=15;if(S.dataStorage==='Australia only')score+=15;else if(S.dataStorage==='Mixture')score+=8;
   return Math.round((score/max)*100);
@@ -2369,7 +2399,7 @@ function renderDashboard(){
     {label:'AI policy',val:S.hasPolicy==='Yes, a formal one'?'✓ In place':S.hasPolicy==='In progress'?'In progress':'✗ Missing',col:S.hasPolicy==='Yes, a formal one'?'var(--green)':S.hasPolicy==='In progress'?'var(--amber)':'var(--red)'},
     {label:'Staff training',val:S.hasTraining==='Yes, formal training'?'✓ Complete':S.hasTraining==='Some staff have'?'Partial':'✗ None',col:S.hasTraining==='Yes, formal training'?'var(--green)':S.hasTraining==='Some staff have'?'var(--amber)':'var(--red)'},
     {label:'Data storage',val:S.dataStorage==='Australia only'?'✓ AU only':S.dataStorage||'Unknown',col:S.dataStorage==='Australia only'?'var(--green)':'var(--amber)'},
-    {label:'Modules passed',val:countPassed()+'/'+S.modules.length+' complete',col:S.modules.length>0&&countPassed()===S.modules.length?'var(--green)':'var(--amber)'},
+    {label:'Modules passed',val:countStaffModulesPassed()+'/'+S.modules.length+' complete',col:S.modules.length>0&&countStaffModulesPassed()===S.modules.length?'var(--green)':'var(--amber)'},
   ].forEach(function(item){
     var si=el('div',{cls:'score-item'});si.appendChild(el('span',{cls:'score-item-label'},item.label));si.appendChild(el('span',{cls:'score-item-val',sty:{color:item.col}},item.val));breakdown.appendChild(si);
   });
@@ -2921,7 +2951,7 @@ function render(){
       ['findings','Findings'],
       ['recommendations','Recommendations'],
       ['policy','AI policy'],
-      ['training','Training ('+(canCert()?'✓':countPassed()+'/'+S.modules.length)+')'],
+      ['training','Training ('+(S.staffCompletions.length>0?'✓':countStaffModulesPassed()+'/'+S.modules.length)+')'],
       ['alerts','Alerts ('+S.alerts.filter(function(a){return a.type==='policy';}).length+')'],
       ['settings','Settings'],
     ];
