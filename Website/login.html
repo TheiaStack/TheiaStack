@@ -408,6 +408,32 @@ function showLogin(e) {
   loginSection.style.display = 'block';
 }
 
+// Verify the one-time recovery token exactly ONCE, immediately, rather
+// than re-verifying inside handleSetPassword() on every submit. That
+// earlier approach had a real bug: if a customer's first password
+// attempt was rejected by Supabase's password policy, the token had
+// already been consumed by that first verifyOtp() call, so their very
+// next attempt failed with "invalid or expired" even though they never
+// actually finished resetting. Verifying once here and reusing the
+// resulting session for as many updateUser() retries as needed fixes
+// that, while still avoiding the original vulnerability — verifyOtp()
+// only runs as JavaScript inside a real browser, so link-scanning bots
+// (which fetch raw HTML and don't execute JS) never trigger it.
+let recoverySessionReady = false;
+(async () => {
+  if (!isRecoveryFlow) return;
+  const { error } = await sb.auth.verifyOtp({ token_hash: recoveryTokenHash, type: 'recovery' });
+  const setPwErrEl = document.getElementById('setPwError');
+  const setPwBtnEl = document.getElementById('setPwBtn');
+  if (error) {
+    setPwErrEl.textContent = 'This reset link is invalid or has expired. Please request a new one.';
+    setPwErrEl.classList.add('show');
+    setPwBtnEl.disabled = true;
+  } else {
+    recoverySessionReady = true;
+  }
+})();
+
 // Login
 async function handleLogin(e) {
   e.preventDefault();
@@ -499,25 +525,14 @@ async function handleSetPassword(e) {
     return;
   }
 
-  btn.disabled = true;
-  btn.textContent = 'Saving...';
-
-  // Exchange the one-time token for a session now — the first moment
-  // anything is actually verified/consumed is this explicit click,
-  // not the page load. verifyOtp() both confirms the token and
-  // establishes the session in one call.
-  const { error: verifyError } = await sb.auth.verifyOtp({
-    token_hash: recoveryTokenHash,
-    type: 'recovery'
-  });
-
-  if (verifyError) {
+  if (!recoverySessionReady) {
     errEl.textContent = 'This reset link is invalid or has expired. Please request a new one.';
     errEl.classList.add('show');
-    btn.disabled = false;
-    btn.textContent = 'Set new password';
     return;
   }
+
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
 
   const { error } = await sb.auth.updateUser({ password: newPw });
 
