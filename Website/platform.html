@@ -725,6 +725,7 @@ var S={
   contrastMode:(function(){try{return localStorage.getItem('theia_contrast')||'normal';}catch(e){return 'normal';}})(),
   hoverInfoMode:(function(){try{return localStorage.getItem('theia_hover_info')||'on';}catch(e){return 'on';}})(),
   briefingPack:null,briefingLoading:false,briefingError:'',
+  notifPrefs:null,notifPrefsLoading:false,notifPrefsError:'',
   settingsNewPw:'',settingsCurPw:'',settingsPwLoading:false,settingsPwMsg:'',settingsPwErr:false,
   faqOpen:-1,
   showHistory:false,historyView:'list',historyGroups:null,historyLoading:false,historyError:'',
@@ -975,6 +976,47 @@ async function notifyEvent(triggerKey){
     hdr['Content-Type']='application/json';
     await fetch('/.netlify/functions/notify',{method:'POST',headers:hdr,body:JSON.stringify({triggerKey:triggerKey})});
   }catch(e){console.warn('notifyEvent failed for',triggerKey,e);}
+}
+
+// Fetches current notification preferences (lazy-loaded the first
+// time the Settings tab is opened — see renderSettings()). Missing
+// overrides default to enabled:true, resolved server-side by
+// notification-prefs.js so the defaulting logic lives in one place.
+async function loadNotifPrefs(){
+  if(S.notifPrefsLoading||S.notifPrefs)return;
+  ss({notifPrefsLoading:true,notifPrefsError:''});
+  try{
+    var hdr=await _authHeader();
+    if(!hdr['Authorization']){ss({notifPrefsLoading:false,notifPrefsError:'Not signed in.'});return;}
+    hdr['Content-Type']='application/json';
+    var res=await fetch('/.netlify/functions/notification-prefs',{method:'POST',headers:hdr,body:JSON.stringify({action:'list'})});
+    var data=await res.json();
+    if(!res.ok)throw new Error(data&&data.error||'Could not load notification preferences.');
+    ss({notifPrefs:data.preferences,notifPrefsLoading:false});
+  }catch(e){console.error('loadNotifPrefs error:',e);ss({notifPrefsLoading:false,notifPrefsError:e.message||'Could not load notification preferences.'});}
+}
+
+// Optimistically flips the toggle, then confirms with the server;
+// reverts on failure so the UI never silently shows a state that
+// didn't actually save.
+async function toggleNotifPref(triggerKey){
+  if(!S.notifPrefs)return;
+  var prev=S.notifPrefs[triggerKey];
+  var next=!prev;
+  var updated=Object.assign({},S.notifPrefs);updated[triggerKey]=next;
+  ss({notifPrefs:updated,notifPrefsError:''});
+  try{
+    var hdr=await _authHeader();
+    if(!hdr['Authorization'])throw new Error('Not signed in.');
+    hdr['Content-Type']='application/json';
+    var res=await fetch('/.netlify/functions/notification-prefs',{method:'POST',headers:hdr,body:JSON.stringify({action:'update',triggerKey:triggerKey,enabled:next})});
+    var data=await res.json();
+    if(!res.ok)throw new Error(data&&data.error||'Could not save this change.');
+  }catch(e){
+    console.error('toggleNotifPref error:',e);
+    var reverted=Object.assign({},S.notifPrefs);reverted[triggerKey]=prev;
+    ss({notifPrefs:reverted,notifPrefsError:'Could not save — please try again.'});
+  }
 }
 
 // Plain text call (policy generation, free-form responses)
@@ -2658,6 +2700,42 @@ function renderSettings(){
   dc.appendChild(hRow);
 
   wrap.appendChild(dc);
+
+  /* Notifications */
+  var nc=el('div',{cls:'card'});
+  nc.appendChild(el('div',{cls:'card-title'},'Notifications'));
+  if(!S.notifPrefs&&!S.notifPrefsLoading&&!S.notifPrefsError){setTimeout(loadNotifPrefs,0);}
+  if(S.notifPrefsLoading&&!S.notifPrefs){
+    nc.appendChild(el('div',{sty:{fontSize:'13px',color:'var(--muted)'}},'Loading\u2026'));
+  } else if(S.notifPrefsError&&!S.notifPrefs){
+    nc.appendChild(el('div',{cls:'settings-msg err'},S.notifPrefsError));
+    var retryBtn=el('button',{cls:'btn-secondary btn-sm',sty:{marginTop:'10px'},onclick:function(){ss({notifPrefsError:''});loadNotifPrefs();}});
+    retryBtn.textContent='Retry';
+    nc.appendChild(retryBtn);
+  } else if(S.notifPrefs){
+    var NOTIF_ROWS=[
+      {key:'audit_completed',label:'Report ready',desc:'Sent when your AI Risk Management Report finishes generating.'},
+      {key:'staff_training_completed',label:'Staff training completed',desc:'Sent when a staff member finishes all assigned training modules.'},
+      {key:'password_changed',label:'Password changed',desc:'Security notice sent to the account holder whenever the password is changed.'}
+    ];
+    NOTIF_ROWS.forEach(function(row,i){
+      var nRow=el('div',{cls:'settings-row',sty:i>0?{marginTop:'14px',paddingTop:'14px',borderTop:'1px solid var(--border)'}:{}});
+      var nInfo=el('div',{});
+      nInfo.appendChild(el('div',{cls:'settings-row-label'},row.label));
+      nInfo.appendChild(el('div',{cls:'settings-row-desc'},row.desc));
+      nRow.appendChild(nInfo);
+      var nToggleLabel=el('label',{cls:'toggle-switch'});
+      var nToggleInput=el('input',{type:'checkbox'});
+      nToggleInput.checked=!!S.notifPrefs[row.key];
+      nToggleInput.addEventListener('change',function(){toggleNotifPref(row.key);});
+      nToggleLabel.appendChild(nToggleInput);
+      nToggleLabel.appendChild(el('span',{cls:'toggle-slider'}));
+      nRow.appendChild(nToggleLabel);
+      nc.appendChild(nRow);
+    });
+    if(S.notifPrefsError)nc.appendChild(el('div',{cls:'settings-msg err',sty:{marginTop:'14px'}},S.notifPrefsError));
+  }
+  wrap.appendChild(nc);
 
   /* Partner Briefing Pack */
   var bc=el('div',{cls:'card'});
