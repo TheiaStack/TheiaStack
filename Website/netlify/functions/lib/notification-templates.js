@@ -31,7 +31,7 @@ const TRIGGERS = {
         <p>Next step: Assign staff training so completion is tracked against this report.</p>
       `,
       ctaText: 'View your report',
-      ctaUrl: `${PLATFORM_URL}/dashboard`,
+      ctaUrl: `${PLATFORM_URL}/platform`,
     }),
   },
 
@@ -52,7 +52,7 @@ const TRIGGERS = {
         <p>This completion has been recorded against your firm's training records.</p>
       `,
       ctaText: 'View training records',
-      ctaUrl: `${PLATFORM_URL}/dashboard`,
+      ctaUrl: `${PLATFORM_URL}/platform`,
     }),
   },
 
