@@ -706,7 +706,7 @@ var S={
   detecting:false,loading:false,toolLookups:{},policyVersions:[],pendingUpdates:[],newModuleQueue:[],updateCheckDone:false,
   report:null,policy:null,policyLoading:false,policyError:'',
   activeTab:'dashboard',copied:false,
-  modules:[],modulesLoading:false,moduleProgress:0,
+  modules:[],modulesLoading:false,moduleProgress:0,regeneratingIdx:-1,
   dashStaff:[],
   alerts:[],
   staffCompletions:[],
@@ -1427,6 +1427,18 @@ function buildQuizTemplate(n){
   return '['+arr.join(',')+']';
 }
 
+// Builds the module-generation prompt for a single tool, honoring the
+// current questionsPerModule setting. Shared by genModules() (bulk) and
+// regenerateModule() (single card) so both stay in sync.
+function buildModuleGenPrompt(toolName){
+  var practiceStr=S.practiceAreas.join(', ');
+  var qCount=S.questionsPerModule||5;
+  // Keep strings SHORT to avoid max_tokens truncation:
+  // overview ≤25 words, each list item ≤15 words, complianceNote ≤20 words
+  // Each quiz question ≤20 words, each option ≤12 words, explanation ≤15 words
+  return 'Generate a compliance training module for "'+toolName+'" for '+S.firmName+' ('+practiceStr+' law firm, '+S.staffCount+' staff).\n\nBe CONCISE. Keep every string under 20 words. Include exactly '+qCount+' quiz questions. Return this exact JSON structure:\n{"toolName":"'+toolName+'","overview":"1-2 short sentences about the tool and its AU compliance risk","legalUses":["short approved use","short approved use","short approved use"],"prohibitedUses":["short prohibited use","short prohibited use","short prohibited use"],"bestPractices":["short AU-specific tip","short tip","short tip"],"complianceNote":"cite specific APP or LPUL obligation in one short sentence","quiz":'+buildQuizTemplate(qCount)+'}\n\nAU compliance context: Privacy Act 1988 APPs, APP 8 cross-border transfers, Privacy Amendment Act 2024, LPUL client confidentiality.';
+}
+
 async function genModules(){
   ss({modulesLoading:true,moduleError:null});
   var allNames=S.tools.map(function(t){return t.name;}).filter(Boolean);
@@ -1434,16 +1446,10 @@ async function genModules(){
   if(!toolNames.length){toolNames=allNames;}
   if(!toolNames.length){ss({modulesLoading:false});return;}
   var modules=[];
-  var practiceStr=S.practiceAreas.join(', ');
   for(var i=0;i<toolNames.length;i++){
     var toolName=toolNames[i];
     try{
-      // Keep strings SHORT to avoid max_tokens truncation:
-      // overview ≤25 words, each list item ≤15 words, complianceNote ≤20 words
-      // Each quiz question ≤20 words, each option ≤12 words, explanation ≤15 words
-      var qCount=S.questionsPerModule||5;
-      var userPrompt='Generate a compliance training module for "'+toolName+'" for '+S.firmName+' ('+practiceStr+' law firm, '+S.staffCount+' staff).\n\nBe CONCISE. Keep every string under 20 words. Include exactly '+qCount+' quiz questions. Return this exact JSON structure:\n{"toolName":"'+toolName+'","overview":"1-2 short sentences about the tool and its AU compliance risk","legalUses":["short approved use","short approved use","short approved use"],"prohibitedUses":["short prohibited use","short prohibited use","short prohibited use"],"bestPractices":["short AU-specific tip","short tip","short tip"],"complianceNote":"cite specific APP or LPUL obligation in one short sentence","quiz":'+buildQuizTemplate(qCount)+'}\n\nAU compliance context: Privacy Act 1988 APPs, APP 8 cross-border transfers, Privacy Amendment Act 2024, LPUL client confidentiality.';
-      var raw=await callClaudeJSON('You are an AI compliance trainer for Australian law firms. Output ONLY valid JSON. Keep all string values concise — under 20 words each.',userPrompt,3000);
+      var raw=await callClaudeJSON('You are an AI compliance trainer for Australian law firms. Output ONLY valid JSON. Keep all string values concise — under 20 words each.',buildModuleGenPrompt(toolName),3000);
       var parsed=parseJSON(raw);
       if(!parsed||!parsed.overview){
         console.error('Module parse failed for',toolName,raw&&raw.slice(0,300));
@@ -1458,6 +1464,31 @@ async function genModules(){
     }
   }
   ss({modules:modules,modulesLoading:false,moduleProgress:100});
+}
+
+// Regenerates a single existing module in place — e.g. to apply a changed
+// "questions per module" setting without rebuilding every module. Uses a
+// per-card loading state (regeneratingIdx) rather than the full-screen
+// modulesLoading spinner, which is built for bulk generation and would be
+// jarring for what's meant to be a small, targeted refresh.
+async function regenerateModule(idx){
+  var mod=S.modules[idx];
+  if(!mod)return;
+  ss({regeneratingIdx:idx});
+  var mods=S.modules.slice();
+  try{
+    var raw=await callClaudeJSON('You are an AI compliance trainer for Australian law firms. Output ONLY valid JSON. Keep all string values concise — under 20 words each.',buildModuleGenPrompt(mod.toolName),3000);
+    var parsed=parseJSON(raw);
+    if(parsed&&parsed.overview){mods[idx]=parsed;}
+    else{console.error('Module regenerate parse failed for',mod.toolName,raw&&raw.slice(0,300));}
+  }catch(e){
+    console.error('Module regenerate API error for',mod.toolName,e.message);
+  }
+  // Clear any stale preview-quiz state for this module — the questions changed
+  var qa=Object.assign({},S.quizAnswers);delete qa[idx];
+  var qs=Object.assign({},S.quizSubmitted);delete qs[idx];
+  var qr=Object.assign({},S.quizResults);delete qr[idx];
+  ss({modules:mods,regeneratingIdx:-1,quizAnswers:qa,quizSubmitted:qs,quizResults:qr});
 }
 
 
@@ -2031,14 +2062,27 @@ function renderTraining(){
       var pu=el('div',{cls:'mod-section'});pu.appendChild(el('div',{cls:'mod-section-label'},'Prohibited uses'));var pul=el('ul',{cls:'mod-list prohibited'});(mod.prohibitedUses||[]).forEach(function(u){pul.appendChild(el('li',{},u));});pu.appendChild(pul);body.appendChild(pu);
       var bp=el('div',{cls:'mod-section'});bp.appendChild(el('div',{cls:'mod-section-label'},'Best practices'));var bpl=el('ul',{cls:'mod-list'});(mod.bestPractices||[]).forEach(function(u){bpl.appendChild(el('li',{},u));});bp.appendChild(bpl);body.appendChild(bp);
 
+      // Regenerate — applies the current Training settings (question count,
+      // pass threshold) to this one module without rebuilding all of them.
+      var regenRow=el('div',{sty:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'12px',padding:'12px 0',borderTop:'1px solid var(--border)',marginBottom:'8px'}});
+      if(S.regeneratingIdx===idx){
+        regenRow.appendChild(el('span',{sty:{fontSize:'12px',color:'var(--muted)'}},'Regenerating…'));
+      } else {
+        regenRow.appendChild(el('span',{sty:{fontSize:'11px',color:'var(--muted)'}},'Applies current settings: '+(S.questionsPerModule||5)+' questions, '+(S.passThreshold||90)+'% pass threshold'));
+        var regenBtn=el('button',{cls:'btn-secondary btn-sm',sty:{fontSize:'11px',padding:'4px 10px',flexShrink:'0'},onclick:(function(i2){return function(){regenerateModule(i2);};})(idx)});
+        regenBtn.textContent='Regenerate this module';
+        regenRow.appendChild(regenBtn);
+      }
+      body.appendChild(regenRow);
+
       var result=S.quizResults[idx];var submitted=S.quizSubmitted[idx];var answers=S.quizAnswers[idx]||{};
       if(mod.quiz&&mod.quiz.length){
         var qw=el('div',{cls:'quiz-section'});
-        var qt=el('div',{cls:'quiz-title'});qt.appendChild(document.createTextNode('Knowledge check  '));qt.appendChild(el('span',{cls:'quiz-badge'},'5 questions'));qw.appendChild(qt);
+        var qt=el('div',{cls:'quiz-title'});qt.appendChild(document.createTextNode('Knowledge check  '));qt.appendChild(el('span',{cls:'quiz-badge'},mod.quiz.length+' question'+(mod.quiz.length!==1?'s':'')));qw.appendChild(qt);
         if(result){
           var qr=el('div',{cls:'quiz-result'});
           qr.appendChild(el('div',{cls:'quiz-score'},result.score+'/'+result.total));
-          qr.appendChild(el('div',{cls:result.passed?'quiz-pass':'quiz-fail'},result.passed?'Passed — module complete':'Not yet passed — score must be 80% or higher'));
+          qr.appendChild(el('div',{cls:result.passed?'quiz-pass':'quiz-fail'},result.passed?'Passed — module complete':'Not yet passed — score must be '+(S.passThreshold||90)+'% or higher'));
           qr.appendChild(el('div',{cls:'quiz-sub'},result.passed?'Great work! This module is now marked complete.':'Review the material above and try again.'));
           if(!result.passed){var rb=el('button',{cls:'btn-secondary btn-sm',sty:{marginTop:'14px'},onclick:function(){var qa=Object.assign({},S.quizAnswers);var qs=Object.assign({},S.quizSubmitted);var qr2=Object.assign({},S.quizResults);delete qa[idx];delete qs[idx];delete qr2[idx];ss({quizAnswers:qa,quizSubmitted:qs,quizResults:qr2});}});rb.textContent='Retry quiz';qr.appendChild(rb);}
           qw.appendChild(qr);
@@ -2062,7 +2106,7 @@ function renderTraining(){
           sb2.textContent='Submit answers';sb2.disabled=!answered;
           sb2.addEventListener('click',function(){
             var correct=0;(mod.quiz||[]).forEach(function(q,qi){if(answers[qi]===q.correct)correct++;});
-            var tot=(mod.quiz||[]).length;var passed2=correct>=Math.ceil(tot*0.8);
+            var tot=(mod.quiz||[]).length;var passed2=correct>=Math.ceil(tot*((S.passThreshold||90)/100));
             var qs=Object.assign({},S.quizSubmitted);qs[idx]=true;
             var qr3=Object.assign({},S.quizResults);qr3[idx]={score:correct,total:tot,passed:passed2};
             ss({quizSubmitted:qs,quizResults:qr3});
