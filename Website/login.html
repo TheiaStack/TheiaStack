@@ -360,14 +360,20 @@ const SUPABASE_URL  = 'https://rkqnrpyctllxcnknjsby.supabase.co';
 const SUPABASE_KEY  = 'sb_publishable_7gIWX3E2pS_4UfEKJylqpw_V3CIY1b9';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// A recovery link puts '#access_token=...&type=recovery' in the URL.
-// Detecting it here, synchronously, before any async session check,
-// means the "already logged in, go to platform" logic below can
-// reliably skip itself — otherwise a recovery session (which IS a
-// valid session) would race with the PASSWORD_RECOVERY handler
-// further down and redirect to /platform before the customer ever
-// sees the set-new-password form.
-const isRecoveryFlow = window.location.hash.includes('type=recovery');
+// A recovery link now puts '?token_hash=...&type=recovery' in the URL
+// (a plain query string on our own /login page — see the Reset Password
+// email template). This deliberately replaces the old approach of
+// Supabase's {{ .ConfirmationURL }}, which pointed straight at Supabase's
+// own /auth/v1/verify endpoint and verified — i.e. consumed — the one-time
+// token the instant ANYTHING loaded that URL. Google Workspace's automatic
+// link-safety scanning does exactly that before the customer ever sees the
+// email, burning the token so the customer's real click always failed with
+// "invalid or expired". Landing on our own static page first is harmless to
+// prefetch (nothing is verified on load); the token is only exchanged for a
+// session inside handleSetPassword(), triggered by an actual button press.
+const recoveryParams = new URLSearchParams(window.location.search);
+const recoveryTokenHash = recoveryParams.get('token_hash');
+const isRecoveryFlow = recoveryParams.get('type') === 'recovery' && !!recoveryTokenHash;
 
 // If already logged in and has a profile, go straight to platform —
 // but never during a recovery flow, see isRecoveryFlow above.
@@ -385,7 +391,10 @@ const loginSection = document.getElementById('loginSection');
 const resetSection = document.getElementById('resetSection');
 const setPasswordSection = document.getElementById('setPasswordSection');
 resetSection.style.display = 'none';
-if (isRecoveryFlow) loginSection.style.display = 'none'; // avoid a flash of the login form before PASSWORD_RECOVERY fires below
+if (isRecoveryFlow) {
+  loginSection.style.display = 'none';
+  setPasswordSection.style.display = 'block';
+}
 
 function showReset(e) {
   e.preventDefault();
@@ -398,19 +407,6 @@ function showLogin(e) {
   setPasswordSection.style.display = 'none';
   loginSection.style.display = 'block';
 }
-
-// Detect the recovery session created when a customer clicks the
-// password-reset link from their email. Supabase establishes a
-// temporary session and fires this event — without this listener,
-// the customer would just look logged in with no way to actually
-// set a new password.
-sb.auth.onAuthStateChange((event, session) => {
-  if (event === 'PASSWORD_RECOVERY') {
-    loginSection.style.display = 'none';
-    resetSection.style.display = 'none';
-    setPasswordSection.style.display = 'block';
-  }
-});
 
 // Login
 async function handleLogin(e) {
@@ -497,8 +493,31 @@ async function handleSetPassword(e) {
     return;
   }
 
+  if (!recoveryTokenHash) {
+    errEl.textContent = 'This reset link is missing required information. Please request a new one.';
+    errEl.classList.add('show');
+    return;
+  }
+
   btn.disabled = true;
   btn.textContent = 'Saving...';
+
+  // Exchange the one-time token for a session now — the first moment
+  // anything is actually verified/consumed is this explicit click,
+  // not the page load. verifyOtp() both confirms the token and
+  // establishes the session in one call.
+  const { error: verifyError } = await sb.auth.verifyOtp({
+    token_hash: recoveryTokenHash,
+    type: 'recovery'
+  });
+
+  if (verifyError) {
+    errEl.textContent = 'This reset link is invalid or has expired. Please request a new one.';
+    errEl.classList.add('show');
+    btn.disabled = false;
+    btn.textContent = 'Set new password';
+    return;
+  }
 
   const { error } = await sb.auth.updateUser({ password: newPw });
 
