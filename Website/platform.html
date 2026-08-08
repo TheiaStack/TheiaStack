@@ -2075,7 +2075,12 @@ function renderTraining(){
       }
       body.appendChild(regenRow);
 
-      var result=S.quizResults[idx];var submitted=S.quizSubmitted[idx];var answers=S.quizAnswers[idx]||{};
+      var result=S.quizResults[idx];var submitted=S.quizSubmitted[idx];
+      // If this is the first interaction with this module's quiz, point
+      // `answers` at the real S.quizAnswers[idx] object (not a throwaway
+      // default) so direct mutations below persist without needing ss().
+      if(!S.quizAnswers[idx])S.quizAnswers[idx]={};
+      var answers=S.quizAnswers[idx];
       if(mod.quiz&&mod.quiz.length){
         var qw=el('div',{cls:'quiz-section'});
         var qt=el('div',{cls:'quiz-title'});qt.appendChild(document.createTextNode('Knowledge check  '));qt.appendChild(el('span',{cls:'quiz-badge'},mod.quiz.length+' question'+(mod.quiz.length!==1?'s':'')));qw.appendChild(qt);
@@ -2087,29 +2092,47 @@ function renderTraining(){
           if(!result.passed){var rb=el('button',{cls:'btn-secondary btn-sm',sty:{marginTop:'14px'},onclick:function(){var qa=Object.assign({},S.quizAnswers);var qs=Object.assign({},S.quizSubmitted);var qr2=Object.assign({},S.quizResults);delete qa[idx];delete qs[idx];delete qr2[idx];ss({quizAnswers:qa,quizSubmitted:qs,quizResults:qr2});}});rb.textContent='Retry quiz';qr.appendChild(rb);}
           qw.appendChild(qr);
         }
+        // Submit button is built before the question loop so option click
+        // handlers can update its disabled state directly (closure
+        // reference), without triggering a re-render themselves.
+        var sb2=null;
+        if(!submitted){
+          var answered0=Object.keys(answers).length===(mod.quiz||[]).length;
+          sb2=el('button',{cls:'btn-primary',sty:{marginTop:'8px'}});
+          sb2.textContent='Submit answers';sb2.disabled=!answered0;
+        }
         mod.quiz.forEach(function(q,qi){
           var qitem=el('div',{cls:'q-item'});
           qitem.appendChild(el('div',{cls:'q-text'},(qi+1)+'. '+q.question));
+          var optionRows=[];
           (q.options||[]).forEach(function(opt,oi){
             var isSel=answers[qi]===oi;var isCorr=submitted&&oi===q.correct;var isWrong=submitted&&isSel&&oi!==q.correct;
             var cls='q-opt'+(isCorr?' correct':isWrong?' wrong':isSel?' selected':'');
-            var row=el('div',{cls:cls,onclick:submitted?null:function(){var a=Object.assign({},S.quizAnswers[idx]||{});a[qi]=oi;var qa=Object.assign({},S.quizAnswers);qa[idx]=a;ss({quizAnswers:qa});}});
+            var row=el('div',{cls:cls});
+            if(!submitted){
+              row.addEventListener('click',function(){
+                // Mutate state directly and update just this question's rows
+                // — avoids a full app rebuild (and the visual flash that
+                // caused) on every single answer click during a quiz.
+                answers[qi]=oi;
+                optionRows.forEach(function(r,i2){r.classList.toggle('selected',i2===oi);});
+                if(sb2)sb2.disabled=Object.keys(answers).length!==(mod.quiz||[]).length;
+              });
+            }
             var lbl=el('span',{sty:{fontWeight:'600',marginRight:'8px',flexShrink:'0'}},String.fromCharCode(65+oi)+'.');
             row.appendChild(el('div',{cls:'q-dot'}));row.appendChild(lbl);row.appendChild(el('span',{},cleanOpt(opt)));qitem.appendChild(row);
+            optionRows.push(row);
           });
           if(submitted&&q.explanation)qitem.appendChild(el('div',{cls:'q-explanation'},'✓ '+q.explanation));
           qw.appendChild(qitem);
         });
         if(!submitted){
-          var answered=Object.keys(answers).length===(mod.quiz||[]).length;
-          var sb2=el('button',{cls:'btn-primary',sty:{marginTop:'8px'}});
-          sb2.textContent='Submit answers';sb2.disabled=!answered;
           sb2.addEventListener('click',function(){
             var correct=0;(mod.quiz||[]).forEach(function(q,qi){if(answers[qi]===q.correct)correct++;});
             var tot=(mod.quiz||[]).length;var passed2=correct>=Math.ceil(tot*((S.passThreshold||90)/100));
             var qs=Object.assign({},S.quizSubmitted);qs[idx]=true;
             var qr3=Object.assign({},S.quizResults);qr3[idx]={score:correct,total:tot,passed:passed2};
-            ss({quizSubmitted:qs,quizResults:qr3});
+            ss({quizAnswers:Object.assign({},S.quizAnswers),quizSubmitted:qs,quizResults:qr3});
           });
           qw.appendChild(sb2);
         }
