@@ -1818,7 +1818,8 @@ function renderTraining(){
     var ptRight=el('div',{sty:{display:'flex',alignItems:'center',gap:'8px',flexShrink:'0'}});
     var ptInput=el('input',{type:'number',sty:{width:'60px',padding:'6px 10px',background:'var(--cream)',border:'1px solid var(--border)',color:'var(--text)',fontFamily:'var(--font-body)',fontSize:'14px',textAlign:'center',outline:'none',borderRadius:'6px'}});
     ptInput.min='50';ptInput.max='100';ptInput.value=String(S.passThreshold||90);
-    ptInput.addEventListener('change',function(){var v=parseInt(ptInput.value);if(v>=50&&v<=100)ss({passThreshold:v});else ptInput.value=String(S.passThreshold||90);});
+    ptInput.addEventListener('blur',function(){var v=parseInt(ptInput.value);if(v>=50&&v<=100)ss({passThreshold:v});else ptInput.value=String(S.passThreshold||90);});
+    ptInput.addEventListener('keydown',function(e){if(e.key==='Enter')ptInput.blur();});
     ptRight.appendChild(ptInput);
     var ptPct=el('span',{sty:{fontSize:'13px',color:'var(--muted)'}});ptPct.textContent='%';ptRight.appendChild(ptPct);
     ptRow.appendChild(ptRight);
@@ -1832,7 +1833,8 @@ function renderTraining(){
     qpmRow.appendChild(qpmLbl);
     var qpmInput=el('input',{type:'number',sty:{width:'60px',padding:'6px 10px',background:'var(--cream)',border:'1px solid var(--border)',color:'var(--text)',fontFamily:'var(--font-body)',fontSize:'14px',textAlign:'center',outline:'none',borderRadius:'6px',flexShrink:'0'}});
     qpmInput.min='3';qpmInput.max='10';qpmInput.value=String(S.questionsPerModule||5);
-    qpmInput.addEventListener('change',function(){var v=parseInt(qpmInput.value);if(v>=3&&v<=10)ss({questionsPerModule:v});else qpmInput.value=String(S.questionsPerModule||5);});
+    qpmInput.addEventListener('blur',function(){var v=parseInt(qpmInput.value);if(v>=3&&v<=10)ss({questionsPerModule:v});else qpmInput.value=String(S.questionsPerModule||5);});
+    qpmInput.addEventListener('keydown',function(e){if(e.key==='Enter')qpmInput.blur();});
     qpmRow.appendChild(qpmInput);
     settingsCard.appendChild(qpmRow);
 
