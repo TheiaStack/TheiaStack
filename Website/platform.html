@@ -1165,6 +1165,49 @@ async function saveReportSnapshot(report){
   }catch(e){console.warn('Report snapshot failed (non-blocking):',e);}
 }
 
+// Shared by genPolicy() and autoUpdatePolicy() so a full generation and a
+// partial regeneration can never drift out of sync on section numbering,
+// titles, or token budgets. Section list carries an explicit numeral (num)
+// so each section's Claude call can correctly produce its own numbered
+// sub-clauses (e.g. 4.1, 4.2, 4.3) — matching the formal institutional
+// policy register the founder asked for, rather than plain prose under a
+// heading.
+var POLICY_SECTIONS=[
+  {num:1,title:'Purpose and scope',ref:''},
+  {num:2,title:'Approved AI tools and permitted uses (address each tool by name)',ref:'',maxT:700},
+  {num:3,title:'Prohibited uses and client data protections',ref:'Legal Profession Uniform Law (LPUL) obligations on client confidentiality.'},
+  {num:4,title:'Compliance with the Australian Privacy Principles',ref:'Privacy Act 1988 (Cth) and the 13 Australian Privacy Principles — especially APP 3 (collection), APP 6 (use and disclosure), APP 8 (cross-border disclosure), APP 11 (security of personal information).',maxT:700},
+  {num:5,title:'Cross-border data transfers and data sovereignty',ref:'APP 8 as it relates to where each tool processes and stores data.'},
+  {num:6,title:'Automated decision-making transparency (Privacy and Other Legislation Amendment Act 2024)',ref:'Privacy and Other Legislation Amendment Act 2024 (Royal Assent 10 December 2024) — new transparency obligations for automated decision-making using personal information.'},
+  {num:7,title:'Staff responsibilities and training requirements',ref:'National AI Centre AI6 Guidance for AI Adoption (October 2025) — 6 essential practices: accountability, transparency, human oversight, fairness, privacy, security.'},
+  {num:8,title:'Vendor due diligence and tool assessment',ref:'OAIC October 2024 Guidance on privacy and the use of commercially available AI products — vendor due diligence, data minimisation, staff awareness.'},
+  {num:9,title:'Incident reporting and breach response',ref:'Privacy Act 1988 (Cth) notifiable data breach obligations where relevant.'},
+  {num:10,title:'Policy review and version control',ref:''},
+  {num:11,title:'Acknowledgement',ref:''}
+];
+
+// Formal institutional-policy style guide — modelled on the register
+// and structure of published university/government IT policies
+// (numbered sub-clauses, defined terms, formal third-person modal
+// language), not on their content.
+var POLICY_STYLE_GUIDE='Write in the register of a formal institutional policy document — objective, precise, third person throughout. Do NOT use marketing language, rhetorical questions, exclamation points, or a conversational tone. Use "must" for mandatory obligations and "may" for discretionary ones, in the manner of formal policy drafting. Structure the section as numbered sub-clauses in the form '+'X.1, X.2, X.3'+' (not bullet points, not unstructured prose) — each sub-clause a single, precise statement. On first use, capitalise and define key terms in parentheses where helpful (e.g. "artificial intelligence tools (AI Tools)"), then use the defined term consistently.';
+
+// Splits a full raw policy string into per-section chunks (heading line +
+// its body, verbatim) keyed by section number, so a partial update can
+// replace one chunk's text and leave every other section byte-for-byte
+// unchanged rather than asking Claude to reproduce the whole document.
+function splitPolicyIntoRawSections(raw){
+  var lines=(raw||'').split('\n');
+  var chunks=[],current=null;
+  lines.forEach(function(line){
+    var hm=line.trim().match(/^#{1,3}\s*(\d+)\.\s*(.+)$/);
+    if(hm){current={num:hm[1],title:hm[2],lines:[line]};chunks.push(current);}
+    else if(current){current.lines.push(line);}
+    else{current={num:'',title:'',lines:[line]};chunks.push(current);}
+  });
+  return chunks;
+}
+
 async function genPolicy(){
   ss({policyLoading:true});
   try{
@@ -1181,30 +1224,8 @@ async function genPolicy(){
     // generous token budget while still finishing quickly. The retry
     // wrapper now guards against real flakiness (a slow moment, a
     // network blip) rather than a fight it can't win.
-    // Section list carries an explicit numeral (num) so each section's
-    // Claude call can correctly produce its own numbered sub-clauses
-    // (e.g. 4.1, 4.2, 4.3) — matching the formal institutional policy
-    // register the founder asked for, rather than plain prose under a
-    // heading.
-    var sections=[
-      {num:1,title:'Purpose and scope',ref:''},
-      {num:2,title:'Approved AI tools and permitted uses (address each tool by name)',ref:'',maxT:700},
-      {num:3,title:'Prohibited uses and client data protections',ref:'Legal Profession Uniform Law (LPUL) obligations on client confidentiality.'},
-      {num:4,title:'Compliance with the Australian Privacy Principles',ref:'Privacy Act 1988 (Cth) and the 13 Australian Privacy Principles — especially APP 3 (collection), APP 6 (use and disclosure), APP 8 (cross-border disclosure), APP 11 (security of personal information).',maxT:700},
-      {num:5,title:'Cross-border data transfers and data sovereignty',ref:'APP 8 as it relates to where each tool processes and stores data.'},
-      {num:6,title:'Automated decision-making transparency (Privacy and Other Legislation Amendment Act 2024)',ref:'Privacy and Other Legislation Amendment Act 2024 (Royal Assent 10 December 2024) — new transparency obligations for automated decision-making using personal information.'},
-      {num:7,title:'Staff responsibilities and training requirements',ref:'National AI Centre AI6 Guidance for AI Adoption (October 2025) — 6 essential practices: accountability, transparency, human oversight, fairness, privacy, security.'},
-      {num:8,title:'Vendor due diligence and tool assessment',ref:'OAIC October 2024 Guidance on privacy and the use of commercially available AI products — vendor due diligence, data minimisation, staff awareness.'},
-      {num:9,title:'Incident reporting and breach response',ref:'Privacy Act 1988 (Cth) notifiable data breach obligations where relevant.'},
-      {num:10,title:'Policy review and version control',ref:''},
-      {num:11,title:'Acknowledgement',ref:''}
-    ];
-
-    // Formal institutional-policy style guide — modelled on the register
-    // and structure of published university/government IT policies
-    // (numbered sub-clauses, defined terms, formal third-person modal
-    // language), not on their content.
-    var styleGuide='Write in the register of a formal institutional policy document — objective, precise, third person throughout. Do NOT use marketing language, rhetorical questions, exclamation points, or a conversational tone. Use "must" for mandatory obligations and "may" for discretionary ones, in the manner of formal policy drafting. Structure the section as numbered sub-clauses in the form '+'X.1, X.2, X.3'+' (not bullet points, not unstructured prose) — each sub-clause a single, precise statement. On first use, capitalise and define key terms in parentheses where helpful (e.g. "artificial intelligence tools (AI Tools)"), then use the defined term consistently.';
+    var sections=POLICY_SECTIONS;
+    var styleGuide=POLICY_STYLE_GUIDE;
 
     function sectionPrompt(s){
       var heading='## '+s.num+'. '+s.title;
@@ -1577,19 +1598,68 @@ function checkForUpdates(){
   ss({pendingUpdates:relevant,newModuleQueue:queue,policyVersions:versions,updateCheckDone:true,alerts:relevant.map(function(u){return {tool:u.tool,type:u.action==='policy'?'policy':u.action==='both'?'policy':'feature',title:u.title,desc:u.desc,date:u.date,action:u.action==='policy'?'Review policy':u.action==='training'?'Start module':'Review & update',color:u.action==='policy'?'#c97d10':u.action==='training'?'#185fa5':'#993556',bg:u.action==='policy'?'var(--amber-bg)':u.action==='training'?'var(--blue-bg)':'var(--red-bg)',icon:u.action==='policy'?'⚠️':u.action==='training'?'🆕':'🔄'};})});
 }
 
+// Rewrites ONLY the policy sections actually affected by a pending tool
+// change (Approved AI tools, Client data protections, Data sovereignty),
+// using the same one-call-per-section pattern genPolicy() uses — asking
+// Claude to rewrite the entire multi-thousand-word policy in a single
+// ~1600-token call was the root cause of the truncation/formatting bug:
+// genPolicy() hit the exact same wall doing the whole document at once
+// and needed per-section calls to fix it (see comment above genPolicy).
+// Splicing the raw text back in section-by-section also means every
+// section NOT affected by this change is left byte-for-byte untouched.
 async function autoUpdatePolicy(){
   if(!S.policy||!S.pendingUpdates.length)return;
-  ss({policyLoading:true});
-  var toolNames=S.tools.map(function(t){return t.name;}).filter(Boolean);
+  ss({policyLoading:true,policyError:''});
   var changes=S.pendingUpdates.filter(function(u){return u.action==='policy'||u.action==='both';}).map(function(u){return u.tool+': '+u.desc;}).join('; ');
+  var affectedTools=S.pendingUpdates.filter(function(u){return u.action==='policy'||u.action==='both';}).map(function(u){return u.tool;}).join(', ');
   try{
-    var txt=await callClaude('You are updating an existing AI Usage Policy for '+S.firmName+', an Australian law firm. The following AI tools in their stack have had policy-relevant updates: '+changes+'. Here is their current policy: '+S.policy+'. Please update the policy to reflect these changes, particularly in sections on Approved AI tools, Data sovereignty, and Client data. Keep the same ## heading structure. Return the complete updated policy only.',1600);
+    if(!changes)throw new Error('No policy-relevant changes to apply.');
+    // Only these sections are ever plausibly affected by a tool-level
+    // change — matches the sections genPolicy() explicitly asks about
+    // in its "particularly in sections on..." instruction.
+    var targetTitles=['Approved AI tools and permitted uses','Prohibited uses and client data protections','Cross-border data transfers and data sovereignty'];
+    var targetSections=POLICY_SECTIONS.filter(function(s){return targetTitles.some(function(t){return s.title.indexOf(t)===0;});});
+    var rawChunks=splitPolicyIntoRawSections(S.policy);
+
+    function updatePrompt(s,currentText){
+      var heading='## '+s.num+'. '+s.title;
+      return 'You are UPDATING one section of an EXISTING AI Usage Policy for '+S.firmName+', an Australian law firm, to reflect this change: '+changes+'. '+POLICY_STYLE_GUIDE+' Return ONLY the updated section, starting with its exact heading below, followed by numbered sub-clauses '+s.num+'.1, '+s.num+'.2 etc. — no JSON, no preamble, no commentary, no other sections. Keep everything in the current section that is not affected by the change; only revise what the change actually requires.\n\nCurrent section text:\n'+currentText+'\n\nWrite the updated version of this section:\n'+heading+(s.ref?('\n\nMust reference: '+s.ref):'');
+    }
+
+    function callSectionWithRetry(s,currentText){
+      var prompt=updatePrompt(s,currentText),maxT=s.maxT||500;
+      return callClaude(prompt,maxT).catch(function(e){
+        console.warn('policy auto-update section "'+s.title+'" failed, retrying once:',e);
+        return callClaude(prompt,maxT);
+      });
+    }
+
+    var results=await Promise.all(targetSections.map(function(s){
+      var chunk=rawChunks.find(function(c){return c.num===String(s.num);});
+      var currentText=chunk?chunk.lines.join('\n').trim():('## '+s.num+'. '+s.title);
+      return callSectionWithRetry(s,currentText).then(function(newText){return {num:String(s.num),text:(newText||'').trim()};});
+    }));
+
+    if(!results.some(function(r){return r.text;}))throw new Error('Policy update returned no content. Please try again.');
+
+    // Splice: replace only the chunks that were regenerated, keep every
+    // other section's raw lines exactly as they were.
+    var updatedByNum={};
+    results.forEach(function(r){if(r.text)updatedByNum[r.num]=r.text;});
+    var newRaw=rawChunks.map(function(c){
+      if(updatedByNum[c.num])return updatedByNum[c.num];
+      return c.lines.join('\n');
+    }).join('\n\n').trim();
+
     var versions=S.policyVersions.slice();
     var vnum='v'+(versions.length+1)+'.0';
-    versions.unshift({version:vnum,label:'Auto-update: '+S.pendingUpdates.filter(function(u){return u.action==='policy'||u.action==='both';}).map(function(u){return u.tool;}).join(', '),date:new Date().toLocaleDateString('en-AU'),change:'Policy automatically updated to reflect changes in: '+S.pendingUpdates.filter(function(u){return u.action==='policy'||u.action==='both';}).map(function(u){return u.tool;}).join(', ')+'.',status:'Current'});
+    versions.unshift({version:vnum,label:'Auto-update: '+affectedTools,date:new Date().toLocaleDateString('en-AU'),change:'Policy automatically updated to reflect changes in: '+affectedTools+'.',status:'Current'});
     if(versions.length>1)versions[1].status='Superseded';
-    ss({policy:txt,policyVersions:versions,policyLoading:false});
-  }catch(e){ss({policyLoading:false});}
+    ss({policy:newRaw,policyVersions:versions,policyLoading:false,policyError:''});
+  }catch(e){
+    console.error('autoUpdatePolicy error:',e);
+    ss({policyLoading:false,policyError:(e&&e.message)||'Policy auto-update failed. Please try again.'});
+  }
 }
 
 async function generateUpdateModule(toolName){
@@ -3159,6 +3229,7 @@ function render(){
         var pbtnwrap=el('div',{sty:{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'2px'}});
         pbtnwrap.appendChild(pbtnrow);
         pbtnwrap.appendChild(el('div',{sty:{fontSize:'11px',color:'var(--muted)'}},'Opens ready to print — use Print → Save as PDF'));
+        if(S.policyError){pbtnwrap.appendChild(el('div',{sty:{fontSize:'11px',color:'var(--red)',marginTop:'2px'}},'⚠️ '+S.policyError));}
         ptb.appendChild(pbtnwrap);rb.appendChild(ptb);
         var pb2=el('div',{cls:'policy-body'});
         parsePolicyText(S.policy).forEach(function(sec){
