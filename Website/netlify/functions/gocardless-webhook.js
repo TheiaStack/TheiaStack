@@ -183,7 +183,11 @@ async function handleBillingRequestFulfilled(serviceClient, event) {
     });
     if (!payRes.ok) {
       console.error('Annual payment creation failed for firm', firmId, payRes.status, payRes.raw);
-      await updateFirmById(serviceClient, firmId, { billing_status: 'payment_failed' });
+      await updateFirmById(serviceClient, firmId, {
+        gocardless_mandate_id: mandateId,
+        gocardless_customer_id: customerId || null,
+        billing_status: 'payment_failed',
+      });
       return;
     }
     await updateFirmById(serviceClient, firmId, {
@@ -200,6 +204,7 @@ async function handleBillingRequestFulfilled(serviceClient, event) {
     const instalments = dates.map((charge_date) => ({ amount: MONTHLY_INSTALMENT_CENTS, charge_date }));
     const schedRes = await gocardlessPost('/instalment_schedules', {
       instalment_schedules: {
+        name: 'Theia-Stack Monthly Subscription',
         currency: 'AUD',
         total_amount: MONTHLY_INSTALMENT_CENTS * MONTHLY_INSTALMENT_COUNT,
         instalments,
@@ -209,7 +214,14 @@ async function handleBillingRequestFulfilled(serviceClient, event) {
     });
     if (!schedRes.ok) {
       console.error('Instalment schedule creation failed for firm', firmId, schedRes.status, schedRes.raw);
-      await updateFirmById(serviceClient, firmId, { billing_status: 'payment_failed' });
+      // The mandate itself is still valid even though the schedule
+      // failed — record it so we don't lose track of a working
+      // mandate, and so a retry doesn't need to redo the mandate step.
+      await updateFirmById(serviceClient, firmId, {
+        gocardless_mandate_id: mandateId,
+        gocardless_customer_id: customerId || null,
+        billing_status: 'payment_failed',
+      });
       return;
     }
     await updateFirmById(serviceClient, firmId, {
