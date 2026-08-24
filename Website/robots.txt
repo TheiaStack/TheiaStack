@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /login
+Disallow: /platform.html
+
+Sitemap: https://theiastack.com.au/sitemap.xml
