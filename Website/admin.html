@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Theia-Stack — Admin Overview</title>
+<meta name="robots" content="noindex, nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400;1,600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Same core variables as platform.html — kept in sync deliberately so
+   this page reads as part of the same product, not a bolt-on. */
+:root{
+  --navy:#111111;--navy-light:#2C2C2C;--gold:#B83232;--gold-light:#fdf0f0;
+  --cream:#F2F2F2;--white:#ffffff;--border:#D0D0D0;--border-strong:#B0B0B0;
+  --muted:#5A5A5A;--text:#111111;--text-light:#888888;
+  --green:#1a7a46;--green-bg:#e8f5ee;--green-border:#9fe1cb;
+  --amber:#c97d10;--amber-bg:#fdf3e3;--amber-border:#f5c475;
+  --red:#b83232;--red-bg:#fdf0f0;--red-border:#f0b0b0;
+  --radius:10px;--radius-lg:16px;
+  --shadow:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);
+  --font-display:'Lora',Georgia,serif;
+  --font-body:'Inter',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{min-height:100%;font-family:var(--font-body);background:var(--cream);color:var(--text);font-size:14px;line-height:1.6;}
+.header{background:var(--navy);color:#fff;padding:22px 40px;display:flex;align-items:center;justify-content:space-between;}
+.header h1{font-family:var(--font-display);font-size:20px;font-weight:400;}
+.header p{font-size:12px;color:#c8c8c8;margin-top:2px;}
+.wrap{max-width:1100px;margin:0 auto;padding:32px 24px 60px;}
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin-bottom:20px;box-shadow:var(--shadow);}
+.msg{font-size:13px;color:var(--muted);}
+.msg.err{color:var(--red);}
+.summary-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;}
+.summary-tile{background:var(--white);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;box-shadow:var(--shadow);}
+.summary-label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;margin-bottom:8px;}
+.summary-value{font-family:var(--font-display);font-size:26px;font-weight:400;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;padding:10px 14px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);border-bottom:1.5px solid var(--border);font-weight:600;}
+td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+.firm-name{font-weight:500;color:var(--navy);}
+.pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+.pill-green{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);}
+.pill-amber{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border);}
+.pill-red{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border);}
+.pill-grey{background:var(--cream);color:var(--muted);border:1px solid var(--border);}
+.muted{color:var(--text-light);}
+.empty{padding:40px;text-align:center;color:var(--muted);}
+.refresh-btn{padding:9px 18px;border-radius:var(--radius);border:1.5px solid rgba(255,255,255,.3);background:transparent;color:#fff;font-size:13px;font-family:var(--font-body);cursor:pointer;}
+.refresh-btn:hover{background:rgba(255,255,255,.08);}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>Admin Overview</h1>
+    <p>Cross-firm billing &amp; activity — founder-only</p>
+  </div>
+  <button class="refresh-btn" id="refresh-btn">Refresh</button>
+</div>
+
+<div class="wrap">
+  <div id="root">
+    <div class="card"><div class="msg">Loading…</div></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+var SUPABASE_URL = 'https://rkqnrpyctllxcnknjsby.supabase.co';
+var SUPABASE_KEY = 'sb_publishable_7gIWX3E2pS_4UfEKJylqpw_V3CIY1b9';
+var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+var root = document.getElementById('root');
+
+function esc(s){
+  var d = document.createElement('div');
+  d.textContent = (s === null || s === undefined) ? '' : String(s);
+  return d.innerHTML;
+}
+
+function fmtDate(iso){
+  if(!iso) return '—';
+  var d = new Date(iso);
+  if(isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-AU', { day:'numeric', month:'short', year:'numeric' });
+}
+
+function billingPill(status){
+  var map = {
+    active: ['pill-green', 'Active'],
+    pending_mandate: ['pill-amber', 'Pending mandate'],
+    payment_failed: ['pill-red', 'Payment failed'],
+    cancelled: ['pill-grey', 'Cancelled'],
+    no_billing: ['pill-grey', 'No billing']
+  };
+  var v = map[status] || ['pill-grey', status || '—'];
+  return '<span class="pill ' + v[0] + '">' + esc(v[1]) + '</span>';
+}
+
+function reportPill(days){
+  if(days === null || days === undefined) return '<span class="pill pill-grey">No report</span>';
+  if(days < 0) return '<span class="pill pill-red">Expired</span>';
+  if(days <= 30) return '<span class="pill pill-amber">Expires in ' + days + 'd</span>';
+  return '<span class="pill pill-green">Current</span>';
+}
+
+function activityPill(days){
+  if(days === null || days === undefined) return '<span class="pill pill-grey">No activity</span>';
+  if(days > 90) return '<span class="pill pill-red">' + days + 'd ago</span>';
+  if(days > 30) return '<span class="pill pill-amber">' + days + 'd ago</span>';
+  return '<span class="pill pill-green">' + days + 'd ago</span>';
+}
+
+function renderTable(firms){
+  var active = firms.filter(function(f){ return f.billingStatus === 'active'; }).length;
+  var expiringSoon = firms.filter(function(f){ return f.daysToReportExpiry !== null && f.daysToReportExpiry <= 30 && f.daysToReportExpiry >= 0; }).length;
+  var stale = firms.filter(function(f){ return f.daysSinceActivity !== null && f.daysSinceActivity > 90; }).length;
+
+  var html = '';
+  html += '<div class="summary-row">';
+  html += '<div class="summary-tile"><div class="summary-label">Total firms</div><div class="summary-value">' + firms.length + '</div></div>';
+  html += '<div class="summary-tile"><div class="summary-label">Active billing</div><div class="summary-value">' + active + '</div></div>';
+  html += '<div class="summary-tile"><div class="summary-label">Report expiring ≤30d</div><div class="summary-value">' + expiringSoon + '</div></div>';
+  html += '<div class="summary-tile"><div class="summary-label">Inactive 90d+</div><div class="summary-value">' + stale + '</div></div>';
+  html += '</div>';
+
+  html += '<div class="card" style="padding:0;overflow:hidden;">';
+  if(firms.length === 0){
+    html += '<div class="empty">No firms found.</div>';
+  } else {
+    html += '<table><thead><tr>';
+    html += '<th>Firm</th><th>Billing</th><th>Plan</th><th>Report</th><th>Last activity</th><th>Signed up</th>';
+    html += '</tr></thead><tbody>';
+    firms.forEach(function(f){
+      html += '<tr>';
+      html += '<td class="firm-name">' + esc(f.name) + '</td>';
+      html += '<td>' + billingPill(f.billingStatus) + '</td>';
+      html += '<td class="muted">' + esc(f.billingPlan || f.subscriptionTier || '—') + '</td>';
+      html += '<td>' + reportPill(f.daysToReportExpiry) + '</td>';
+      html += '<td>' + activityPill(f.daysSinceActivity) + '</td>';
+      html += '<td class="muted">' + fmtDate(f.createdAt) + '</td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+  }
+  html += '</div>';
+
+  root.innerHTML = html;
+}
+
+function renderError(msg){
+  root.innerHTML = '<div class="card"><div class="msg err">' + esc(msg) + '</div></div>';
+}
+
+async function load(){
+  root.innerHTML = '<div class="card"><div class="msg">Loading…</div></div>';
+  try {
+    var sessionRes = await sb.auth.getSession();
+    var session = sessionRes.data && sessionRes.data.session;
+    if(!session){ window.location.replace('/login'); return; }
+
+    var res = await fetch('/.netlify/functions/admin-firms-overview', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + session.access_token
+      },
+      body: JSON.stringify({})
+    });
+
+    if(res.status === 403){
+      renderError('This page is for the Theia-Stack admin account only.');
+      return;
+    }
+    if(res.status === 401){
+      window.location.replace('/login');
+      return;
+    }
+    if(!res.ok){
+      renderError('Could not load admin data (' + res.status + '). Try refreshing.');
+      return;
+    }
+
+    var data = await res.json();
+    renderTable(data.firms || []);
+  } catch(e){
+    console.error('admin.html load error:', e);
+    renderError('Could not load admin data — check your connection and try again.');
+  }
+}
+
+document.getElementById('refresh-btn').addEventListener('click', load);
+load();
+</script>
+
+</body>
+</html>
