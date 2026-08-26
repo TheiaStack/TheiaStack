@@ -3372,12 +3372,12 @@ function render(){
     var tabs=el('div',{cls:'report-tabs'});
     var tabItems=[
       ['dashboard','Dashboard'],
-      ['billing','Billing'],
       ['findings','Findings'],
       ['recommendations','Recommendations'],
       ['policy','AI policy'],
       ['training','Training ('+(S.staffCompletions.length>0?'✓':countStaffModulesPassed()+'/'+S.modules.length)+')'],
       ['alerts','Alerts ('+S.alerts.filter(function(a){return a.type==='policy';}).length+')'],
+      ['billing','Billing'],
       ['settings','Settings'],
     ];
     tabItems.forEach(function(t){
