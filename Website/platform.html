@@ -738,8 +738,28 @@ var S={
   faqOpen:-1,
   showHistory:false,historyView:'list',historyGroups:null,historyLoading:false,historyError:'',
   historyDetail:null,historyDetailLoading:false,historyDetailError:'',historyOpenGroups:{},
-  showDashboard:false,auditNavOpen:true
+  showDashboard:false,auditNavOpen:true,
+  billingInfo:null,billingInfoLoading:false,billingInfoError:'',
+  billingStartLoading:'',billingStartError:'',
+  billingRedirect:(function(){
+    try{
+      var p=new URLSearchParams(window.location.search);
+      var b=p.get('billing');
+      return (b==='complete'||b==='cancelled')?b:null;
+    }catch(e){return null;}
+  })()
 };
+
+// Clean the ?billing=... param out of the URL immediately so a page
+// refresh doesn't keep re-showing the redirect screen. S.billingRedirect
+// still holds the value for this render cycle.
+if(S.billingRedirect){
+  try{
+    var _bu=new URL(window.location.href);
+    _bu.searchParams.delete('billing');
+    window.history.replaceState({},'',_bu.pathname+_bu.search+_bu.hash);
+  }catch(e){}
+}
 
 function ss(p){Object.assign(S,p);render();}
 
@@ -788,6 +808,133 @@ async function loadAuditSession(){
     PERSIST.forEach(function(f){if(saved[f]!==undefined)S[f]=saved[f];});
     ss({loading:false});
   }catch(e){console.warn('Session load failed:',e);stopLoading();}
+}
+
+/* ── Billing (Section 2, Phase 6) ────────────────────── */
+// Lazy-loaded the first time the billing card is rendered (Settings
+// tab) — same pattern as loadNotifPrefs.
+async function loadBillingInfo(){
+  if(S.billingInfoLoading||S.billingInfo)return;
+  ss({billingInfoLoading:true,billingInfoError:''});
+  try{
+    var hdr=await _authHeader();
+    if(!hdr['Authorization']){ss({billingInfoLoading:false,billingInfoError:'Not signed in.'});return;}
+    hdr['Content-Type']='application/json';
+    var res=await fetch('/.netlify/functions/billing-status',{method:'POST',headers:hdr,body:JSON.stringify({})});
+    var data=await res.json();
+    if(!res.ok)throw new Error(data&&data.error||'Could not load billing details.');
+    ss({billingInfo:data,billingInfoLoading:false});
+  }catch(e){console.error('loadBillingInfo error:',e);ss({billingInfoLoading:false,billingInfoError:e.message||'Could not load billing details.'});}
+}
+
+// Calls gocardless-start-billing.js and redirects the browser to the
+// returned GoCardless hosted flow. Deliberately a full-page redirect
+// (not a fetch-and-render step) since GoCardless's own flow has to
+// run in the top-level browser context.
+async function startBilling(plan){
+  if(S.billingStartLoading)return;
+  ss({billingStartLoading:plan,billingStartError:''});
+  try{
+    var hdr=await _authHeader();
+    if(!hdr['Authorization'])throw new Error('Not signed in.');
+    hdr['Content-Type']='application/json';
+    var res=await fetch('/.netlify/functions/gocardless-start-billing',{method:'POST',headers:hdr,body:JSON.stringify({plan:plan})});
+    var data=await res.json();
+    if(!res.ok||!data.authorisation_url)throw new Error(data&&data.error||'Could not start billing setup. Please try again.');
+    window.location.href=data.authorisation_url;
+  }catch(e){
+    console.error('startBilling error:',e);
+    ss({billingStartLoading:'',billingStartError:e.message||'Could not start billing setup. Please try again.'});
+  }
+}
+
+var BILLING_STATUS_META={
+  no_billing:{label:'No active subscription',bg:'var(--cream)',fg:'var(--muted)',border:'var(--border)'},
+  pending_mandate:{label:'Mandate pending',bg:'var(--amber-bg)',fg:'#7a4a08',border:'var(--amber-border)'},
+  active:{label:'Active',bg:'var(--green-bg)',fg:'#0a5c30',border:'var(--green-border)'},
+  payment_failed:{label:'Payment issue',bg:'var(--red-bg)',fg:'#7a1a1a',border:'var(--red-border)'},
+  cancelled:{label:'Cancelled',bg:'var(--red-bg)',fg:'#7a1a1a',border:'var(--red-border)'}
+};
+
+function renderBillingCard(){
+  var wrap=el('div',{});
+  if(!S.billingInfo&&!S.billingInfoLoading&&!S.billingInfoError){setTimeout(loadBillingInfo,0);}
+
+  if(S.billingInfoLoading&&!S.billingInfo){
+    wrap.appendChild(el('div',{sty:{fontSize:'13px',color:'var(--muted)'}},'Loading billing details\u2026'));
+    return wrap;
+  }
+  if(S.billingInfoError&&!S.billingInfo){
+    wrap.appendChild(el('div',{cls:'settings-msg err'},S.billingInfoError));
+    var retryBtn=el('button',{cls:'btn-secondary btn-sm',sty:{marginTop:'10px'},onclick:function(){ss({billingInfoError:''});loadBillingInfo();}});
+    retryBtn.textContent='Retry';
+    wrap.appendChild(retryBtn);
+    return wrap;
+  }
+
+  var info=S.billingInfo||{};
+  var status=info.billing_status||'no_billing';
+  var meta=BILLING_STATUS_META[status]||BILLING_STATUS_META.no_billing;
+
+  var headerRow=el('div',{sty:{display:'flex',alignItems:'center',gap:'10px',marginBottom:'14px'}});
+  headerRow.appendChild(el('div',{cls:'settings-row-label',sty:{marginBottom:'0'}},'Subscription status'));
+  headerRow.appendChild(el('span',{sty:{display:'inline-block',padding:'4px 12px',borderRadius:'20px',fontSize:'11px',fontWeight:'600',background:meta.bg,color:meta.fg,border:'1px solid '+meta.border}},meta.label));
+  wrap.appendChild(headerRow);
+
+  if(status==='active'){
+    var planLabel=info.billing_plan==='annual'?'Annual \u2014 $2,990/year':(info.billing_plan==='monthly'?'Monthly \u2014 $299/month (12-month minimum)':(info.billing_plan||'\u2014'));
+    var renewalStr=info.next_renewal_date?new Date(info.next_renewal_date+'T00:00:00').toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'}):'\u2014';
+    [['Plan',planLabel],['Renewal date',renewalStr],['Mandate reference',info.gocardless_mandate_id||'\u2014']].forEach(function(r){
+      var row=el('div',{cls:'settings-row'});
+      row.appendChild(el('div',{cls:'settings-row-label',sty:{marginBottom:'0'}},r[0]));
+      row.appendChild(el('div',{sty:{fontSize:'13px',color:'var(--navy)',fontWeight:'500'}},r[1]));
+      wrap.appendChild(row);
+    });
+    wrap.appendChild(el('div',{cls:'settings-row-desc',sty:{marginTop:'12px'}},'Managed via direct debit through GoCardless. For any billing questions, contact hello@theiastack.com.au.'));
+  } else if(status==='pending_mandate'){
+    wrap.appendChild(el('div',{cls:'settings-row-desc'},'Your direct debit mandate is being set up. This usually finalises within a few minutes of completing the GoCardless steps \u2014 refresh this page shortly. If this doesn\u2019t update, contact hello@theiastack.com.au.'));
+  } else if(status==='payment_failed'){
+    wrap.appendChild(el('div',{cls:'settings-row-desc'},'There was an issue processing a payment on your subscription. Contact hello@theiastack.com.au so we can help resolve this.'));
+  } else {
+    if(status==='cancelled'){
+      wrap.appendChild(el('div',{cls:'settings-row-desc',sty:{marginBottom:'14px'}},'Your previous subscription was cancelled. Choose a plan below to resubscribe.'));
+    } else {
+      wrap.appendChild(el('div',{cls:'settings-row-desc',sty:{marginBottom:'14px'}},'Choose a plan to activate your subscription.'));
+    }
+    var planRow=el('div',{sty:{display:'flex',gap:'12px',flexWrap:'wrap'}});
+    var annualBtn=el('button',{cls:'btn-primary btn-sm',onclick:function(){startBilling('annual');}});
+    annualBtn.textContent=S.billingStartLoading==='annual'?'Starting\u2026':'Annual \u2014 $2,990/year';
+    if(S.billingStartLoading)annualBtn.disabled=true;
+    var monthlyBtn=el('button',{cls:'btn-secondary btn-sm',onclick:function(){startBilling('monthly');}});
+    monthlyBtn.textContent=S.billingStartLoading==='monthly'?'Starting\u2026':'Monthly \u2014 $299/month';
+    if(S.billingStartLoading)monthlyBtn.disabled=true;
+    planRow.appendChild(annualBtn);planRow.appendChild(monthlyBtn);
+    wrap.appendChild(planRow);
+  }
+
+  if(S.billingStartError)wrap.appendChild(el('div',{cls:'settings-msg err',sty:{marginTop:'12px'}},S.billingStartError));
+  return wrap;
+}
+
+// Full-screen confirmation shown when the browser lands back on
+// platform.html after the GoCardless hosted flow (?billing=complete
+// or ?billing=cancelled). Replaces the previous bare redirect with
+// no dedicated UI.
+function renderBillingRedirect(){
+  var outer=el('div',{cls:'fade-in',sty:{maxWidth:'560px',margin:'80px auto',padding:'0 20px'}});
+  var card=el('div',{cls:'card',sty:{textAlign:'center'}});
+  if(S.billingRedirect==='complete'){
+    card.appendChild(el('div',{cls:'card-title',sty:{justifyContent:'center'}},'Billing setup submitted'));
+    card.appendChild(el('div',{sty:{fontSize:'14px',color:'var(--muted)',lineHeight:'1.6',marginBottom:'22px'}},'Your direct debit mandate has been submitted to GoCardless. This is usually confirmed within a few minutes \u2014 your subscription status below will update automatically once it\u2019s active.'));
+  } else {
+    card.appendChild(el('div',{cls:'card-title',sty:{justifyContent:'center'}},'Billing setup cancelled'));
+    card.appendChild(el('div',{sty:{fontSize:'14px',color:'var(--muted)',lineHeight:'1.6',marginBottom:'22px'}},'You exited before completing billing setup. No subscription has been started \u2014 you can try again anytime from Settings.'));
+  }
+  var btn=el('button',{cls:'btn-primary',onclick:function(){ss({billingRedirect:null,billingInfo:null});}});
+  btn.textContent='Continue';
+  card.appendChild(btn);
+  outer.appendChild(card);
+  return outer;
 }
 
 /* ── Report history (read-only past audits) ─────────── */
@@ -2891,12 +3038,13 @@ function renderSettings(){
   if(S.settingsPwMsg)pwRow.appendChild(el('div',{cls:'settings-msg '+(S.settingsPwErr?'err':'ok')},S.settingsPwMsg));
   ac.appendChild(pwRow);
 
-  var billWrap=el('div',{sty:{marginTop:'24px',paddingTop:'20px',borderTop:'1px solid var(--border)'}});
-  billWrap.appendChild(el('div',{cls:'settings-row-label'},'Billing details'));
-  billWrap.appendChild(el('div',{cls:'settings-billing-placeholder'},'Billing management is not yet available here \u2014 payment and subscription details will appear once billing integration is complete. In the meantime, contact hello@theiastack.com.au for any billing questions.'));
-  ac.appendChild(billWrap);
-
   wrap.appendChild(ac);
+
+  /* Billing */
+  var bic=el('div',{cls:'card'});
+  bic.appendChild(el('div',{cls:'card-title'},'Billing'));
+  bic.appendChild(renderBillingCard());
+  wrap.appendChild(bic);
 
   return wrap;
 }
@@ -3132,6 +3280,10 @@ function renderHistory(){
 function render(){
   updateSidebar();
   var app=document.getElementById('app');app.innerHTML='';
+
+  if(S.billingRedirect){
+    app.appendChild(renderBillingRedirect());return;
+  }
 
   if(S.loading){
     var sw=el('div',{cls:'spin-full'});sw.appendChild(el('div',{cls:'spinner'}));sw.appendChild(el('div',{cls:'spin-text'},"Analysing your firm's AI health..."));app.appendChild(sw);return;
