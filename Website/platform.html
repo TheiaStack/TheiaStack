@@ -834,6 +834,11 @@ function renderPaywallCard(featureLabel){
   if(S.billingStartLoading)monthlyBtn.disabled=true;
   planRow.appendChild(annualBtn);planRow.appendChild(monthlyBtn);
   wrap.appendChild(planRow);
+  var billingLink=el('div',{sty:{marginTop:'14px'}});
+  var billingLinkBtn=el('button',{cls:'btn-ghost',sty:{border:'none',background:'none',color:'var(--muted)',textDecoration:'underline',padding:'0',cursor:'pointer',fontSize:'12px'},onclick:function(){ss({activeTab:'billing'});}});
+  billingLinkBtn.textContent='See plan details in the Billing tab';
+  billingLink.appendChild(billingLinkBtn);
+  wrap.appendChild(billingLink);
   if(S.billingStartError)wrap.appendChild(el('div',{cls:'settings-msg err',sty:{marginTop:'14px'}},S.billingStartError));
   return wrap;
 }
@@ -3080,12 +3085,6 @@ function renderSettings(){
 
   wrap.appendChild(ac);
 
-  /* Billing */
-  var bic=el('div',{cls:'card'});
-  bic.appendChild(el('div',{cls:'card-title'},'Billing'));
-  bic.appendChild(renderBillingCard());
-  wrap.appendChild(bic);
-
   return wrap;
 }
 
@@ -3373,6 +3372,7 @@ function render(){
     var tabs=el('div',{cls:'report-tabs'});
     var tabItems=[
       ['dashboard','Dashboard'],
+      ['billing','Billing'],
       ['findings','Findings'],
       ['recommendations','Recommendations'],
       ['policy','AI policy'],
@@ -3390,6 +3390,12 @@ function render(){
     if(S.activeTab==='dashboard')rb.style.maxWidth='1240px';
 
     if(S.activeTab==='dashboard'){rb.appendChild(renderDashboard());}
+    if(S.activeTab==='billing'){
+      var bic=el('div',{cls:'card'});
+      bic.appendChild(el('div',{cls:'card-title'},'Billing'));
+      bic.appendChild(renderBillingCard());
+      rb.appendChild(bic);
+    }
     if(S.activeTab==='alerts'){rb.appendChild(renderAlerts());}
     if(S.activeTab==='findings'){
       if(!hasActiveBilling()){
