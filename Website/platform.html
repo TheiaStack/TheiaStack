@@ -879,6 +879,9 @@ function renderBillingCard(){
   var headerRow=el('div',{sty:{display:'flex',alignItems:'center',gap:'10px',marginBottom:'14px'}});
   headerRow.appendChild(el('div',{cls:'settings-row-label',sty:{marginBottom:'0'}},'Subscription status'));
   headerRow.appendChild(el('span',{sty:{display:'inline-block',padding:'4px 12px',borderRadius:'20px',fontSize:'11px',fontWeight:'600',background:meta.bg,color:meta.fg,border:'1px solid '+meta.border}},meta.label));
+  var refreshBtn=el('button',{cls:'btn-secondary btn-sm',sty:{marginLeft:'auto',padding:'6px 12px',fontSize:'12px'},onclick:function(){ss({billingInfo:null,billingInfoError:''});}});
+  refreshBtn.textContent='Refresh';
+  headerRow.appendChild(refreshBtn);
   wrap.appendChild(headerRow);
 
   if(status==='active'){
@@ -892,7 +895,16 @@ function renderBillingCard(){
     });
     wrap.appendChild(el('div',{cls:'settings-row-desc',sty:{marginTop:'12px'}},'Managed via direct debit through GoCardless. For any billing questions, contact hello@theiastack.com.au.'));
   } else if(status==='pending_mandate'){
-    wrap.appendChild(el('div',{cls:'settings-row-desc'},'Your direct debit mandate is being set up. This usually finalises within a few minutes of completing the GoCardless steps \u2014 refresh this page shortly. If this doesn\u2019t update, contact hello@theiastack.com.au.'));
+    wrap.appendChild(el('div',{cls:'settings-row-desc',sty:{marginBottom:'14px'}},'Your direct debit mandate is being set up. If you completed the GoCardless steps, click Refresh above in a minute. If you closed the window before finishing, start again below \u2014 it will replace the pending attempt.'));
+    var planRowP=el('div',{sty:{display:'flex',gap:'12px',flexWrap:'wrap'}});
+    var annualBtnP=el('button',{cls:'btn-primary btn-sm',onclick:function(){startBilling('annual');}});
+    annualBtnP.textContent=S.billingStartLoading==='annual'?'Starting\u2026':'Start again \u2014 Annual';
+    if(S.billingStartLoading)annualBtnP.disabled=true;
+    var monthlyBtnP=el('button',{cls:'btn-secondary btn-sm',onclick:function(){startBilling('monthly');}});
+    monthlyBtnP.textContent=S.billingStartLoading==='monthly'?'Starting\u2026':'Start again \u2014 Monthly';
+    if(S.billingStartLoading)monthlyBtnP.disabled=true;
+    planRowP.appendChild(annualBtnP);planRowP.appendChild(monthlyBtnP);
+    wrap.appendChild(planRowP);
   } else if(status==='payment_failed'){
     wrap.appendChild(el('div',{cls:'settings-row-desc'},'There was an issue processing a payment on your subscription. Contact hello@theiastack.com.au so we can help resolve this.'));
   } else {
