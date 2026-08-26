@@ -810,6 +810,34 @@ async function loadAuditSession(){
   }catch(e){console.warn('Session load failed:',e);stopLoading();}
 }
 
+// True once billing info has loaded and confirms an active subscription.
+// Returns false while still loading or on any non-active status, so
+// gated tabs default to locked until proven otherwise.
+function hasActiveBilling(){
+  return !!(S.billingInfo&&S.billingInfo.billing_status==='active');
+}
+
+// Shown in place of gated tab content (findings, recommendations,
+// policy, training) when the firm has not paid. Reuses the same
+// startBilling() action as the billing card so the buttons here do
+// the same real GoCardless redirect, not a placeholder.
+function renderPaywallCard(featureLabel){
+  var wrap=el('div',{cls:'card',sty:{textAlign:'center',padding:'40px 28px'}});
+  wrap.appendChild(el('div',{cls:'card-title',sty:{justifyContent:'center'}},'Part of your subscription'));
+  wrap.appendChild(el('div',{sty:{fontSize:'14px',color:'var(--muted)',lineHeight:'1.6',marginBottom:'20px',maxWidth:'440px',marginLeft:'auto',marginRight:'auto'}},'Your audit summary is free to run. Subscribing unlocks '+featureLabel+', along with the full report, your AI usage policy, and staff training.'));
+  var planRow=el('div',{sty:{display:'flex',gap:'12px',justifyContent:'center',flexWrap:'wrap'}});
+  var annualBtn=el('button',{cls:'btn-primary btn-sm',onclick:function(){startBilling('annual');}});
+  annualBtn.textContent=S.billingStartLoading==='annual'?'Starting\u2026':'Annual, $2,990/year';
+  if(S.billingStartLoading)annualBtn.disabled=true;
+  var monthlyBtn=el('button',{cls:'btn-secondary btn-sm',onclick:function(){startBilling('monthly');}});
+  monthlyBtn.textContent=S.billingStartLoading==='monthly'?'Starting\u2026':'Monthly, $299/month';
+  if(S.billingStartLoading)monthlyBtn.disabled=true;
+  planRow.appendChild(annualBtn);planRow.appendChild(monthlyBtn);
+  wrap.appendChild(planRow);
+  if(S.billingStartError)wrap.appendChild(el('div',{cls:'settings-msg err',sty:{marginTop:'14px'}},S.billingStartError));
+  return wrap;
+}
+
 /* ── Billing (Section 2, Phase 6) ────────────────────── */
 // Lazy-loaded the first time the billing card is rendered (Settings
 // tab) — same pattern as loadNotifPrefs.
@@ -885,28 +913,28 @@ function renderBillingCard(){
   wrap.appendChild(headerRow);
 
   if(status==='active'){
-    var planLabel=info.billing_plan==='annual'?'Annual \u2014 $2,990/year':(info.billing_plan==='monthly'?'Monthly \u2014 $299/month (12-month minimum)':(info.billing_plan||'\u2014'));
-    var renewalStr=info.next_renewal_date?new Date(info.next_renewal_date+'T00:00:00').toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'}):'\u2014';
-    [['Plan',planLabel],['Renewal date',renewalStr],['Mandate reference',info.gocardless_mandate_id||'\u2014']].forEach(function(r){
+    var planLabel=info.billing_plan==='annual'?'Annual, $2,990 per year':(info.billing_plan==='monthly'?'Monthly, $299 per month (12-month minimum)':(info.billing_plan||'Not set'));
+    var renewalStr=info.next_renewal_date?new Date(info.next_renewal_date+'T00:00:00').toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'}):'Not set';
+    [['Plan',planLabel],['Renewal date',renewalStr],['Mandate reference',info.gocardless_mandate_id||'Not set']].forEach(function(r){
       var row=el('div',{cls:'settings-row'});
       row.appendChild(el('div',{cls:'settings-row-label',sty:{marginBottom:'0'}},r[0]));
       row.appendChild(el('div',{sty:{fontSize:'13px',color:'var(--navy)',fontWeight:'500'}},r[1]));
       wrap.appendChild(row);
     });
-    wrap.appendChild(el('div',{cls:'settings-row-desc',sty:{marginTop:'12px'}},'Managed via direct debit through GoCardless. For any billing questions, contact hello@theiastack.com.au.'));
+    wrap.appendChild(el('div',{cls:'settings-row-desc',sty:{marginTop:'12px'}},'Managed by direct debit through GoCardless. For billing questions, contact accounts@theiastack.com.au.'));
   } else if(status==='pending_mandate'){
-    wrap.appendChild(el('div',{cls:'settings-row-desc',sty:{marginBottom:'14px'}},'Your direct debit mandate is being set up. If you completed the GoCardless steps, click Refresh above in a minute. If you closed the window before finishing, start again below \u2014 it will replace the pending attempt.'));
+    wrap.appendChild(el('div',{cls:'settings-row-desc',sty:{marginBottom:'14px'}},'Your direct debit mandate is being set up. If you completed the GoCardless steps, click Refresh above in a minute. If you closed the window before finishing, start again below. This will replace the pending attempt.'));
     var planRowP=el('div',{sty:{display:'flex',gap:'12px',flexWrap:'wrap'}});
     var annualBtnP=el('button',{cls:'btn-primary btn-sm',onclick:function(){startBilling('annual');}});
-    annualBtnP.textContent=S.billingStartLoading==='annual'?'Starting\u2026':'Start again \u2014 Annual';
+    annualBtnP.textContent=S.billingStartLoading==='annual'?'Starting\u2026':'Start again: Annual';
     if(S.billingStartLoading)annualBtnP.disabled=true;
     var monthlyBtnP=el('button',{cls:'btn-secondary btn-sm',onclick:function(){startBilling('monthly');}});
-    monthlyBtnP.textContent=S.billingStartLoading==='monthly'?'Starting\u2026':'Start again \u2014 Monthly';
+    monthlyBtnP.textContent=S.billingStartLoading==='monthly'?'Starting\u2026':'Start again: Monthly';
     if(S.billingStartLoading)monthlyBtnP.disabled=true;
     planRowP.appendChild(annualBtnP);planRowP.appendChild(monthlyBtnP);
     wrap.appendChild(planRowP);
   } else if(status==='payment_failed'){
-    wrap.appendChild(el('div',{cls:'settings-row-desc'},'There was an issue processing a payment on your subscription. Contact hello@theiastack.com.au so we can help resolve this.'));
+    wrap.appendChild(el('div',{cls:'settings-row-desc'},'There was an issue processing a payment on your subscription. Contact accounts@theiastack.com.au and we will help sort it out.'));
   } else {
     if(status==='cancelled'){
       wrap.appendChild(el('div',{cls:'settings-row-desc',sty:{marginBottom:'14px'}},'Your previous subscription was cancelled. Choose a plan below to resubscribe.'));
@@ -915,10 +943,10 @@ function renderBillingCard(){
     }
     var planRow=el('div',{sty:{display:'flex',gap:'12px',flexWrap:'wrap'}});
     var annualBtn=el('button',{cls:'btn-primary btn-sm',onclick:function(){startBilling('annual');}});
-    annualBtn.textContent=S.billingStartLoading==='annual'?'Starting\u2026':'Annual \u2014 $2,990/year';
+    annualBtn.textContent=S.billingStartLoading==='annual'?'Starting\u2026':'Annual, $2,990/year';
     if(S.billingStartLoading)annualBtn.disabled=true;
     var monthlyBtn=el('button',{cls:'btn-secondary btn-sm',onclick:function(){startBilling('monthly');}});
-    monthlyBtn.textContent=S.billingStartLoading==='monthly'?'Starting\u2026':'Monthly \u2014 $299/month';
+    monthlyBtn.textContent=S.billingStartLoading==='monthly'?'Starting\u2026':'Monthly, $299/month';
     if(S.billingStartLoading)monthlyBtn.disabled=true;
     planRow.appendChild(annualBtn);planRow.appendChild(monthlyBtn);
     wrap.appendChild(planRow);
@@ -937,10 +965,10 @@ function renderBillingRedirect(){
   var card=el('div',{cls:'card',sty:{textAlign:'center'}});
   if(S.billingRedirect==='complete'){
     card.appendChild(el('div',{cls:'card-title',sty:{justifyContent:'center'}},'Billing setup submitted'));
-    card.appendChild(el('div',{sty:{fontSize:'14px',color:'var(--muted)',lineHeight:'1.6',marginBottom:'22px'}},'Your direct debit mandate has been submitted to GoCardless. This is usually confirmed within a few minutes \u2014 your subscription status below will update automatically once it\u2019s active.'));
+    card.appendChild(el('div',{sty:{fontSize:'14px',color:'var(--muted)',lineHeight:'1.6',marginBottom:'22px'}},'Your direct debit mandate has been submitted to GoCardless. This is usually confirmed within a few minutes. Your subscription status below will update automatically once it is active.'));
   } else {
     card.appendChild(el('div',{cls:'card-title',sty:{justifyContent:'center'}},'Billing setup cancelled'));
-    card.appendChild(el('div',{sty:{fontSize:'14px',color:'var(--muted)',lineHeight:'1.6',marginBottom:'22px'}},'You exited before completing billing setup. No subscription has been started \u2014 you can try again anytime from Settings.'));
+    card.appendChild(el('div',{sty:{fontSize:'14px',color:'var(--muted)',lineHeight:'1.6',marginBottom:'22px'}},'You exited before completing billing setup. No subscription has been started. You can try again anytime from Settings.'));
   }
   var btn=el('button',{cls:'btn-primary',onclick:function(){ss({billingRedirect:null,billingInfo:null});}});
   btn.textContent='Continue';
@@ -3313,6 +3341,11 @@ function render(){
     var r=S.report;var sp=spend();
     var wrap=el('div',{});
 
+    // Kick off the billing status fetch as soon as the report exists,
+    // not only when Settings is opened, so the paywall below has data
+    // to check against by the time the person switches tabs.
+    if(!S.billingInfo&&!S.billingInfoLoading&&!S.billingInfoError){setTimeout(loadBillingInfo,0);}
+
     // Hero
     var hero=el('div',{cls:'report-hero'});
     var htop=el('div',{cls:'report-hero-top',sty:{marginBottom:'0'}});
@@ -3359,19 +3392,30 @@ function render(){
     if(S.activeTab==='dashboard'){rb.appendChild(renderDashboard());}
     if(S.activeTab==='alerts'){rb.appendChild(renderAlerts());}
     if(S.activeTab==='findings'){
+      if(!hasActiveBilling()){
+        rb.appendChild(renderPaywallCard('your full findings'));
+      } else {
       (r.keyFindings||[]).forEach(function(f,i){
         var fc=el('div',{cls:'finding'});fc.appendChild(el('div',{cls:'finding-num'},String(i+1)));fc.appendChild(el('div',{cls:'finding-text'},f));rb.appendChild(fc);
       });
+      }
     }
     if(S.activeTab==='recommendations'){
+      if(!hasActiveBilling()){
+        rb.appendChild(renderPaywallCard('your recommendations'));
+      } else {
       (r.recommendations||[]).forEach(function(rec){
         var rc=el('div',{cls:'rec'});
         var rh=el('div',{cls:'rec-header'});rh.appendChild(el('span',{cls:'rec-title'},rec.title));rh.appendChild(el('span',{cls:'pri-tag',sty:{background:pcol(rec.priority)+'22',color:pcol(rec.priority)}},rec.priority));rc.appendChild(rh);
         rc.appendChild(el('div',{cls:'rec-desc'},rec.description));
         rb.appendChild(rc);
       });
+      }
     }
     if(S.activeTab==='policy'){
+      if(!hasActiveBilling()){
+        rb.appendChild(renderPaywallCard('your AI usage policy'));
+      } else {
       if(!S.policy&&!S.policyLoading){
         var gp2=el('div',{cls:'generate-prompt'});
         var gi=el('div',{cls:'generate-prompt-icon'});gi.innerHTML='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>';
@@ -3423,8 +3467,15 @@ function render(){
         });
         rb.appendChild(pb2);
       }
+      }
     }
-    if(S.activeTab==='training'){try{rb.appendChild(renderTraining());}catch(e){console.error('renderTraining error:',e);rb.appendChild(el('div',{sty:{padding:'24px',color:'var(--muted)',fontSize:'13px'}},'Training tab encountered an error. Please refresh the page.'));}}
+    if(S.activeTab==='training'){
+      if(!hasActiveBilling()){
+        rb.appendChild(renderPaywallCard('staff training'));
+      } else {
+      try{rb.appendChild(renderTraining());}catch(e){console.error('renderTraining error:',e);rb.appendChild(el('div',{sty:{padding:'24px',color:'var(--muted)',fontSize:'13px'}},'Training tab encountered an error. Please refresh the page.'));}
+      }
+    }
     if(S.activeTab==='settings'){try{rb.appendChild(renderSettings());}catch(e){console.error('renderSettings error:',e);rb.appendChild(el('div',{sty:{padding:'24px',color:'var(--muted)',fontSize:'13px'}},'Settings tab encountered an error. Please refresh the page.'));}}
 
     wrap.appendChild(rb);
