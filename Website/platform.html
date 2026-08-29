@@ -826,6 +826,21 @@ async function loadAuditSession(){
 function hasActiveBilling(){
   return !!(S.billingInfo&&S.billingInfo.billing_status==='active');
 }
+// True until we've either received a billing status or definitively failed
+// to fetch one. Gated tabs use this to avoid flashing the paywall card on
+// every load/refresh before the async billing check has actually resolved —
+// hasActiveBilling() alone can't tell "not active" apart from "not checked yet".
+function billingStatusPending(){
+  return !S.billingInfo&&!S.billingInfoError;
+}
+// Neutral placeholder shown in gated tabs while billing status is still
+// being confirmed, so we're not implying "you need to subscribe" before we
+// actually know that.
+function renderBillingCheckingCard(){
+  var wrap=el('div',{cls:'card',sty:{textAlign:'center',padding:'40px 28px'}});
+  wrap.appendChild(el('div',{sty:{fontSize:'13px',color:'var(--muted)'}},'Checking your subscription\u2026'));
+  return wrap;
+}
 
 // Shown in place of gated tab content (findings, recommendations,
 // policy, training) when the firm has not paid. Reuses the same
@@ -3411,7 +3426,9 @@ function render(){
     }
     if(S.activeTab==='alerts'){rb.appendChild(renderAlerts());}
     if(S.activeTab==='findings'){
-      if(!hasActiveBilling()){
+      if(billingStatusPending()){
+        rb.appendChild(renderBillingCheckingCard());
+      } else if(!hasActiveBilling()){
         rb.appendChild(renderPaywallCard('your full findings'));
       } else {
       (r.keyFindings||[]).forEach(function(f,i){
@@ -3420,7 +3437,9 @@ function render(){
       }
     }
     if(S.activeTab==='recommendations'){
-      if(!hasActiveBilling()){
+      if(billingStatusPending()){
+        rb.appendChild(renderBillingCheckingCard());
+      } else if(!hasActiveBilling()){
         rb.appendChild(renderPaywallCard('your recommendations'));
       } else {
       (r.recommendations||[]).forEach(function(rec){
@@ -3432,7 +3451,9 @@ function render(){
       }
     }
     if(S.activeTab==='policy'){
-      if(!hasActiveBilling()){
+      if(billingStatusPending()){
+        rb.appendChild(renderBillingCheckingCard());
+      } else if(!hasActiveBilling()){
         rb.appendChild(renderPaywallCard('your AI usage policy'));
       } else {
       if(!S.policy&&!S.policyLoading){
@@ -3489,7 +3510,9 @@ function render(){
       }
     }
     if(S.activeTab==='training'){
-      if(!hasActiveBilling()){
+      if(billingStatusPending()){
+        rb.appendChild(renderBillingCheckingCard());
+      } else if(!hasActiveBilling()){
         rb.appendChild(renderPaywallCard('staff training'));
       } else {
       try{rb.appendChild(renderTraining());}catch(e){console.error('renderTraining error:',e);rb.appendChild(el('div',{sty:{padding:'24px',color:'var(--muted)',fontSize:'13px'}},'Training tab encountered an error. Please refresh the page.'));}
