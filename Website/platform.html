@@ -818,6 +818,7 @@ async function loadAuditSession(){
     if(res.error||!res.data||!res.data.session_data){stopLoading();return;}
     var saved=res.data.session_data;
     PERSIST.forEach(function(f){if(saved[f]!==undefined)S[f]=saved[f];});
+    S.activeTab='dashboard'; // always land on Dashboard on sign-in, regardless of last-viewed tab
     ss({loading:false});
   }catch(e){console.warn('Session load failed:',e);stopLoading();}
 }
@@ -1075,7 +1076,8 @@ ss=function(p){
   _ssSave(p);
   if(p.step!==undefined||p.report!==undefined||p.policy!==undefined||
      p.modules!==undefined||p.goals!==undefined||p.tools!==undefined||
-     p.staffCompletions!==undefined||p.passThreshold!==undefined||p.questionsPerModule!==undefined){
+     p.staffCompletions!==undefined||p.passThreshold!==undefined||p.questionsPerModule!==undefined||
+     p.activeTab!==undefined){
     if(_saveTimer)clearTimeout(_saveTimer);
     _saveTimer=setTimeout(saveAuditSession,1000);
   }
