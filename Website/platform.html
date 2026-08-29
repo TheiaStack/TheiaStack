@@ -1349,8 +1349,8 @@ async function genReport(){
     var calculatedRisk=calcRiskLevel();
     var ctx='Firm: '+S.firmName+', '+S.staffCount+' staff. Practice areas: '+S.practiceAreas.join(', ')+'. Software: '+S.software.join(', ')+'. AI tools: '+S.tools.map(function(t){return (t.name||'unnamed')+' ($'+(t.cost||0)+'/mo, use: '+(t.useCase||'unspecified')+')'}).join('; ')+'. Monthly AI spend: $'+sp.toFixed(0)+'. Client data accessed via AI: '+S.clientData+'. Data storage location: '+S.dataStorage+'. Existing AI policy: '+S.hasPolicy+'. Existing staff training: '+S.hasTraining+'. Pain points: '+S.painPoints.join(', ')+'. Goals: '+S.goals+'. Concerns: '+S.concerns.join(', ')+'. Pre-assessed risk level: '+calculatedRisk+'.';
     var auCtx='Australian compliance context: Privacy Act 1988 APPs apply to all personal information in AI systems. Privacy and Other Legislation Amendment Act 2024 (Dec 2024) introduces transparency requirements for automated decisions. OAIC Oct 2024 guidance requires AI vendor due diligence. National AI Centre AI6 Guidance (Oct 2025) has 6 essential practices. Legal Profession Uniform Law obligations on client confidentiality apply regardless of tool used.';
-    var schema='Return JSON: {"riskSummary":"2 sentences based strictly on the information provided above, consistent with the pre-assessed risk level of '+calculatedRisk+' — cite specific AU obligations that apply to these tools and this firm","keyFindings":[{"section":"Firm profile","text":"one finding specific to the firm\'s size, practice areas, or software stack, based only on information above"},{"section":"AI tool stack","text":"one finding specific to the tools detected and how they are used or costed, based only on information above"},{"section":"Risk & compliance","text":"one finding specific to client data handling, data storage, existing policy, or existing training, based only on information above"},{"section":"Goals & concerns","text":"one finding specific to what the firm wants to achieve or is worried about, based only on information above"}],"recommendations":[{"title":"t","description":"one sentence — actionable step this firm can take","priority":"Immediate|Short-term|Long-term"},{"title":"t","description":"s","priority":"Immediate|Short-term|Long-term"},{"title":"t","description":"s","priority":"Immediate|Short-term|Long-term"}]}';
-    var systemPrompt='You are an AI compliance specialist for Australian law firms. Output ONLY valid JSON. CRITICAL RULES: (1) Base every finding and recommendation ONLY on the information explicitly provided — do not invent staff names, incident details, specific settings, or any information not stated. (2) If the firm has not confirmed a detail, do not assume it. (3) Every finding must be directly evidenced by something in the firm data provided. (4) The risk level has already been determined — write findings and recommendations consistent with a '+calculatedRisk+' risk position. (5) keyFindings must contain exactly one entry per section listed in the schema (Firm profile, AI tool stack, Risk & compliance, Goals & concerns) — each grounded specifically in that section\'s own information, not a generic restatement of the risk summary. If a section has genuinely little information to draw on, say so plainly in that section\'s finding rather than inventing detail.';
+    var schema='Return JSON: {"riskSummary":"2 sentences based strictly on the information provided above, consistent with the pre-assessed risk level of '+calculatedRisk+' — cite specific AU obligations that apply to these tools and this firm","keyFindings":[{"section":"Firm profile","text":"one finding specific to the firm\'s size, practice areas, or software stack, based only on information above","basis":"short phrase naming exactly which audit answer(s) this finding draws on, e.g. \'your firm profile step (staff count, practice areas)\'"},{"section":"AI tool stack","text":"one finding specific to the tools detected and how they are used or costed, based only on information above","basis":"short phrase naming exactly which audit answer(s) this finding draws on, e.g. \'your AI stack step (2 tools recorded)\'"},{"section":"Risk & compliance","text":"one finding specific to client data handling, data storage, existing policy, or existing training, based only on information above","basis":"short phrase naming exactly which audit answer(s) this finding draws on"},{"section":"Goals & concerns","text":"one finding specific to what the firm wants to achieve or is worried about, based only on information above","basis":"short phrase naming exactly which audit answer(s) this finding draws on"}],"recommendations":[{"title":"t","description":"one sentence — actionable step this firm can take","priority":"Immediate|Short-term|Long-term","basis":"short phrase naming exactly which audit answer(s) this recommendation is based on"},{"title":"t","description":"s","priority":"Immediate|Short-term|Long-term","basis":"short phrase naming exactly which audit answer(s) this recommendation is based on"},{"title":"t","description":"s","priority":"Immediate|Short-term|Long-term","basis":"short phrase naming exactly which audit answer(s) this recommendation is based on"}]}';
+    var systemPrompt='You are an AI compliance specialist for Australian law firms. Output ONLY valid JSON. CRITICAL RULES: (1) Base every finding and recommendation ONLY on the information explicitly provided — do not invent staff names, incident details, specific settings, or any information not stated. (2) If the firm has not confirmed a detail, do not assume it. (3) Every finding must be directly evidenced by something in the firm data provided. (4) The risk level has already been determined — write findings and recommendations consistent with a '+calculatedRisk+' risk position. (5) keyFindings must contain exactly one entry per section listed in the schema (Firm profile, AI tool stack, Risk & compliance, Goals & concerns) — each grounded specifically in that section\'s own information, not a generic restatement of the risk summary. If a section has genuinely little information to draw on, say so plainly in that section\'s finding rather than inventing detail. (6) Every \'basis\' field must name the actual specific audit answer(s) that produced that finding or recommendation — under 15 words, no vague phrases like \'based on the audit\' or \'general best practice\'.';
     var raw=await callClaudeJSON(systemPrompt,ctx+' '+auCtx+' '+schema,2000);
     var r=parseJSON(raw);
     if(!r||!r.riskSummary)throw new Error('Invalid report JSON');
@@ -3267,7 +3267,9 @@ function renderHistory(){
           var ftext=el('div',{cls:'finding-text'});
           if(f&&f.text){if(f.section){ftext.appendChild(el('div',{sty:{fontSize:'10px',fontWeight:'700',letterSpacing:'.08em',textTransform:'uppercase',color:'var(--muted)',marginBottom:'3px'}},f.section));}ftext.appendChild(document.createTextNode(f.text));}
           else{ftext.textContent=f;}
-          fc.appendChild(ftext);mb.appendChild(fc);
+          fc.appendChild(ftext);
+          addTileTooltip(fc,f&&f.basis?'Based on '+f.basis+'.':'Generated from this audit\'s answers.');
+          mb.appendChild(fc);
         });
       }
 
@@ -3278,6 +3280,7 @@ function renderHistory(){
           var rc2=el('div',{cls:'rec'});
           var rh=el('div',{cls:'rec-header'});rh.appendChild(el('span',{cls:'rec-title'},rec.title));rh.appendChild(el('span',{cls:'pri-tag',sty:{background:pcol(rec.priority)+'22',color:pcol(rec.priority)}},rec.priority));rc2.appendChild(rh);
           rc2.appendChild(el('div',{cls:'rec-desc'},rec.description));
+          addTileTooltip(rc2,rec&&rec.basis?'Based on '+rec.basis+'.':'Generated from this audit\'s answers.');
           mb.appendChild(rc2);
         });
       }
@@ -3436,12 +3439,20 @@ function render(){
       } else if(!hasActiveBilling()){
         rb.appendChild(renderPaywallCard('your full findings'));
       } else {
+      var methRow=el('div',{sty:{display:'flex',alignItems:'center',gap:'6px',marginBottom:'16px'}});
+      var infoIcon=el('span',{sty:{display:'inline-flex',alignItems:'center',justifyContent:'center',width:'16px',height:'16px',borderRadius:'50%',border:'1px solid var(--border)',fontSize:'10px',fontWeight:'700',color:'var(--muted)',flexShrink:'0',cursor:'default'}},'i');
+      addTileTooltip(infoIcon,'Each finding is generated by analysing your specific audit answers — firm profile, tool stack, data handling, and goals — against current Australian Privacy Act, Legal Profession Uniform Law, and AI compliance guidance. Nothing here is generic; it\'s specific to what you entered.');
+      methRow.appendChild(infoIcon);
+      methRow.appendChild(el('span',{sty:{fontSize:'12px',color:'var(--muted)'}},'How these findings were generated'));
+      rb.appendChild(methRow);
       (r.keyFindings||[]).forEach(function(f,i){
         var fc=el('div',{cls:'finding'});fc.appendChild(el('div',{cls:'finding-num'},String(i+1)));
         var ftext=el('div',{cls:'finding-text'});
         if(f&&f.text){if(f.section){ftext.appendChild(el('div',{sty:{fontSize:'10px',fontWeight:'700',letterSpacing:'.08em',textTransform:'uppercase',color:'var(--muted)',marginBottom:'3px'}},f.section));}ftext.appendChild(document.createTextNode(f.text));}
         else{ftext.textContent=f;}
-        fc.appendChild(ftext);rb.appendChild(fc);
+        fc.appendChild(ftext);
+        addTileTooltip(fc,f&&f.basis?'Based on '+f.basis+'.':'Generated from your audit answers.');
+        rb.appendChild(fc);
       });
       }
     }
@@ -3476,6 +3487,7 @@ function render(){
         rh.appendChild(titleEl);rh.appendChild(el('span',{cls:'pri-tag',sty:{background:pcol(rec.priority)+'22',color:pcol(rec.priority)}},rec.priority));body.appendChild(rh);
         body.appendChild(el('div',{cls:'rec-desc'},rec.description));
         rc.appendChild(body);
+        addTileTooltip(rc,rec&&rec.basis?'Based on '+rec.basis+'.':'Generated from your audit answers.');
         rb.appendChild(rc);
       });
       }
