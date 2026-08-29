@@ -813,12 +813,24 @@ async function loadAuditSession(){
   function stopLoading(){ss({loading:false});}
   if(!window._sbClient||!window.THEIA_USER){stopLoading();return;}
   var fid=window.THEIA_USER.firmId;if(!fid){stopLoading();return;}
+  // Distinguish a genuine sign-in from a plain page refresh while already
+  // signed in — both run through this same boot path with no other signal
+  // to tell them apart. sessionStorage persists across refreshes within the
+  // same tab but is cleared on a real sign-out (see handleLogout) or a fresh
+  // tab/browser session, so its absence here means this is a genuine sign-in.
+  var isFreshSignIn=false;
+  try{
+    if(!sessionStorage.getItem('theia_session_active')){
+      isFreshSignIn=true;
+      sessionStorage.setItem('theia_session_active','1');
+    }
+  }catch(e){}
   try{
     var res=await window._sbClient.from('audit_sessions').select('session_data').eq('firm_id',fid).maybeSingle();
     if(res.error||!res.data||!res.data.session_data){stopLoading();return;}
     var saved=res.data.session_data;
     PERSIST.forEach(function(f){if(saved[f]!==undefined)S[f]=saved[f];});
-    S.activeTab='dashboard'; // always land on Dashboard on sign-in, regardless of last-viewed tab
+    if(isFreshSignIn)S.activeTab='dashboard'; // only override on a genuine sign-in, not a refresh
     ss({loading:false});
   }catch(e){console.warn('Session load failed:',e);stopLoading();}
 }
@@ -1085,6 +1097,7 @@ ss=function(p){
 
 window.handleLogout=async function(){
   try{if(window._sbClient)await window._sbClient.auth.signOut();}catch(e){}
+  try{sessionStorage.removeItem('theia_session_active');}catch(e){}
   window.location.replace('/login');
 };
 function tog(arr,v){return arr.indexOf(v)>-1?arr.filter(function(x){return x!==v;}):arr.concat([v]);}
