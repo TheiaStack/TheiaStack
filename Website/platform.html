@@ -763,6 +763,16 @@ if(S.billingRedirect){
 
 function ss(p){Object.assign(S,p);render();}
 
+// render() rebuilds the whole app tree on every state change, including a
+// single pill/option click. Several wrappers carry a 'fade-in' CSS animation
+// class, which — since they're recreated as brand-new DOM nodes every render —
+// replayed on every single interaction, producing a visible flash. This
+// tracks which "view" (step, tab, or standalone screen) was last shown, so
+// fade-in only plays when the view genuinely changes, not on every keystroke
+// or option toggle within the same view.
+var _lastViewKey=null;
+function isNewView(key){var isNew=(_lastViewKey!==key);_lastViewKey=key;return isNew;}
+
 function applyContrast(mode){
   try{document.body.classList.toggle('high-contrast',mode==='high');}catch(e){}
 }
@@ -966,7 +976,7 @@ function renderBillingCard(){
 // or ?billing=cancelled). Replaces the previous bare redirect with
 // no dedicated UI.
 function renderBillingRedirect(){
-  var outer=el('div',{cls:'fade-in',sty:{maxWidth:'560px',margin:'80px auto',padding:'0 20px'}});
+  var outer=el('div',{cls:(isNewView('billing-redirect')?'fade-in':''),sty:{maxWidth:'560px',margin:'80px auto',padding:'0 20px'}});
   var card=el('div',{cls:'card',sty:{textAlign:'center'}});
   if(S.billingRedirect==='complete'){
     card.appendChild(el('div',{cls:'card-title',sty:{justifyContent:'center'}},'Billing setup submitted'));
@@ -2022,11 +2032,14 @@ function lookupTool(toolName,idx){
 function applyDetected(){
   var merged=S.detected.map(function(t){return{name:t.name,cost:String(t.estimatedMonthly||''),useCase:''};});
   S.checklist.forEach(function(c){if(!S.detected.find(function(d){return d.name===c;}))merged.push({name:c,cost:'',useCase:''});});
-  // Pre-populate toolLookups from any search results stored in toolSearchHints
+  // Pre-populate toolLookups from any search results stored in toolSearchHints.
+  // Built fresh each time (not carried over from the previous tools array) so
+  // a tool at a given array position never inherits stale lookup data left
+  // behind by whatever tool used to occupy that same index.
   var hints=S.toolSearchHints||{};
-  var lookups=Object.assign({},S.toolLookups||{});
+  var lookups={};
   merged.forEach(function(tool,i){
-    if(hints[tool.name]&&!lookups[i]){
+    if(hints[tool.name]){
       lookups[i]={status:'done',data:hints[tool.name]};
     }
   });
@@ -2164,7 +2177,7 @@ function updateSidebar(){
 }
 
 function renderTraining(){
-  var wrap=el('div',{cls:'fade-in'});
+  var wrap=el('div',{});
 
   // Share link card — shown when modules exist
   if(S.modules&&S.modules.length&&window.THEIA_USER&&window.THEIA_USER.firmId){
@@ -2725,7 +2738,7 @@ function staffQuizPass(mi){
 }
 
 function renderDashboard(){
-  var wrap=el('div',{cls:'fade-in'});
+  var wrap=el('div',{});
   var score=calcHealthScore();
   var scorecol=score>=80?'var(--green)':score>=50?'var(--amber)':'var(--red)';
   var scoreLabel=score>=80?'Compliant':score>=50?'Needs attention':'At risk';
@@ -2901,7 +2914,7 @@ function renderDashboard(){
 }
 
 function renderAlerts(){
-  var wrap=el('div',{cls:'fade-in'});
+  var wrap=el('div',{});
   wrap.appendChild(el('p',{sty:{fontSize:'14px',color:'var(--muted)',marginBottom:'20px',lineHeight:'1.6'}},'Your AI tools are monitored continuously. Alerts are generated when tools update their features, change data handling terms, or are flagged for compliance issues.'));
   S.alerts.forEach(function(alert){
     var ai=el('div',{cls:'alert-item'});
@@ -2926,7 +2939,7 @@ function renderAlerts(){
 }
 
 function renderSettings(){
-  var wrap=el('div',{cls:'fade-in'});
+  var wrap=el('div',{});
 
   /* Display card — contrast mode */
   var dc=el('div',{cls:'card'});
@@ -3089,7 +3102,7 @@ function renderSettings(){
 }
 
 function renderDashboardEmptyState(){
-  var wrap=el('div',{cls:'fade-in'});
+  var wrap=el('div',{cls:(isNewView('dashboard-empty')?'fade-in':'')});
   var mh=el('div',{cls:'main-header'});
   var mhl=el('div',{cls:'main-header-left'});
   mhl.appendChild(el('h1',{},'Dashboard'));
@@ -3110,7 +3123,7 @@ function renderDashboardEmptyState(){
 }
 
 function renderHistory(){
-  var wrap=el('div',{cls:'fade-in'});
+  var wrap=el('div',{cls:(isNewView('history-'+(S.historyView||'list'))?'fade-in':'')});
 
   var mh=el('div',{cls:'main-header'});
   var mhl=el('div',{cls:'main-header-left'});
@@ -3386,7 +3399,7 @@ function render(){
     });
     wrap.appendChild(tabs);
 
-    var rb=el('div',{cls:'report-body fade-in'});
+    var rb=el('div',{cls:'report-body'+(isNewView('report-'+S.activeTab)?' fade-in':'')});
     if(S.activeTab==='dashboard')rb.style.maxWidth='1240px';
 
     if(S.activeTab==='dashboard'){rb.appendChild(renderDashboard());}
@@ -3500,7 +3513,7 @@ function render(){
   if(stepIdx===1&&S.detectMethod==='billing'&&!S.detected.length){var gb2=el('button',{cls:'btn-ghost',onclick:function(){S.billingText=EXAMPLE_BILLING;render();setTimeout(function(){runDetect();},300);}});gb2.textContent='Load example billing data';mh.appendChild(gb2);}
   app.appendChild(mh);
 
-  var mb=el('div',{cls:'main-body fade-in'});
+  var mb=el('div',{cls:'main-body'+(isNewView('audit-step-'+stepIdx)?' fade-in':'')});
   // Edit mode banner when navigating back to a completed step
   if(S.report&&stepIdx>=0&&stepIdx<=5){
     var editBanner=el('div',{sty:{display:'flex',alignItems:'center',gap:'10px',padding:'10px 16px',background:'rgba(184,50,50,.06)',border:'1px solid rgba(184,50,50,.2)',borderRadius:'10px',fontSize:'13px',color:'var(--muted)',marginBottom:'16px'}});
@@ -3762,9 +3775,8 @@ function render(){
         ni.addEventListener('blur',function(){
           var nm=S.tools[idx].name;
           if(nm&&nm.length>2){
-            var known=COMMON_TOOLS.some(function(t){return t.toLowerCase()===nm.toLowerCase();});
             var already=S.toolLookups[idx]&&S.toolLookups[idx].data&&(S.toolLookups[idx].data.name||'').toLowerCase()===nm.toLowerCase();
-            if(!known&&!already){lookupTool(nm,idx);}else{render();}
+            if(!already){lookupTool(nm,idx);}else{render();}
           }else{render();}
         });
       })(i);
