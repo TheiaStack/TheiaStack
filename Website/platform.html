@@ -1086,10 +1086,14 @@ function toggleHistoryGroup(key){
 var _ssSave=ss;
 ss=function(p){
   _ssSave(p);
+  if(p.activeTab!==undefined){
+    // Tab switches save immediately, not debounced — waiting risked a quick
+    // refresh landing on the previous tab because the save hadn't fired yet.
+    saveAuditSession();
+  }
   if(p.step!==undefined||p.report!==undefined||p.policy!==undefined||
      p.modules!==undefined||p.goals!==undefined||p.tools!==undefined||
-     p.staffCompletions!==undefined||p.passThreshold!==undefined||p.questionsPerModule!==undefined||
-     p.activeTab!==undefined){
+     p.staffCompletions!==undefined||p.passThreshold!==undefined||p.questionsPerModule!==undefined){
     if(_saveTimer)clearTimeout(_saveTimer);
     _saveTimer=setTimeout(saveAuditSession,1000);
   }
@@ -1366,7 +1370,7 @@ async function genReport(){
     var ctx='Firm: '+S.firmName+', '+S.staffCount+' staff. Practice areas: '+S.practiceAreas.join(', ')+'. Software: '+S.software.join(', ')+'. AI tools: '+S.tools.map(function(t){return (t.name||'unnamed')+' ($'+(t.cost||0)+'/mo, use: '+(t.useCase||'unspecified')+')'}).join('; ')+'. Monthly AI spend: $'+sp.toFixed(0)+'. Client data accessed via AI: '+S.clientData+'. Data storage location: '+S.dataStorage+'. Existing AI policy: '+S.hasPolicy+'. Existing staff training: '+S.hasTraining+'. Pain points: '+S.painPoints.join(', ')+'. Goals: '+S.goals+'. Concerns: '+S.concerns.join(', ')+'. Pre-assessed risk level: '+calculatedRisk+'.';
     var auCtx='Australian compliance context: Privacy Act 1988 APPs apply to all personal information in AI systems. Privacy and Other Legislation Amendment Act 2024 (Dec 2024) introduces transparency requirements for automated decisions. OAIC Oct 2024 guidance requires AI vendor due diligence. National AI Centre AI6 Guidance (Oct 2025) has 6 essential practices. Legal Profession Uniform Law obligations on client confidentiality apply regardless of tool used.';
     var schema='Return JSON: {"riskSummary":"2 sentences based strictly on the information provided above, consistent with the pre-assessed risk level of '+calculatedRisk+' — cite specific AU obligations that apply to these tools and this firm","keyFindings":[{"section":"Firm profile","text":"one finding specific to the firm\'s size, practice areas, or software stack, based only on information above","basis":"short phrase naming exactly which audit answer(s) this finding draws on, e.g. \'your firm profile step (staff count, practice areas)\'"},{"section":"AI tool stack","text":"one finding specific to the tools detected and how they are used or costed, based only on information above","basis":"short phrase naming exactly which audit answer(s) this finding draws on, e.g. \'your AI stack step (2 tools recorded)\'"},{"section":"Risk & compliance","text":"one finding specific to client data handling, data storage, existing policy, or existing training, based only on information above","basis":"short phrase naming exactly which audit answer(s) this finding draws on"},{"section":"Goals & concerns","text":"one finding specific to what the firm wants to achieve or is worried about, based only on information above","basis":"short phrase naming exactly which audit answer(s) this finding draws on"}],"recommendations":[{"title":"t","description":"one sentence — actionable step this firm can take","priority":"Immediate|Short-term|Long-term","relatedSection":"Firm profile|AI tool stack|Risk & compliance|Goals & concerns|General best practice","basis":"short phrase naming exactly which finding/audit answer this is based on, or which specific guidance (e.g. \'OAIC Oct 2024 vendor due diligence guidance\', \'National AI Centre AI6 Guidance\') if not tied to one finding"}, "...as many further recommendation objects, in the same shape, as are genuinely warranted — see rule (7)"]}';
-    var systemPrompt='You are an AI compliance specialist for Australian law firms. Output ONLY valid JSON. CRITICAL RULES: (1) Base every finding and recommendation ONLY on the information explicitly provided — do not invent staff names, incident details, specific settings, or any information not stated. (2) If the firm has not confirmed a detail, do not assume it. (3) Every finding must be directly evidenced by something in the firm data provided. (4) The risk level has already been determined — write findings and recommendations consistent with a '+calculatedRisk+' risk position. (5) keyFindings must contain exactly one entry per section listed in the schema (Firm profile, AI tool stack, Risk & compliance, Goals & concerns) — each grounded specifically in that section\'s own information, not a generic restatement of the risk summary. If a section has genuinely little information to draw on, say so plainly in that section\'s finding rather than inventing detail. (6) Every \'basis\' field must name the actual specific audit answer(s), finding, or named guidance document that produced that finding or recommendation — under 15 words, no vague unattributed phrases like \'based on the audit\' or \'industry standard\'. (7) recommendations is NOT a fixed length — return however many distinct, genuinely useful recommendations this specific firm\'s situation warrants (typically 2 to 8), no padding to reach a round number and no artificial cap at one per section. Where a finding above reveals a real gap, recommend fixing it (relatedSection = that finding\'s section). Where your own knowledge of what a safe, well-run Australian law firm should be doing points to something this firm is missing that the audit did not directly surface — e.g. reviewing vendor terms periodically, keeping an incident response contact, refreshing training when tools change — include it too (relatedSection = \'General best practice\'), but only if it is genuinely relevant to this firm\'s actual tools, size, and practice areas, and cite the specific guidance it comes from in \'basis\'. Never invent a recommendation just to fill space, and never recommend something already confirmed as already in place.';
+    var systemPrompt='You are an AI compliance specialist for Australian law firms. Output ONLY valid JSON. CRITICAL RULES: (1) Base every finding and recommendation ONLY on the information explicitly provided — do not invent staff names, incident details, specific settings, or any information not stated. (2) If the firm has not confirmed a detail, do not assume it. (3) Every finding must be directly evidenced by something in the firm data provided. (4) The risk level has already been determined — write findings and recommendations consistent with a '+calculatedRisk+' risk position. (5) keyFindings must contain exactly one entry per section listed in the schema (Firm profile, AI tool stack, Risk & compliance, Goals & concerns) — each grounded specifically in that section\'s own information, not a generic restatement of the risk summary. If a section has genuinely little information to draw on, say so plainly in that section\'s finding rather than inventing detail. (6) Every \'basis\' field must name the actual specific audit answer(s), finding, or named guidance document that produced that finding or recommendation — under 15 words, no vague unattributed phrases like \'based on the audit\' or \'industry standard\'. (7) recommendations is NOT a fixed length — return however many distinct, genuinely useful recommendations this specific firm\'s situation warrants (typically 2 to 8), no padding to reach a round number and no artificial cap at one per section. Where a finding above reveals a real gap, recommend fixing it (relatedSection = that finding\'s section). Where your own knowledge of what a safe, well-run Australian law firm should be doing points to something this firm is missing that the audit did not directly surface — e.g. reviewing vendor terms periodically, keeping an incident response contact, refreshing training when tools change — include it too (relatedSection = \'General best practice\'), but only if it is genuinely relevant to this firm\'s actual tools, size, and practice areas, and cite the specific guidance it comes from in \'basis\'. Never invent a recommendation just to fill space, and never recommend something already confirmed as already in place. (8) At least one recommendation MUST directly address what the firm said it most wants AI to help achieve (the stated goal) if a goal was stated — a concrete step toward that specific outcome, not a generic compliance action — and if the firm named specific concerns, at least one recommendation must address the most significant one. If no goal or concerns were stated, this rule does not apply.';
     var raw=await callClaudeJSON(systemPrompt,ctx+' '+auCtx+' '+schema,3000);
     var r=parseJSON(raw);
     if(!r||!r.riskSummary)throw new Error('Invalid report JSON');
@@ -1454,7 +1458,7 @@ async function genPolicy(){
   ss({policyLoading:true});
   try{
     var toolList=S.tools.map(function(t){return (t.name||'unnamed')+' ('+(t.useCase||'general use')+', $'+(t.cost||0)+'/mo)';}).filter(function(t){return t.indexOf('unnamed')<0;}).join('; ');
-    var firmCtx='Firm: '+S.firmName+', '+S.staffCount+' staff, '+S.practiceAreas.join(', ')+' law. AI tools in use: '+toolList+'. Client data accessed via AI: '+S.clientData+'. Data storage: '+S.dataStorage+'. Concerns: '+S.concerns.join(', ')+'.';
+    var firmCtx='Firm: '+S.firmName+', '+S.staffCount+' staff, '+S.practiceAreas.join(', ')+' law. AI tools in use: '+toolList+'. Client data accessed via AI: '+S.clientData+'. Data storage: '+S.dataStorage+'. Concerns: '+S.concerns.join(', ')+'. Workflow pain points the firm wants AI to help with: '+(S.painPoints.join(', ')||'none stated')+'. What the firm most wants AI to help achieve: '+(S.goals||'none stated')+'.';
 
     // Grouping 2-4 sections per call (tried at 3 groups, then 4) kept
     // truncating on the legally dense sections (APP compliance, cross-
@@ -1676,8 +1680,11 @@ async function genBriefingPack(){
     var recStr=(r.recommendations||[]).map(function(x){return x.title+' ('+x.priority+'): '+x.description;}).join(' | ')||'none recorded';
     var trainingStr=S.modules.length?countStaffModulesPassed()+'/'+S.modules.length+' modules passed by staff':'no training modules generated yet';
     var policyStr=S.policy?'AI usage policy generated and on file.':'No AI usage policy generated yet.';
-    var prompt='You are drafting a one-page Partner Briefing Pack summarising an AI compliance audit for an Australian law firm partner meeting. Use ONLY the information provided below — do not invent findings, statistics, names, or any detail not stated. If something is not recorded, say so plainly rather than filling a gap. Write in clear, professional, plain English. Use ## for section headings. Return ONLY the document — no preamble, no commentary, no JSON.\n\nFirm: '+S.firmName+' ('+S.staffCount+' staff, '+S.practiceAreas.join(', ')+').\nRisk level: '+r.riskLevel+'.\nRisk summary: '+r.riskSummary+'.\nKey findings: '+findingsStr+'.\nRecommendations: '+recStr+'.\nAI tools in use: '+toolList+'.\nStaff training status: '+trainingStr+'.\nPolicy status: '+policyStr+'.\n\nStructure:\n## Executive summary\n## Current AI tool stack\n## Key risks identified\n## Recommended actions\n## Compliance status';
-    var txt=await callClaude(prompt,1400);
+    var goalStr=S.goals||'none stated';
+    var painStr=S.painPoints.length?S.painPoints.join(', '):'none stated';
+    var concernStr=S.concerns.length?S.concerns.join(', '):'none stated';
+    var prompt='You are drafting a one-page Partner Briefing Pack summarising an AI compliance audit for an Australian law firm partner meeting. Use ONLY the information provided below — do not invent findings, statistics, names, or any detail not stated. If something is not recorded, say so plainly rather than filling a gap. Write in clear, professional, plain English. Use ## for section headings. Return ONLY the document — no preamble, no commentary, no JSON.\n\nFirm: '+S.firmName+' ('+S.staffCount+' staff, '+S.practiceAreas.join(', ')+').\nRisk level: '+r.riskLevel+'.\nRisk summary: '+r.riskSummary+'.\nKey findings: '+findingsStr+'.\nRecommendations: '+recStr+'.\nAI tools in use: '+toolList+'.\nStaff training status: '+trainingStr+'.\nPolicy status: '+policyStr+'.\nWhat the firm most wants AI to help achieve: '+goalStr+'.\nStated workflow pain points: '+painStr+'.\nStated concerns about AI in the firm: '+concernStr+'.\n\nStructure:\n## Executive summary\n## Current AI tool stack\n## Key risks identified\n## Recommended actions\n## How this supports your stated goals — only include this section if a goal, pain points, or concerns were actually stated above; connect it honestly to the specific findings/recommendations/tools already listed, do not invent a connection that isn\'t genuinely there\n## Compliance status';
+    var txt=await callClaude(prompt,1700);
     ss({briefingPack:txt,briefingLoading:false});
   }catch(e){console.error('genBriefingPack error:',e);ss({briefingLoading:false,briefingError:e.message||'Could not generate the briefing pack. Please try again.'});}
 }
@@ -1743,10 +1750,13 @@ function buildQuizTemplate(n){
 function buildModuleGenPrompt(toolName){
   var practiceStr=S.practiceAreas.join(', ');
   var qCount=S.questionsPerModule||5;
+  var painStr=S.painPoints.length?S.painPoints.join(', '):'none stated';
+  var goalStr=S.goals||'none stated';
+  var concernStr=S.concerns.length?S.concerns.join(', '):'none stated';
   // Keep strings SHORT to avoid max_tokens truncation:
   // overview ≤25 words, each list item ≤15 words, complianceNote ≤20 words
   // Each quiz question ≤20 words, each option ≤12 words, explanation ≤15 words
-  return 'Generate a compliance training module for "'+toolName+'" for '+S.firmName+' ('+practiceStr+' law firm, '+S.staffCount+' staff).\n\nBe CONCISE. Keep every string under 20 words. Include exactly '+qCount+' quiz questions. Return this exact JSON structure:\n{"toolName":"'+toolName+'","overview":"1-2 short sentences about the tool and its AU compliance risk","legalUses":["short approved use","short approved use","short approved use"],"prohibitedUses":["short prohibited use","short prohibited use","short prohibited use"],"bestPractices":["short AU-specific tip","short tip","short tip"],"complianceNote":"cite specific APP or LPUL obligation in one short sentence","quiz":'+buildQuizTemplate(qCount)+'}\n\nAU compliance context: Privacy Act 1988 APPs, APP 8 cross-border transfers, Privacy Amendment Act 2024, LPUL client confidentiality.';
+  return 'Generate a compliance training module for "'+toolName+'" for '+S.firmName+' ('+practiceStr+' law firm, '+S.staffCount+' staff).\n\nThe firm\'s stated workflow pain points: '+painStr+'. What they most want AI to help achieve: '+goalStr+'. Their stated concerns about AI in the firm: '+concernStr+'.\n\nBe CONCISE. Keep every string under 20 words. Include exactly '+qCount+' quiz questions. Where this specific tool genuinely relates to one of the firm\'s stated pain points or goals, let at least one bestPractices tip connect the tool\'s approved use to that pain point or goal directly — do not force a connection that isn\'t genuinely there for this tool. Where a stated concern is relevant to this specific tool (e.g. staff misuse, client confidentiality, data sovereignty), make sure prohibitedUses or complianceNote addresses it directly rather than only generic AU obligations. Return this exact JSON structure:\n{"toolName":"'+toolName+'","overview":"1-2 short sentences about the tool and its AU compliance risk","legalUses":["short approved use","short approved use","short approved use"],"prohibitedUses":["short prohibited use","short prohibited use","short prohibited use"],"bestPractices":["short AU-specific tip","short tip","short tip"],"complianceNote":"cite specific APP or LPUL obligation in one short sentence","quiz":'+buildQuizTemplate(qCount)+'}\n\nAU compliance context: Privacy Act 1988 APPs, APP 8 cross-border transfers, Privacy Amendment Act 2024, LPUL client confidentiality.';
 }
 
 async function genModules(){
@@ -2814,6 +2824,35 @@ function renderDashboard(){
     var mc=el('div',{cls:'metric'});mc.appendChild(el('div',{cls:'metric-label'},m.label));mc.appendChild(el('div',{cls:'metric-value',sty:{color:m.col}},m.val));mc.appendChild(el('div',{cls:'metric-sub',sty:{fontSize:'14px',fontWeight:'700',color:m.subCol,marginTop:'4px'}},m.sub));addTileTooltip(mc,m.tip);stripWrap.appendChild(mc);
   });
   wrap.appendChild(stripWrap);
+
+  // Goals & concerns card — the audit collects what the firm actually wants
+  // AI to help achieve and what worries them, but nothing surfaced it
+  // anywhere after the audit itself. This shows it back plainly and links
+  // to whatever findings and recommendations genuinely address it, rather
+  // than inventing a fake progress percentage against free-text input that
+  // can't be measured.
+  if(S.goals||S.painPoints.length||S.concerns.length){
+    var goalCard=el('div',{cls:'card',sty:{marginBottom:'20px'}});
+    goalCard.appendChild(el('div',{cls:'card-title'},'Your stated goals & concerns'));
+    if(S.goals){goalCard.appendChild(el('div',{sty:{fontSize:'14px',color:'var(--navy)',lineHeight:'1.6',marginBottom:(S.painPoints.length||S.concerns.length)?'10px':'14px'}},S.goals));}
+    if(S.painPoints.length){goalCard.appendChild(el('div',{sty:{fontSize:'12px',color:'var(--muted)',marginBottom:S.concerns.length?'4px':'14px'}},'Pain points: '+S.painPoints.join(', ')));}
+    if(S.concerns.length){goalCard.appendChild(el('div',{sty:{fontSize:'12px',color:'var(--muted)',marginBottom:'14px'}},'Concerns: '+S.concerns.join(', ')));}
+    var relatedFindings=S.report?(S.report.keyFindings||[]).filter(function(f){return f&&f.section==='Goals & concerns';}):[];
+    var relatedRecs=S.report?(S.report.recommendations||[]).filter(function(rec){return rec&&rec.relatedSection==='Goals & concerns';}):[];
+    if(relatedFindings.length){
+      goalCard.appendChild(el('div',{sty:{fontSize:'12px',fontWeight:'600',color:'var(--navy)',marginBottom:'4px'}},'What the audit found:'));
+      relatedFindings.forEach(function(f){goalCard.appendChild(el('div',{sty:{fontSize:'13px',color:'var(--dark)',marginBottom:'10px',lineHeight:'1.5'}},f.text));});
+    }
+    if(relatedRecs.length){
+      var goToRecBtn=el('button',{cls:'btn-secondary btn-sm',onclick:function(){ss({activeTab:'recommendations'});}});
+      goToRecBtn.textContent=relatedRecs.length+' recommendation'+(relatedRecs.length>1?'s':'')+' address this →';
+      goalCard.appendChild(goToRecBtn);
+    } else if(S.report){
+      goalCard.appendChild(el('div',{sty:{fontSize:'12px',color:'var(--muted)'}},'No recommendations currently address this directly.'));
+    }
+    addTileTooltip(goalCard,'Shown here because you told us this in the Goals & concerns step of your audit. This reflects what the platform actually found and recommended in response — not a fabricated progress score.');
+    wrap.appendChild(goalCard);
+  }
 
   // Three-column row: compliance breakdown, staff detail, and the tool
   // stack side by side — makes real use of the extra width this tab now
