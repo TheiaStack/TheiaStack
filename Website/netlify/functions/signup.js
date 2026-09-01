@@ -305,7 +305,13 @@ exports.handler = async function (event) {
   // REST endpoint directly rather than through supabase-js.
   if (linkRes.error || !linkRes.data || !linkRes.data.hashed_token) {
     const msg = (linkRes.error && linkRes.error.message) || '';
-    if (/already registered|already exists/i.test(msg)) {
+    // Confirmed via live Netlify function logs (1 Sep 2026): Supabase's
+    // actual text is "A user with this email address has already been
+    // registered", i.e. "already" and "registered" are NOT adjacent.
+    // Matching loosely on both words appearing, in order, rather than
+    // an exact phrase, so small wording variations do not silently
+    // fall through to the generic error again.
+    if (/already\b[\s\S]*\bregistered|already\s+exists/i.test(msg)) {
       return { statusCode: 409, headers, body: JSON.stringify({ error: 'An account with this email already exists. Try signing in instead.' }) };
     }
     console.error('generateLink error:', msg);
