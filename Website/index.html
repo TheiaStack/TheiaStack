@@ -829,7 +829,7 @@ footer {
     <h1>Your firm uses AI.<br><em>Is it compliant?</em></h1>
     <p class="hero-sub">Theia-Stack audits your AI tool usage, scores your compliance risk, generates a documented policy, and trains your staff. Built for Australian law firms.</p>
     <div class="hero-actions">
-      <a href="#" class="btn-hero" onclick="openModal(event, 'Annual')">Start your audit</a>
+      <a href="/signup" class="btn-hero">Start your audit</a>
       <a href="#how" class="hero-link">See how it works</a>
     </div>
   </div>
@@ -854,8 +854,8 @@ footer {
     <div class="feature-text reveal d1">
       <span class="feature-tag">The problem</span>
       <h2 class="feature-h">Most firms are now using AI in some form.<br><em>Few have a documented position on it.</em></h2>
-      <p class="feature-body">Australian courts have issued GenAI practice notes. Clients are increasingly asking about AI governance. And staff are adding tools that sometimes touch client data without anyone upstairs knowing. The risk is real, and it often surfaces without warning.</p>
-      <a href="#" class="btn-feature" onclick="openModal(event, 'Annual')">Get in touch →</a>
+      <p class="feature-body">Australian courts have issued GenAI practice notes. PI insurers are increasingly asking about AI governance. And staff are adding tools that sometimes touch client data without anyone upstairs knowing. The risk is real, and it often surfaces without warning.</p>
+      <a href="/signup" class="btn-feature">Start your audit →</a>
     </div>
   </div>
 </section>
@@ -970,7 +970,7 @@ footer {
           <li class="price-feature">Everything in the annual plan</li>
           <li class="price-feature">Billed monthly over 12 months</li>
         </ul>
-        <a href="#" class="btn-price-outline" onclick="openModal(event, 'Monthly')">Get started</a>
+        <a href="/signup" class="btn-price-outline">Get started</a>
       </div>
 
       <div class="pricing-card primary reveal d1">
@@ -987,7 +987,7 @@ footer {
           <li class="price-feature">Quarterly automatic re-audit</li>
           <li class="price-feature">Alerts when tool terms or risk ratings change</li>
         </ul>
-        <a href="#" class="btn-price-primary" onclick="openModal(event, 'Annual')">Start your audit</a>
+        <a href="/signup" class="btn-price-primary">Start your audit</a>
       </div>
 
       <div class="pricing-card reveal d2">
@@ -1017,7 +1017,7 @@ footer {
   <div class="cta-band-inner reveal">
     <h2>Ready to get your firm's AI compliance in order?</h2>
     <p class="cta-band-sub">Timestamped. Documented. Built for Australian law firms with up to 50 staff.</p>
-    <a href="#" class="btn-white" onclick="openModal(event, 'Annual')">Get in touch</a>
+    <a href="/signup" class="btn-white">Start your audit</a>
   </div>
 </section>
 
@@ -1070,9 +1070,9 @@ footer {
     <button class="modal-close" onclick="closeModal()">&times;</button>
 
     <div id="modalForm">
-      <p class="modal-eyebrow">Get started</p>
+      <p class="modal-eyebrow">Enquire</p>
       <h2 class="modal-title">Tell us about your firm.</h2>
-      <p class="modal-sub">We'll be in touch to get things set up. No automated sequences — a real response from our team.</p>
+      <p class="modal-sub">For the Partner Briefing Pack, or any question before you sign up. A real reply from our team, not an automated sequence.</p>
 
       <form name="contact" netlify netlify-honeypot="bot-field" onsubmit="handleSubmit(event)">
         <input type="hidden" name="form-name" value="contact">
@@ -1103,8 +1103,6 @@ footer {
         <div class="form-field">
           <label for="plan">Interested in</label>
           <select id="planSelect" name="plan_interest">
-            <option value="Annual">Annual subscription ($2,990/year)</option>
-            <option value="Monthly">Monthly subscription ($299/month)</option>
             <option value="Partner Briefing Pack">Partner Briefing Pack ($690 one-off)</option>
             <option value="Not sure">Not sure yet</option>
           </select>
@@ -1116,7 +1114,7 @@ footer {
 
     <div class="modal-success" id="modalSuccess">
       <div class="modal-success-icon">✓</div>
-      <h3>Thanks — we'll be in touch.</h3>
+      <h3>Thank you. We will be in touch.</h3>
       <p>We aim to respond to all enquiries within one business day.</p>
     </div>
   </div>
