@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Start your free audit | Theia-Stack</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:    #111111;
+  --ink-2:  #3d3d3d;
+  --ink-3:  #7a7a7a;
+  --rule:   #e0e0da;
+  --bg:     #f8f7f4;
+  --white:  #ffffff;
+  --red:    #b83232;
+  --red-dk: #8c2424;
+  --serif:  'Lora', Georgia, serif;
+  --sans:   'Inter', system-ui, sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ── LAYOUT ── */
+.page {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 100vh;
+}
+
+/* ── LEFT PANEL ── */
+.left {
+  background: var(--ink);
+  padding: 56px 64px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+.left::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 3px; height: 100%;
+  background: var(--red);
+}
+.left-brand {
+  display: flex; align-items: center; gap: 10px;
+  text-decoration: none;
+}
+.brand-gem {
+  width: 9px; height: 9px;
+  background: var(--red);
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+.brand-name {
+  font-family: var(--serif);
+  font-size: 16px; color: var(--white);
+}
+.left-body {}
+.left-heading {
+  font-family: var(--serif);
+  font-size: clamp(28px, 3vw, 40px);
+  font-weight: 400;
+  color: var(--white);
+  line-height: 1.2;
+  margin-bottom: 20px;
+  letter-spacing: -.01em;
+}
+.left-heading em { font-style: italic; color: rgba(255,255,255,.4); }
+.left-sub {
+  font-size: 14px; font-weight: 400;
+  color: rgba(255,255,255,.4);
+  line-height: 1.75;
+  max-width: 340px;
+}
+.left-features {
+  list-style: none;
+  display: flex; flex-direction: column; gap: 0;
+  border-top: 1px solid rgba(255,255,255,.07);
+}
+.left-feature {
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  font-size: 13px;
+  color: rgba(255,255,255,.4);
+  display: flex; gap: 12px; align-items: flex-start;
+}
+.left-feature::before {
+  content: '—';
+  color: var(--red);
+  flex-shrink: 0;
+  opacity: .7;
+}
+
+/* ── RIGHT PANEL ── */
+.right {
+  background: var(--white);
+  padding: 56px 64px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.right-inner { max-width: 380px; }
+
+.form-eyebrow {
+  font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--ink-3); margin-bottom: 12px;
+}
+.form-title {
+  font-family: var(--serif);
+  font-size: 26px; font-weight: 400;
+  color: var(--ink);
+  margin-bottom: 32px; line-height: 1.2;
+}
+
+/* FORM */
+.form { display: flex; flex-direction: column; gap: 18px; }
+
+.field-row { display: flex; gap: 12px; }
+.field-row .field { flex: 1; }
+
+.field { display: flex; flex-direction: column; gap: 7px; }
+.field label {
+  font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.field input {
+  padding: 12px 14px;
+  border: 1px solid var(--rule);
+  background: var(--bg);
+  font-family: var(--sans); font-size: 14px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color .15s, background .15s;
+  width: 100%;
+}
+.field input:focus {
+  border-color: var(--ink);
+  background: var(--white);
+}
+.field input::placeholder { color: #bbb; }
+.field-hint {
+  font-size: 11.5px;
+  color: var(--ink-3);
+  line-height: 1.5;
+}
+
+.btn-login {
+  display: block; width: 100%;
+  background: var(--ink);
+  color: var(--white);
+  font-family: var(--sans);
+  font-size: 13px; font-weight: 500; letter-spacing: .06em;
+  padding: 15px;
+  border: none; cursor: pointer;
+  transition: background .2s;
+  margin-top: 6px;
+}
+.btn-login:hover { background: var(--red); }
+.btn-login:disabled {
+  opacity: .5; cursor: not-allowed;
+  background: var(--ink);
+}
+
+/* ERROR / SUCCESS */
+.msg {
+  display: none;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.55;
+  border: 1px solid;
+}
+.msg.error {
+  background: #fdecea;
+  border-color: #f0b0b0;
+  color: #8c2424;
+}
+.msg.success {
+  background: #e8f5ee;
+  border-color: #a0d4b8;
+  color: #1a6640;
+}
+.msg.show { display: block; }
+
+/* DIVIDER */
+.divider {
+  display: flex; align-items: center; gap: 12px;
+  margin: 4px 0;
+}
+.divider::before, .divider::after {
+  content: ''; flex: 1;
+  height: 1px; background: var(--rule);
+}
+.divider-text { font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+
+/* FOOTER LINK */
+.form-footer {
+  text-align: center;
+  font-size: 12px;
+  color: var(--ink-3);
+  margin-top: 8px;
+}
+.form-footer a {
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 1px;
+  transition: color .15s, border-color .15s;
+}
+.form-footer a:hover { color: var(--red); border-color: var(--red); }
+
+/* RIGHT FOOTER */
+.right-footer {
+  margin-top: auto;
+  padding-top: 48px;
+}
+.right-footer-text {
+  font-size: 11px; color: var(--ink-3);
+}
+.right-footer-text a { color: inherit; }
+
+/* CHECK EMAIL STATE */
+.check-email { display: none; }
+.check-email.show { display: block; }
+.check-icon {
+  width: 40px; height: 40px;
+  border: 1.5px solid var(--red);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 20px;
+  font-family: var(--serif);
+  color: var(--red);
+  font-size: 18px;
+}
+
+/* Legal microcopy under submit */
+.legal-note {
+  font-size: 11px;
+  color: var(--ink-3);
+  line-height: 1.6;
+  margin-top: 2px;
+}
+.legal-note a { color: var(--ink-2); }
+
+/* MOBILE */
+@media (max-width: 800px) {
+  .page { grid-template-columns: 1fr; }
+  .left { display: none; }
+  .right { padding: 48px 28px; justify-content: flex-start; padding-top: 64px; }
+  .right-inner { max-width: 100%; }
+  .field-row { flex-direction: column; gap: 18px; }
+}
+
+/* Keep the reCAPTCHA badge from overlapping content on narrow screens */
+.grecaptcha-badge { z-index: 5; }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- LEFT -->
+  <div class="left">
+    <a href="/" class="left-brand">
+      <div class="brand-gem"></div>
+      <span class="brand-name">Theia-Stack</span>
+    </a>
+
+    <div class="left-body">
+      <h1 class="left-heading">Know your AI<br><em>tool stack.</em></h1>
+      <p class="left-sub">Run a free audit of the AI tools your firm is already paying for. No card is required to start.</p>
+    </div>
+
+    <ul class="left-features">
+      <li class="left-feature">Annual AI Risk Management Report</li>
+      <li class="left-feature">Tailored AI usage policy</li>
+      <li class="left-feature">Staff training modules with knowledge checks</li>
+      <li class="left-feature">Quarterly automatic re-audit</li>
+    </ul>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right">
+    <div class="right-inner">
+
+      <!-- SIGNUP FORM -->
+      <div id="signupSection">
+        <p class="form-eyebrow">Free audit</p>
+        <h2 class="form-title">Start your free audit</h2>
+
+        <form class="form" id="signupForm" onsubmit="handleSignup(event)">
+          <div class="msg error" id="signupError"></div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="firstName">First name</label>
+              <input type="text" id="firstName" name="firstName" required autocomplete="given-name">
+            </div>
+            <div class="field">
+              <label for="lastName">Last name</label>
+              <input type="text" id="lastName" name="lastName" required autocomplete="family-name">
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="firmName">Firm name</label>
+            <input type="text" id="firmName" name="firmName" required autocomplete="organization">
+          </div>
+
+          <div class="field">
+            <label for="email">Work email</label>
+            <input type="email" id="email" name="email" required placeholder="you@yourfirm.com.au" autocomplete="email">
+            <span class="field-hint">Please use your firm's work email address. Personal addresses such as Gmail or Outlook are not accepted.</span>
+          </div>
+
+          <div class="field">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required minlength="8" placeholder="••••••••" autocomplete="new-password">
+          </div>
+
+          <div class="field">
+            <label for="confirmPassword">Confirm password</label>
+            <input type="password" id="confirmPassword" name="confirmPassword" required minlength="8" placeholder="••••••••" autocomplete="new-password">
+          </div>
+
+          <button type="submit" class="btn-login" id="signupBtn">Start your free audit</button>
+          <p class="legal-note">This site is protected by reCAPTCHA and the Google <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Privacy Policy</a> and <a href="https://policies.google.com/terms" target="_blank" rel="noopener">Terms of Service</a> apply.</p>
+        </form>
+
+        <div class="divider" style="margin-top:20px"><span class="divider-text">already a subscriber?</span></div>
+        <p class="form-footer"><a href="/login">Log in</a> or <a href="mailto:hello@theiastack.com.au">get in touch</a></p>
+      </div>
+
+      <!-- CHECK EMAIL STATE (shown after successful submit) -->
+      <div class="check-email" id="checkEmailSection">
+        <div class="check-icon">✓</div>
+        <p class="form-eyebrow">One more step</p>
+        <h2 class="form-title">Check your inbox</h2>
+        <div class="msg success show" id="checkEmailMsg">
+          We have sent a confirmation link to <strong id="checkEmailAddress"></strong>. Please click the link to activate your account and begin your free audit.
+        </div>
+        <p class="form-footer" style="margin-top:20px">Didn't get it? Check spam, or <a href="mailto:hello@theiastack.com.au">contact us</a>.</p>
+      </div>
+
+    </div>
+
+    <div class="right-footer">
+      <p class="right-footer-text"><a href="/">← Back to theiastack.com.au</a></p>
+    </div>
+  </div>
+
+</div>
+
+<!-- reCAPTCHA v3 (invisible) -->
+<script src="https://www.google.com/recaptcha/api.js?render=6LeNLaMtAAAAAOvuvdUL3uqyhlrmY-CO84GhYod6"></script>
+<script>
+const RECAPTCHA_SITE_KEY = '6LeNLaMtAAAAAOvuvdUL3uqyhlrmY-CO84GhYod6';
+
+// Free-domain check is enforced server-side in signup.js (never trust
+// client validation alone). This is just a fast, friendly hint before
+// the round trip, kept intentionally short rather than mirroring the
+// full server blocklist so the two never drift out of sync.
+const OBVIOUS_FREE_DOMAINS = ['gmail.com', 'outlook.com', 'hotmail.com', 'yahoo.com', 'icloud.com'];
+
+async function handleSignup(e) {
+  e.preventDefault();
+  const btn   = document.getElementById('signupBtn');
+  const errEl = document.getElementById('signupError');
+
+  const firstName = document.getElementById('firstName').value.trim();
+  const lastName  = document.getElementById('lastName').value.trim();
+  const firmName  = document.getElementById('firmName').value.trim();
+  const email     = document.getElementById('email').value.trim();
+  const password  = document.getElementById('password').value;
+  const confirmPassword = document.getElementById('confirmPassword').value;
+
+  errEl.classList.remove('show');
+
+  if (password !== confirmPassword) {
+    errEl.textContent = 'Passwords do not match.';
+    errEl.classList.add('show');
+    return;
+  }
+
+  const domain = email.split('@')[1] ? email.split('@')[1].toLowerCase() : '';
+  if (OBVIOUS_FREE_DOMAINS.includes(domain)) {
+    errEl.textContent = "Please sign up with your firm's work email address, not a personal email provider.";
+    errEl.classList.add('show');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Creating your account...';
+
+  try {
+    const captchaToken = await new Promise((resolve, reject) => {
+      grecaptcha.ready(function () {
+        grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'signup' }).then(resolve, reject);
+      });
+    });
+
+    const res = await fetch('/.netlify/functions/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ firstName, lastName, firmName, email, password, captchaToken })
+    });
+    const result = await res.json();
+
+    if (!res.ok) {
+      errEl.textContent = result.error || 'Something went wrong. Please try again.';
+      errEl.classList.add('show');
+      btn.disabled = false;
+      btn.textContent = 'Start your free audit';
+      return;
+    }
+
+    if (result.emailSent === false) {
+      errEl.textContent = result.warning || 'Account created, but the confirmation email failed to send. Contact hello@theiastack.com.au.';
+      errEl.classList.add('show');
+      btn.disabled = false;
+      btn.textContent = 'Start your free audit';
+      return;
+    }
+
+    document.getElementById('checkEmailAddress').textContent = email;
+    document.getElementById('signupSection').style.display = 'none';
+    document.getElementById('checkEmailSection').classList.add('show');
+  } catch (err) {
+    console.error('Signup request failed:', err);
+    errEl.textContent = 'Something went wrong. Please try again.';
+    errEl.classList.add('show');
+    btn.disabled = false;
+    btn.textContent = 'Start your free audit';
+  }
+}
+</script>
+
+</body>
+</html>
