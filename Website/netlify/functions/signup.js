@@ -320,9 +320,40 @@ exports.handler = async function (event) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: 'Could not create account' }) };
   }
 
-  // Step 2: create the firm + profile, linked to the new user. If
-  // either fails, roll back the auth user rather than leaving an
-  // orphaned account with no firm.
+  // Safety check, independent of whatever error text generateLink may
+  // or may not return for an existing email: it is not confirmed that
+  // generateLink({type:'signup'}) always errors on an email that is
+  // already registered. If it instead succeeds and quietly returns the
+  // EXISTING user's id (and, since a password was supplied, potentially
+  // resets that existing user's password), the code below must never
+  // treat that id as one it just created. A pre-existing account is
+  // identified two ways from fields already present on this same
+  // response, with no extra API call required:
+  //   - email_confirmed_at is set: this can only be true for an account
+  //     that completed confirmation before this request, since every
+  //     account this function creates starts unconfirmed.
+  //   - created_at is not within the last few seconds: a brand-new
+  //     account's created_at should be effectively "now".
+  // If either signal says this is not a fresh account, stop here.
+  // Nothing has been written to firms/profiles yet, and nothing is
+  // deleted. The pre-existing account is left completely untouched.
+  const nowMs = Date.now();
+  const createdAtMs = linkRes.data.created_at ? new Date(linkRes.data.created_at).getTime() : null;
+  const looksFreshlyCreated = createdAtMs !== null && (nowMs - createdAtMs) < 30000;
+  const alreadyConfirmed = !!linkRes.data.email_confirmed_at;
+
+  if (alreadyConfirmed || !looksFreshlyCreated) {
+    console.warn('generateLink(signup) returned a pre-existing user id; treating as a duplicate signup attempt, no writes made:', newUserId);
+    return { statusCode: 409, headers, body: JSON.stringify({ error: 'An account with this email already exists. Try signing in instead.' }) };
+  }
+
+  // Step 2: create the firm + profile, linked to the new user. This
+  // point is only reached for an account confirmed fresh above, so a
+  // failure here is a genuine setup error, not a duplicate signup.
+  // Roll back the auth user rather than leaving an orphaned account
+  // with no firm. Safe to delete here specifically because the
+  // freshness check above already ruled out this being a pre-existing
+  // account.
   try {
     const firmIns = await serviceClient.from('firms').insert({
       name: firmName,
