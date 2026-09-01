@@ -297,7 +297,13 @@ exports.handler = async function (event) {
     redirect_to: `${siteUrl}/signup-confirm`,
   });
 
-  if (linkRes.error || !linkRes.data || !linkRes.data.properties || !linkRes.data.properties.hashed_token) {
+  // NOTE: the raw Admin REST API returns hashed_token, id, email, etc.
+  // FLAT on the response body. The nested { properties: {...}, user: {...} }
+  // shape only exists in the supabase-js client library's own wrapping
+  // of this same endpoint. Confirmed against the Go Admin API client
+  // struct (supabase-community/auth-go), since this function calls the
+  // REST endpoint directly rather than through supabase-js.
+  if (linkRes.error || !linkRes.data || !linkRes.data.hashed_token) {
     const msg = (linkRes.error && linkRes.error.message) || '';
     if (/already registered|already exists/i.test(msg)) {
       return { statusCode: 409, headers, body: JSON.stringify({ error: 'An account with this email already exists. Try signing in instead.' }) };
@@ -306,8 +312,8 @@ exports.handler = async function (event) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: 'Could not create account' }) };
   }
 
-  const newUserId = linkRes.data.id || (linkRes.data.user && linkRes.data.user.id);
-  const hashedToken = linkRes.data.properties.hashed_token;
+  const newUserId = linkRes.data.id;
+  const hashedToken = linkRes.data.hashed_token;
 
   if (!newUserId) {
     console.error('generateLink succeeded but no user id in response:', JSON.stringify(linkRes.data));
