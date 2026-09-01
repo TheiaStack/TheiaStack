@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Confirming your account | Theia-Stack</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:    #111111;
+  --ink-3:  #7a7a7a;
+  --rule:   #e0e0da;
+  --bg:     #f8f7f4;
+  --white:  #ffffff;
+  --red:    #b83232;
+  --serif:  'Lora', Georgia, serif;
+  --sans:   'Inter', system-ui, sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.card {
+  max-width: 400px;
+  width: 100%;
+  background: var(--white);
+  border: 1px solid var(--rule);
+  padding: 48px 40px;
+  text-align: center;
+}
+.brand {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  margin-bottom: 32px;
+  text-decoration: none;
+}
+.brand-gem {
+  width: 9px; height: 9px;
+  background: var(--red);
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+.brand-name { font-family: var(--serif); font-size: 16px; color: var(--ink); }
+
+.spinner {
+  width: 28px; height: 28px;
+  border: 2.5px solid var(--rule);
+  border-top-color: var(--red);
+  border-radius: 50%;
+  margin: 0 auto 20px;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.title {
+  font-family: var(--serif);
+  font-size: 20px; font-weight: 400;
+  margin-bottom: 10px;
+}
+.sub {
+  font-size: 13.5px;
+  color: var(--ink-3);
+  line-height: 1.6;
+}
+.msg-error {
+  display: none;
+  margin-top: 20px;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.55;
+  background: #fdecea;
+  border: 1px solid #f0b0b0;
+  color: #8c2424;
+  text-align: left;
+}
+.msg-error.show { display: block; }
+.retry-link {
+  display: inline-block;
+  margin-top: 20px;
+  font-size: 13px;
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 1px;
+}
+.retry-link:hover { color: var(--red); border-color: var(--red); }
+.icon-fail { color: var(--red); font-family: var(--serif); font-size: 24px; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <a href="/" class="brand">
+    <div class="brand-gem"></div>
+    <span class="brand-name">Theia-Stack</span>
+  </a>
+
+  <div id="verifyingState">
+    <div class="spinner"></div>
+    <h1 class="title">Confirming your account…</h1>
+    <p class="sub">This will only take a second.</p>
+  </div>
+
+  <div id="errorState" style="display:none">
+    <div class="icon-fail">✕</div>
+    <h1 class="title">Link invalid or expired</h1>
+    <p class="sub">This confirmation link has already been used or has expired.</p>
+    <div class="msg-error" id="errorDetail"></div>
+    <a href="mailto:hello@theiastack.com.au" class="retry-link">Contact hello@theiastack.com.au</a>
+  </div>
+</div>
+
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://rkqnrpyctllxcnknjsby.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_7gIWX3E2pS_4UfEKJylqpw_V3CIY1b9';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Same reasoning as /login's recovery flow (see that file's comments).
+// Landing on our own static page first is harmless to prefetch: nothing
+// is verified just by loading this URL. verifyOtp() only runs as
+// JavaScript inside a real browser, so an email security scanner
+// fetching the raw link never consumes the one-time token. The actual
+// exchange happens once, automatically, in the IIFE below. There is no
+// button to press here (unlike the password-reset flow), since no
+// further user input is needed once the token is valid.
+const params = new URLSearchParams(window.location.search);
+const tokenHash = params.get('token_hash');
+const type = params.get('type');
+
+(async () => {
+  const verifyingEl = document.getElementById('verifyingState');
+  const errorEl = document.getElementById('errorState');
+  const errorDetailEl = document.getElementById('errorDetail');
+
+  if (!tokenHash || type !== 'signup') {
+    verifyingEl.style.display = 'none';
+    errorDetailEl.textContent = 'This link is missing required information.';
+    errorDetailEl.classList.add('show');
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  const { error } = await sb.auth.verifyOtp({ token_hash: tokenHash, type: 'signup' });
+
+  if (error) {
+    verifyingEl.style.display = 'none';
+    errorDetailEl.textContent = error.message || 'This link is invalid or has expired.';
+    errorDetailEl.classList.add('show');
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  // verifyOtp() establishes and persists the session on success. The
+  // user is now logged in. Land straight in the platform, into the
+  // free audit, with no manual step (per the Section 3 scoped plan).
+  window.location.replace('/platform');
+})();
+</script>
+
+</body>
+</html>
