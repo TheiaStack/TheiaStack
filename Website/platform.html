@@ -1056,7 +1056,7 @@ function renderWelcomeModal(){
   var outer=el('div',{cls:(isNewView('welcome-modal')?'fade-in':''),sty:{maxWidth:'560px',margin:'80px auto',padding:'0 20px'}});
   var card=el('div',{cls:'card',sty:{textAlign:'center'}});
   card.appendChild(el('div',{cls:'card-title',sty:{justifyContent:'center'}},'Welcome to Theia-Stack'));
-  card.appendChild(el('div',{sty:{fontSize:'14px',color:'var(--muted)',lineHeight:'1.6',marginBottom:'22px'}},"Your account is confirmed. Next, you'll work through a short audit of your firm's AI tools — it takes most firms around 15–20 minutes and produces your AI Risk Management Report, usage policy, and staff training at the end."));
+  card.appendChild(el('div',{sty:{fontSize:'14px',color:'var(--muted)',lineHeight:'1.6',marginBottom:'22px'}},"Your account is confirmed. Next, you'll work through a short, guided audit of your firm's AI tools. It produces your AI Risk Management Report, usage policy, and staff training at the end."));
   var btn=el('button',{cls:'btn-primary',onclick:function(){ss({showWelcome:false});}});
   btn.textContent='Start your audit →';
   card.appendChild(btn);
