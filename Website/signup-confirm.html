@@ -163,7 +163,37 @@ const type = params.get('type');
   // verifyOtp() establishes and persists the session on success. The
   // user is now logged in. Land straight in the platform, into the
   // free audit, with no manual step (per the Section 3 scoped plan).
-  window.location.replace('/platform');
+  //
+  // Before redirecting, stamp firms.confirmed_at via the
+  // confirm-onboarding function — this is the Day 0 anchor for the
+  // onboarding email drip (Day 3/7/14). Deliberately fire-and-forget:
+  // a firm must never be blocked from entering the platform because
+  // this secondary bookkeeping write is slow or fails. If it does
+  // fail, the firm simply won't enter the drip — a minor, non-blocking
+  // gap, not something worth holding up platform access for.
+  //
+  // keepalive:true is used rather than a bare fetch() because the
+  // redirect below fires immediately after this call is kicked off,
+  // without awaiting it — a plain in-flight fetch can be cancelled by
+  // the browser the moment navigation starts. keepalive is the
+  // standard mechanism for exactly this: "send this, let it survive
+  // the page going away."
+  try {
+    const { data: { session: freshSession } } = await sb.auth.getSession();
+    if (freshSession && freshSession.access_token) {
+      fetch('/.netlify/functions/confirm-onboarding', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + freshSession.access_token },
+        keepalive: true,
+      }).catch(function (e) {
+        console.warn('confirm-onboarding call failed (non-blocking):', e);
+      });
+    }
+  } catch (e) {
+    console.warn('confirm-onboarding call skipped (non-blocking):', e);
+  }
+
+  window.location.replace('/platform?welcome=1');
 })();
 </script>
 
