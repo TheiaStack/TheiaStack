@@ -1,19 +1,26 @@
 [build]
   functions = "netlify/functions"
+
 [build.environment]
   SECRETS_SCAN_SMART_DETECTION_ENABLED = "false"
+
 [[headers]]
   for = "/*"
   [headers.values]
     X-Frame-Options = "SAMEORIGIN"
     X-Content-Type-Options = "nosniff"
+
 [[redirects]]
   from = "https://theiastack.com/*"
   to = "https://theiastack.com.au/:splat"
   status = 301
   force = true
+
 [[redirects]]
   from = "https://www.theiastack.com/*"
   to = "https://theiastack.com.au/:splat"
   status = 301
   force = true
+
+[functions."onboarding-drip"]
+  schedule = "@daily"
