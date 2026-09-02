@@ -167,7 +167,7 @@ const TEMPLATES = {
       <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">Hi ${firstName},</p>
       <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">Your Theia-Stack account for ${firmName} is set up, but the audit hasn't been finished yet. It picks up exactly where you left off.</p>
       ${ctaButton('Continue your audit', `${SITE_URL}/login`)}
-      <p style="margin:0;font-size:13px;color:#5A5A5A;line-height:1.6;">No rush — this link works whenever suits.</p>
+      <p style="margin:0;font-size:13px;color:#5A5A5A;line-height:1.6;">No rush. This link works whenever suits.</p>
     `,
   },
   day7: {
@@ -176,14 +176,14 @@ const TEMPLATES = {
       <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">Hi ${firstName},</p>
       <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">Finishing the audit for ${firmName} generates a written AI usage policy tailored to your tool list, and an AI Risk Management Report you can keep on file. Both are ready as soon as the audit is complete.</p>
       ${ctaButton('Continue your audit', `${SITE_URL}/login`)}
-      <p style="margin:0;font-size:13px;color:#5A5A5A;line-height:1.6;">If now isn't the right time, the account stays open — nothing expires.</p>
+      <p style="margin:0;font-size:13px;color:#5A5A5A;line-height:1.6;">If now isn't the right time, the account stays open. Nothing expires.</p>
     `,
   },
   day14: {
     subject: 'Leaving this here',
     bodyHtml: (firstName, firmName) => `
       <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">Hi ${firstName},</p>
-      <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">Just closing the loop — your Theia-Stack account for ${firmName} is still there whenever it becomes a priority. No action needed from you now, and this is the last check-in on this.</p>
+      <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">Just closing the loop. Your Theia-Stack account for ${firmName} is still there whenever it becomes a priority. No action needed from you now, and this is the last check-in on this.</p>
       ${ctaButton('Continue your audit', `${SITE_URL}/login`)}
     `,
   },
