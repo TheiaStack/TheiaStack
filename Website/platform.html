@@ -749,6 +749,18 @@ var S={
       var b=p.get('billing');
       return (b==='complete'||b==='cancelled')?b:null;
     }catch(e){return null;}
+  })(),
+  // One-time welcome takeover shown to a firm landing here right after
+  // confirming their signup email (see /signup-confirm.html, which
+  // redirects to /platform?welcome=1). Read once from the URL, same
+  // pattern as billingRedirect below. Deliberately NOT added to the
+  // PERSIST array — this must never be restored on a later session
+  // load, only ever shown on the one real signup-confirmation visit.
+  showWelcome:(function(){
+    try{
+      var p=new URLSearchParams(window.location.search);
+      return p.get('welcome')==='1';
+    }catch(e){return false;}
   })()
 };
 
@@ -760,6 +772,17 @@ if(S.billingRedirect){
     var _bu=new URL(window.location.href);
     _bu.searchParams.delete('billing');
     window.history.replaceState({},'',_bu.pathname+_bu.search+_bu.hash);
+  }catch(e){}
+}
+
+// Same reasoning as the billing param above — strip ?welcome=1 from the
+// URL immediately so a refresh doesn't keep re-showing the takeover.
+// S.showWelcome still holds true for this render cycle.
+if(S.showWelcome){
+  try{
+    var _wu=new URL(window.location.href);
+    _wu.searchParams.delete('welcome');
+    window.history.replaceState({},'',_wu.pathname+_wu.search+_wu.hash);
   }catch(e){}
 }
 
@@ -1017,6 +1040,25 @@ function renderBillingRedirect(){
   }
   var btn=el('button',{cls:'btn-primary',onclick:function(){ss({billingRedirect:null,billingInfo:null});}});
   btn.textContent='Continue';
+  card.appendChild(btn);
+  outer.appendChild(card);
+  return outer;
+}
+
+// Full-screen welcome takeover shown once, immediately after a firm
+// confirms their signup email and lands here via /signup-confirm.html's
+// redirect to /platform?welcome=1. Same shape as renderBillingRedirect
+// above — a centred card the firm must click through — since that's
+// the established pattern in this file for a one-time message that
+// should register before the person continues, not something that
+// blends into the audit form and gets missed.
+function renderWelcomeModal(){
+  var outer=el('div',{cls:(isNewView('welcome-modal')?'fade-in':''),sty:{maxWidth:'560px',margin:'80px auto',padding:'0 20px'}});
+  var card=el('div',{cls:'card',sty:{textAlign:'center'}});
+  card.appendChild(el('div',{cls:'card-title',sty:{justifyContent:'center'}},'Welcome to Theia-Stack'));
+  card.appendChild(el('div',{sty:{fontSize:'14px',color:'var(--muted)',lineHeight:'1.6',marginBottom:'22px'}},"Your account is confirmed. Next, you'll work through a short audit of your firm's AI tools — it takes most firms around 15–20 minutes and produces your AI Risk Management Report, usage policy, and staff training at the end."));
+  var btn=el('button',{cls:'btn-primary',onclick:function(){ss({showWelcome:false});}});
+  btn.textContent='Start your audit →';
   card.appendChild(btn);
   outer.appendChild(card);
   return outer;
@@ -3418,6 +3460,10 @@ function render(){
 
   if(S.loading){
     var sw=el('div',{cls:'spin-full'});sw.appendChild(el('div',{cls:'spinner'}));sw.appendChild(el('div',{cls:'spin-text'},"Analysing your firm's AI health..."));app.appendChild(sw);return;
+  }
+
+  if(S.showWelcome){
+    app.appendChild(renderWelcomeModal());return;
   }
 
   if(S.showDashboard){
