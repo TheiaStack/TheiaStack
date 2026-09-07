@@ -1,10 +1,13 @@
 // Theia-Stack — notification trigger definitions (v2, CORRECTED)
 //
-// Only 3 triggers are defined here because only 3 have a confirmed
-// real hook point in the actual codebase as of Aug 2026:
+// Triggers are defined here only once they have a confirmed real hook
+// point in the actual codebase:
 //   - audit_completed        (platform.html genReport() completion)
 //   - training_module_completed (training.html saveCompletion())
 //   - password_changed       (platform.html Settings password change)
+//   - quarterly_reaudit_due  (reaudit-reminder.js, daily Scheduled
+//     Function — added Sep 2026 alongside the Quarterly Auto Re-Audit
+//     entry point in platform.html)
 //
 // All recipients today resolve to 'admin' (or, for password_changed,
 // the account holder directly via their own session email — no
@@ -52,6 +55,22 @@ const TRIGGERS = {
         <p>This completion has been recorded against your firm's training records.</p>
       `,
       ctaText: 'View training records',
+      ctaUrl: `${PLATFORM_URL}/platform`,
+    }),
+  },
+
+  quarterly_reaudit_due: {
+    // ctx: { firmId, firmName, daysSince }
+    defaultRecipients: ['admin'],
+    subject: (ctx) => `Time for your quarterly AI stack review — ${ctx.firmName}`,
+    render: (ctx) => renderEmailShell({
+      heading: 'Your quarterly re-audit is due',
+      preheader: 'Review your AI tool list to keep your findings and policy current.',
+      bodyHtml: `
+        <p>It's been ${ctx.daysSince} days since ${ctx.firmName}'s AI tool stack was last reviewed on Theia-Stack.</p>
+        <p>Running a fresh audit takes a few minutes, lets you update your tool list if anything's changed, and regenerates your findings, recommendations, and AI usage policy from current data. It's included in your subscription — no extra cost.</p>
+      `,
+      ctaText: 'Start your re-audit',
       ctaUrl: `${PLATFORM_URL}/platform`,
     }),
   },
