@@ -197,14 +197,22 @@ exports.handler = async function (event) {
 
   try {
     if (triggerKey === 'audit_completed') {
-      // Set report expiry data — this is the one place these fields
-      // get written, always server-side. See supabase/02-firms-report-expiry.sql.
+      // report_generated_at is the "last audit run" timestamp — updated
+      // every time a report is generated, including free-trial and
+      // quarterly re-audits. It anchors the onboarding drip and the
+      // 90-day quarterly re-audit reminder (see onboarding-drip.js and
+      // reaudit-reminder.js). It is NOT the annual billing clock.
+      //
+      // report_expires_at is deliberately NOT touched here. It is the
+      // annual documentation-currency clock tied to the Annual AI Risk
+      // Management Report retention hook, and must only move when a
+      // firm actually pays — otherwise a free re-audit would silently
+      // extend a paid firm's expiry for nothing. It is set/reset solely
+      // in gocardless-webhook.js, on a confirmed billing_requests/
+      // fulfilled event. See supabase/02-firms-report-expiry.sql.
       const now = new Date();
-      const expiresAt = new Date(now);
-      expiresAt.setMonth(expiresAt.getMonth() + 12);
       await serviceClient.from('firms').eq('id', firmId).update({
         report_generated_at: now.toISOString(),
-        report_expires_at: expiresAt.toISOString(),
       });
 
       const result = await sendNotification('audit_completed', { firmId, firmName }, serviceClient);
