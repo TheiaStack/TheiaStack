@@ -24,3 +24,6 @@
 
 [functions."onboarding-drip"]
   schedule = "@daily"
+
+[functions."reaudit-reminder"]
+  schedule = "@daily"
