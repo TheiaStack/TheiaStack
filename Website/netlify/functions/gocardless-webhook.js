@@ -146,6 +146,17 @@ function addDaysISO(days) {
   return d.toISOString().slice(0, 10);
 }
 
+// report_expires_at is the annual documentation-currency clock behind
+// the Annual AI Risk Management Report retention hook (see Brand Bible
+// Section 4). It must only ever move on a confirmed payment — this
+// function is called from handleBillingRequestFulfilled below, never
+// from anything audit-driven (see notify.js for why).
+function addMonthsISO(months) {
+  const d = new Date();
+  d.setUTCMonth(d.getUTCMonth() + months);
+  return d.toISOString();
+}
+
 // Handles a single "billing_requests" / "fulfilled" event: the
 // mandate this firm's billing depends on now exists and is usable.
 async function handleBillingRequestFulfilled(serviceClient, event) {
@@ -195,6 +206,7 @@ async function handleBillingRequestFulfilled(serviceClient, event) {
       gocardless_customer_id: customerId || null,
       billing_status: 'active',
       next_renewal_date: addDaysISO(365),
+      report_expires_at: addMonthsISO(12),
     });
     return;
   }
@@ -229,6 +241,7 @@ async function handleBillingRequestFulfilled(serviceClient, event) {
       gocardless_customer_id: customerId || null,
       billing_status: 'active',
       next_renewal_date: dates[dates.length - 1],
+      report_expires_at: addMonthsISO(12),
     });
     return;
   }
