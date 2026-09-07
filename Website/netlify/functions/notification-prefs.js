@@ -22,9 +22,9 @@
 // .eq('firm_id', firmId).eq('trigger_key', triggerKey).maybeSingle(),
 // which implies at most one row per (firm_id, trigger_key) pair.
 //
-// Only these three trigger keys are valid — must stay in sync with
+// Only these trigger keys are valid — must stay in sync with
 // TRIGGERS in notification-templates.js.
-const KNOWN_TRIGGERS = ['audit_completed', 'staff_training_completed', 'password_changed'];
+const KNOWN_TRIGGERS = ['audit_completed', 'staff_training_completed', 'password_changed', 'quarterly_reaudit_due'];
 
 const SUPABASE_URL = 'https://rkqnrpyctllxcnknjsby.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_7gIWX3E2pS_4UfEKJylqpw_V3CIY1b9';
