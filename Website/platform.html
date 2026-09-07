@@ -741,6 +741,7 @@ var S={
   showHistory:false,historyView:'list',historyGroups:null,historyLoading:false,historyError:'',
   historyDetail:null,historyDetailLoading:false,historyDetailError:'',historyOpenGroups:{},
   showDashboard:false,auditNavOpen:true,
+  confirmingReaudit:false,
   billingInfo:null,billingInfoLoading:false,billingInfoError:'',
   billingStartLoading:'',billingStartError:'',
   billingRedirect:(function(){
@@ -1854,6 +1855,26 @@ async function regenerateModule(idx){
 }
 
 
+// The missing piece behind the Quarterly Auto Re-Audit retention hook —
+// previously nothing ever set S.step back to 0 once a report existed.
+// Deliberately does NOT clear firmName/staffCount/practiceAreas/software/
+// tools/clientData/dataStorage/hasPolicy/hasTraining/painPoints/goals/
+// concerns — a re-audit is a review-and-update pass over the firm's
+// existing answers (see Brand Bible Section 4: "the firm reviews and
+// updates their tool list"), not a blank restart. The existing report
+// stays visible and untouched until genReport() runs again at the end of
+// the new pass; saveReportSnapshot() already archives the current one to
+// report_history at that point, so nothing is lost by starting this.
+function startReaudit(){
+  ss({
+    step:0,
+    detected:[],checklist:[],detecting:false,
+    pendingUpdates:[],newModuleQueue:[],updateCheckDone:false,alerts:[],
+    reportError:'',confirmingReaudit:false,
+    showDashboard:false,showHistory:false,auditNavOpen:true
+  });
+}
+
 function checkForUpdates(){
   if(S.updateCheckDone||!S.tools.length)return;
   var toolNames=S.tools.map(function(t){return t.name;}).filter(Boolean);
@@ -2848,6 +2869,24 @@ function renderDashboard(){
     wrap.appendChild(notif);
   }
 
+  // In-platform companion to the 90-day email reminder (see
+  // reaudit-reminder.js) — shown as soon as it's actually due, not
+  // just relying on the person having seen the email. billingInfo is
+  // guaranteed to be requested by the time this renders (see the
+  // loadBillingInfo trigger on the step:6 report view below).
+  var _lastAuditForBanner=(S.billingInfo&&S.billingInfo.report_generated_at)?new Date(S.billingInfo.report_generated_at):null;
+  var _daysSinceForBanner=_lastAuditForBanner?Math.floor((Date.now()-_lastAuditForBanner.getTime())/86400000):null;
+  if(_daysSinceForBanner!==null&&_daysSinceForBanner>=90){
+    var dueBanner=el('div',{cls:'update-notif',sty:{marginBottom:'16px'}});
+    var dbIcon=el('div',{cls:'update-notif-icon'});dbIcon.textContent='\u23f3';dueBanner.appendChild(dbIcon);
+    var dbContent=el('div',{cls:'update-notif-content'});
+    dbContent.appendChild(el('div',{cls:'update-notif-title'},'Your quarterly re-audit is due'));
+    dbContent.appendChild(el('div',{cls:'update-notif-desc'},'It\u2019s been '+_daysSinceForBanner+' days since your last audit \u2014 review your tool list to refresh your findings and policy.'));
+    dueBanner.appendChild(dbContent);
+    var dbBtn=el('button',{cls:'update-notif-btn',onclick:function(){ss({confirmingReaudit:true});}});dbBtn.textContent='Start re-audit';dueBanner.appendChild(dbBtn);
+    wrap.appendChild(dueBanner);
+  }
+
   // Stat strip — the three headline numbers at a glance, replacing the
   // oversized single health-score card that used to force its sparse
   // neighbour to stretch into empty space. Status line under each number
@@ -2866,6 +2905,35 @@ function renderDashboard(){
     var mc=el('div',{cls:'metric'});mc.appendChild(el('div',{cls:'metric-label'},m.label));mc.appendChild(el('div',{cls:'metric-value',sty:{color:m.col}},m.val));mc.appendChild(el('div',{cls:'metric-sub',sty:{fontSize:'14px',fontWeight:'700',color:m.subCol,marginTop:'4px'}},m.sub));addTileTooltip(mc,m.tip);stripWrap.appendChild(mc);
   });
   wrap.appendChild(stripWrap);
+
+  // Quarterly re-audit card — the entry point that used to be missing
+  // entirely (see startReaudit()). report_generated_at comes through on
+  // S.billingInfo, already fetched as soon as the report view renders
+  // (see loadBillingInfo trigger below), so no separate fetch is needed.
+  var lastAudit=(S.billingInfo&&S.billingInfo.report_generated_at)?new Date(S.billingInfo.report_generated_at):null;
+  var daysSinceAudit=lastAudit?Math.floor((Date.now()-lastAudit.getTime())/86400000):null;
+  var reauditCard=el('div',{cls:'card',sty:{marginBottom:'20px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'16px',flexWrap:'wrap'}});
+  var raLeft=el('div',{});
+  raLeft.appendChild(el('div',{cls:'card-title',sty:{marginBottom:'4px'}},'Quarterly re-audit'));
+  raLeft.appendChild(el('div',{sty:{fontSize:'13px',color:'var(--muted)'}},
+    lastAudit?('Last audited '+lastAudit.toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'})+(daysSinceAudit!==null?' \u00b7 '+daysSinceAudit+' day'+(daysSinceAudit!==1?'s':'')+' ago':'')):'No audit date on record yet.'
+  ));
+  raLeft.appendChild(el('div',{sty:{fontSize:'12px',color:'var(--muted)',marginTop:'4px',maxWidth:'420px'}},'Review and update your tool list to refresh your findings, recommendations, and policy \u2014 included in your subscription.'));
+  reauditCard.appendChild(raLeft);
+  if(S.confirmingReaudit){
+    var raConfirmWrap=el('div',{sty:{display:'flex',gap:'8px',alignItems:'center',flexWrap:'wrap'}});
+    raConfirmWrap.appendChild(el('span',{sty:{fontSize:'12px',color:'var(--muted)'}},'Your current answers carry over for you to review.'));
+    var raYes=el('button',{cls:'btn-primary btn-sm',onclick:startReaudit});raYes.textContent='Yes, start \u2192';
+    var raNo=el('button',{cls:'btn-secondary btn-sm',onclick:function(){ss({confirmingReaudit:false});}});raNo.textContent='Cancel';
+    raConfirmWrap.appendChild(raYes);raConfirmWrap.appendChild(raNo);
+    reauditCard.appendChild(raConfirmWrap);
+  } else {
+    var raBtn=el('button',{cls:'btn-secondary btn-sm',onclick:function(){ss({confirmingReaudit:true});}});
+    raBtn.textContent='Start re-audit \u2192';
+    reauditCard.appendChild(raBtn);
+  }
+  addTileTooltip(reauditCard,'Your AI tool stack changes over time. Running a fresh audit keeps your findings, recommendations, and policy current.');
+  wrap.appendChild(reauditCard);
 
   // Goals & concerns card — the audit collects what the firm actually wants
   // AI to help achieve and what worries them, but nothing surfaced it
@@ -3112,6 +3180,7 @@ function renderSettings(){
     var NOTIF_ROWS=[
       {key:'audit_completed',label:'Report ready',desc:'Sent when your AI Risk Management Report finishes generating.'},
       {key:'staff_training_completed',label:'Staff training completed',desc:'Sent when a staff member finishes all assigned training modules.'},
+      {key:'quarterly_reaudit_due',label:'Quarterly re-audit reminder',desc:'Sent once your AI tool stack hasn\u2019t been reviewed in 90 days.'},
       {key:'password_changed',label:'Password changed',desc:'Security notice sent to the account holder whenever the password is changed.'}
     ];
     NOTIF_ROWS.forEach(function(row,i){
