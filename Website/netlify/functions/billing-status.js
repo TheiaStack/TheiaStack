@@ -89,7 +89,7 @@ async function getFirmBilling(serviceClient, userId) {
   if (!profile || !profile.firm_id) return null;
 
   const firmRes = await serviceClient.restRequest(
-    `firms?id=eq.${encodeURIComponent(profile.firm_id)}&select=billing_status,billing_plan,gocardless_mandate_id,next_renewal_date`,
+    `firms?id=eq.${encodeURIComponent(profile.firm_id)}&select=billing_status,billing_plan,gocardless_mandate_id,next_renewal_date,report_generated_at,report_expires_at`,
     { headers: { 'Accept': 'application/vnd.pgrst.object+json' } }
   );
   if (!firmRes.ok) return null;
