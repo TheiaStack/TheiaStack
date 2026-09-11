@@ -61,8 +61,10 @@ const DUE_AFTER_DAYS = 90;
 // function carrying its own copy so a change made for one can never
 // risk breaking an already-working one. Must satisfy the same subset
 // of the supabase-js query builder that lib/notifications.js expects
-// (select/eq/maybeSingle, insert, auth.admin.getUserById), plus a
-// selectAll() for the initial candidate query.
+// (select/eq/maybeSingle, a bare thenable for select/eq with no
+// terminal call — see getAdminEmails() — insert, and
+// auth.admin.getUserById), plus a selectAll() for the initial
+// candidate query.
 function makeServiceClient() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!serviceKey) throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set');
@@ -110,6 +112,24 @@ function makeServiceClient() {
             return { error: new Error(`PostgREST insert error ${res.status}: ${detail}`) };
           }
           return { error: null, conflict: false };
+        },
+        // Thenable so `await supabase.from(x).select().eq()` (no
+        // maybeSingle) works too — this is the exact pattern
+        // getAdminEmails() in lib/notifications.js uses. Without this,
+        // awaiting the builder just resolves to the builder object
+        // itself (not a promise), so destructuring { data, error } off
+        // it silently gives undefined for both — no thrown error, just
+        // an empty admins list and a "no resolvable recipient emails"
+        // warning further up. Matches notify.js's working wrapper.
+        then(resolve, reject) {
+          const qs = filters.length ? `?${filters.join('&')}&select=${this._select || '*'}` : `?select=${this._select || '*'}`;
+          restRequest(`${table}${qs}`)
+            .then(async (res) => {
+              if (!res.ok) return resolve({ data: null, error: new Error(`PostgREST error ${res.status}`) });
+              const data = await res.json();
+              resolve({ data, error: null });
+            })
+            .catch(reject);
         },
       };
       return api;
