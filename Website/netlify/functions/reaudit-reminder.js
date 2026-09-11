@@ -192,25 +192,50 @@ exports.handler = async function () {
 
       // Reserve the send first, keyed to this specific audit cycle —
       // if this conflicts, a reminder for this exact cycle already
-      // went out, so skip rather than risk a duplicate.
-      const insertRes = await serviceClient.from('reaudit_reminders_sent').insert({
-        firm_id: firm.id,
-        audit_marker: auditMarker,
-      });
-      if (insertRes.error) throw insertRes.error;
-      if (insertRes.conflict) {
-        summary.skipped++;
-        continue;
-      }
-
+      // Send BEFORE recording the dedupe marker — a failed send must
+      // never be mistaken for a sent one, or this firm would silently
+      // never be reminded again for this audit cycle even once the
+      // underlying cause is fixed. (This is exactly what happened
+      // during testing: an unrelated bug caused a failed first send,
+      // but the marker was written anyway, masking the real fix.)
       const result = await sendNotification(
         'quarterly_reaudit_due',
         { firmId: firm.id, firmName: firm.name || 'your firm', daysSince },
         serviceClient
       );
 
-      if (result.sent.length) summary.sent++;
-      else summary.skipped++; // e.g. firm turned this reminder off, or no admin email resolvable
+      if (!result.sent.length) {
+        // Distinguish "firm opted out" (expected, harmless, don't
+        // alarm the log) from "we couldn't actually send" (a real
+        // problem worth surfacing) using the same signal
+        // resolveRecipientRoles() returns: enabled === false means a
+        // deliberate opt-out, not a failure.
+        if (result.optedOut) {
+          summary.skipped++;
+        } else {
+          console.error(`reaudit-reminder.js: send failed for firm ${firm.id} — no recipient resolved or delivery failed.`);
+          summary.failed++;
+        }
+        continue; // no dedupe marker written — eligible to retry tomorrow
+      }
+
+      summary.sent++;
+
+      // Only NOW record that this specific audit cycle has been
+      // reminded. A small window exists where two overlapping runs
+      // could both send before either inserts here — acceptable for a
+      // once-daily cron with no realistic concurrent execution, and
+      // far safer than the previous failure mode.
+      const insertRes = await serviceClient.from('reaudit_reminders_sent').insert({
+        firm_id: firm.id,
+        audit_marker: auditMarker,
+      });
+      if (insertRes.error) {
+        // The email genuinely went out; only the bookkeeping failed.
+        // Log it so it's investigable, but don't downgrade summary.sent
+        // — that would misreport a real send as a failure.
+        console.error(`reaudit-reminder.js: sent to firm ${firm.id} but failed to record dedupe marker:`, insertRes.error.message);
+      }
     } catch (e) {
       console.error(`reaudit-reminder.js: failed processing firm ${firm.id}:`, e.message);
       summary.failed++;
