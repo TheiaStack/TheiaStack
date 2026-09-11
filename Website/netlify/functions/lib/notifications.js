@@ -133,7 +133,12 @@ async function logAttempt(supabase, { firmId, triggerKey, recipientEmail, status
  *                            (see notification-templates.js)
  * @param {object} supabase - a SERVICE ROLE Supabase client (required
  *                             for auth.admin.getUserById to work)
- * @returns {Promise<{sent: string[], failed: string[]}>}
+ * @returns {Promise<{sent: string[], failed: string[], optedOut: boolean}>}
+ *   optedOut is true only when the firm/trigger config deliberately
+ *   resolved to zero recipients (enabled:false, or an explicit empty
+ *   recipients list) — as opposed to recipients being expected but
+ *   unresolvable (e.g. no admin profile, or the auth lookup failing),
+ *   which is a real problem and is NOT flagged as optedOut.
  */
 async function sendNotification(triggerKey, context, supabase) {
   const trigger = TRIGGERS[triggerKey];
@@ -146,13 +151,13 @@ async function sendNotification(triggerKey, context, supabase) {
 
   const roles = await resolveRecipientRoles(supabase, context.firmId, triggerKey, trigger.defaultRecipients);
   if (roles.length === 0) {
-    return { sent: [], failed: [] };
+    return { sent: [], failed: [], optedOut: true };
   }
 
   const recipientEmails = await rolesToEmails(supabase, context.firmId, roles, context);
   if (recipientEmails.length === 0) {
     console.warn(`No resolvable recipient emails for trigger "${triggerKey}" on firm ${context.firmId}`);
-    return { sent: [], failed: [] };
+    return { sent: [], failed: [], optedOut: false };
   }
 
   const subject = trigger.subject(context);
@@ -172,7 +177,7 @@ async function sendNotification(triggerKey, context, supabase) {
     }
   }
 
-  return { sent, failed };
+  return { sent, failed, optedOut: false };
 }
 
 module.exports = { sendNotification };
