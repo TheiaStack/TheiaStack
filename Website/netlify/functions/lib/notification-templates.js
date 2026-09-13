@@ -17,6 +17,7 @@
 // see SECTION-5-6-SPEC-v2.md for what's deliberately excluded and why.
 
 const { renderEmailShell } = require('./email-shell');
+const { signLink } = require('./link-signing');
 
 const PLATFORM_URL = 'https://theiastack.com.au';
 
@@ -60,19 +61,28 @@ const TRIGGERS = {
   },
 
   quarterly_reaudit_due: {
-    // ctx: { firmId, firmName, daysSince }
+    // ctx: { firmId, firmName, daysSince, auditMarker }
     defaultRecipients: ['admin'],
     subject: (ctx) => `Time for your quarterly AI stack review — ${ctx.firmName}`,
-    render: (ctx) => renderEmailShell({
-      heading: 'Your quarterly re-audit is due',
-      preheader: 'Review your AI tool list to keep your findings and policy current.',
-      bodyHtml: `
-        <p>It's been ${ctx.daysSince} days since ${ctx.firmName}'s AI tool stack was last reviewed on Theia-Stack.</p>
-        <p>Running a fresh audit takes a few minutes, lets you update your tool list if anything's changed, and regenerates your findings, recommendations, and AI usage policy from current data. It's included in your subscription — no extra cost.</p>
-      `,
-      ctaText: 'Start your re-audit',
-      ctaUrl: `${PLATFORM_URL}/platform`,
-    }),
+    render: (ctx) => {
+      const encodedMarker = encodeURIComponent(ctx.auditMarker);
+      const sig = signLink([ctx.firmId, ctx.auditMarker]);
+      const snoozeUrl = `${PLATFORM_URL}/.netlify/functions/reaudit-snooze?firm=${encodeURIComponent(ctx.firmId)}&marker=${encodedMarker}&sig=${sig}`;
+      return renderEmailShell({
+        heading: 'Your quarterly re-audit is due',
+        preheader: 'Review your AI tool list to keep your findings and policy current.',
+        bodyHtml: `
+          <p>It's been ${ctx.daysSince} days since ${ctx.firmName}'s AI tool stack was last reviewed on Theia-Stack.</p>
+          <p>Running a fresh audit takes a few minutes, lets you update your tool list if anything's changed, and regenerates your findings, recommendations, and AI usage policy from current data. It's included in your subscription — no extra cost.</p>
+          <p style="font-size: 13px; color: #5A5A5A; margin-top: 24px; padding-top: 16px; border-top: 1px solid #D0D0D0;">
+            Not a good time? <a href="${snoozeUrl}" style="color:#5A5A5A; text-decoration:underline;">Remind me again in 14 days</a>.
+            You can also turn quarterly reminders off entirely from Settings inside the platform.
+          </p>
+        `,
+        ctaText: 'Start your re-audit',
+        ctaUrl: `${PLATFORM_URL}/platform`,
+      });
+    },
   },
 
   password_changed: {
