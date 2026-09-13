@@ -167,7 +167,7 @@ exports.handler = async function () {
   const cutoffISO = new Date(Date.now() - DUE_AFTER_DAYS * 86400000).toISOString();
   const candidatesRes = await serviceClient
     .from('firms')
-    .select('id,name,report_generated_at')
+    .select('id,name,report_generated_at,reaudit_snoozed_until')
     .selectAll(`billing_status=eq.active&report_generated_at=not.is.null&report_generated_at=lte.${encodeURIComponent(cutoffISO)}`);
 
   if (candidatesRes.error) {
@@ -190,17 +190,38 @@ exports.handler = async function () {
       const auditMarker = firm.report_generated_at; // exact ISO string already on the row
       const daysSince = Math.floor((now - new Date(auditMarker).getTime()) / 86400000);
 
-      // Reserve the send first, keyed to this specific audit cycle —
-      // if this conflicts, a reminder for this exact cycle already
-      // Send BEFORE recording the dedupe marker — a failed send must
-      // never be mistaken for a sent one, or this firm would silently
-      // never be reminded again for this audit cycle even once the
-      // underlying cause is fixed. (This is exactly what happened
-      // during testing: an unrelated bug caused a failed first send,
-      // but the marker was written anyway, masking the real fix.)
+      // Skip firms who clicked "Remind me later" in a previous email —
+      // checked before the cycle-dedupe check below since a snooze can
+      // apply mid-cycle (report_generated_at unchanged) even after an
+      // earlier reminder for the same cycle already fired once.
+      if (firm.reaudit_snoozed_until && new Date(firm.reaudit_snoozed_until).getTime() > now) {
+        summary.skipped++;
+        continue;
+      }
+
+      // The actual dedupe check — this was missing entirely after the
+      // previous fix, which only ever wrote the marker AFTER a send but
+      // never checked FOR one before sending. That's why this was
+      // re-sending every single day past 90: nothing was stopping it.
+      // Fixed properly this time: check first, send only if nothing
+      // exists yet for this exact audit cycle, write the marker after
+      // a confirmed send (keeping the safer ordering from the last fix
+      // — a failed send still must never be recorded as sent).
+      const existing = await serviceClient
+        .from('reaudit_reminders_sent')
+        .select('id')
+        .eq('firm_id', firm.id)
+        .eq('audit_marker', auditMarker)
+        .maybeSingle();
+      if (existing.error) throw existing.error;
+      if (existing.data) {
+        summary.skipped++;
+        continue;
+      }
+
       const result = await sendNotification(
         'quarterly_reaudit_due',
-        { firmId: firm.id, firmName: firm.name || 'your firm', daysSince },
+        { firmId: firm.id, firmName: firm.name || 'your firm', daysSince, auditMarker },
         serviceClient
       );
 
