@@ -1532,7 +1532,16 @@ async function genPolicy(){
     var parts=await Promise.all(sections.map(callSectionWithRetry));
     var txt=parts.map(function(p){return (p||'').trim();}).join('\n\n');
     if(!txt)throw new Error('Policy generation returned no content. Please try again.');
-    ss({policy:txt,policyLoading:false,policyError:''});
+    // Seed the real (non-fabricated) version history on first
+    // generation — this used to happen inside checkForUpdates()
+    // alongside the fabricated vendor-update data removed 8 Sep 2026;
+    // moved here since it belongs with actual policy generation, not
+    // a fake "check for updates" pass.
+    var versions=S.policyVersions.length?S.policyVersions.slice():[];
+    if(!versions.length){
+      versions.push({version:'v1.0',label:'Initial policy generated',date:new Date().toLocaleDateString('en-AU'),change:'AI usage policy generated from audit results.',status:'Current'});
+    }
+    ss({policy:txt,policyVersions:versions,policyLoading:false,policyError:''});
   }catch(e){
     console.error('genPolicy error:',e);
     ss({policyLoading:false,policyError:(e&&e.message)||'Policy generation failed. Please try again.'});
@@ -1875,42 +1884,21 @@ function startReaudit(){
   });
 }
 
+// checkForUpdates() previously populated Alerts/pendingUpdates from a
+// hardcoded array of fabricated per-vendor "updates" (fake relative
+// dates, invented claims about real vendors like Microsoft/Google/
+// Adobe changing their terms) — presented to real firms as if they
+// were genuine, current findings. Removed 8 Sep 2026: this is a
+// compliance product sold on Claims Discipline (Brand Bible Section
+// 10) being non-negotiable, and fabricated vendor-change alerts are
+// exactly the kind of thing that discipline exists to prevent. No
+// real vendor-monitoring mechanism exists yet, so this now
+// deliberately does nothing — Alerts/pendingUpdates/newModuleQueue
+// stay empty until a genuine data source is built. See the task list
+// for the options considered (disable / relabel as illustrative /
+// build a real version) and why "disable" was chosen.
 function checkForUpdates(){
-  if(S.updateCheckDone||!S.tools.length)return;
-  var toolNames=S.tools.map(function(t){return t.name;}).filter(Boolean);
-  if(!toolNames.length)return;
-  // Simulate realistic updates based on actual tools in the stack
-  var allUpdates=[
-    {tool:'ChatGPT Plus',type:'feature',title:'GPT-4o updated — new file analysis and canvas features',desc:'OpenAI released significant improvements to file analysis, canvas collaboration, and voice mode. Staff using ChatGPT Plus for document review should complete an updated training module.',date:'2 days ago',action:'training'},
-    {tool:'ChatGPT Team',type:'feature',title:'GPT-4o updated — new file analysis and canvas features',desc:'OpenAI released significant improvements to file analysis and canvas collaboration.',date:'2 days ago',action:'training'},
-    {tool:'Microsoft Copilot',type:'policy',title:'Data processing terms updated — review required',desc:'Microsoft updated commercial data processing terms for Copilot. Clauses around data residency and retention have changed. Your AI policy section on data sovereignty needs review.',date:'5 days ago',action:'policy'},
-    {tool:'Microsoft Copilot for M365',type:'policy',title:'Data processing terms updated — review required',desc:'Microsoft updated commercial data processing terms for Copilot for M365.',date:'5 days ago',action:'policy'},
-    {tool:'Harvey AI',type:'feature',title:'New matter summarisation and research features',desc:'Harvey AI released enhanced matter summarisation, multi-jurisdiction research, and improved contract analysis. A new training module is available for your team.',date:'1 week ago',action:'training'},
-    {tool:'Google Gemini',type:'policy',title:'Workspace data handling update',desc:'Google updated how Gemini handles prompts in Workspace accounts. Data used to improve models has changed — your policy may need updating.',date:'3 days ago',action:'policy'},
-    {tool:'Grammarly Business',type:'feature',title:'AI writing suggestions now context-aware',desc:'Grammarly Business now uses document context for suggestions, which may mean more document content is processed. Review your data handling guidelines.',date:'2 weeks ago',action:'both'},
-    {tool:'Otter.ai',type:'feature',title:'Improved legal terminology recognition',desc:'Otter.ai updated its AI model with better recognition of legal terms and meeting structures. Updated training available.',date:'2 weeks ago',action:'training'},
-    {tool:'Clio Duo',type:'feature',title:'New matter intelligence features released',desc:'Clio Duo released predictive billing, matter health scores, and AI-drafted correspondence. Staff should complete updated training.',date:'1 week ago',action:'training'},
-    {tool:'LEAP AI',type:'feature',title:'Document automation and AI drafting expanded',desc:'LEAP AI expanded document automation with precedent learning and AI-assisted drafting. Key update for all LEAP users.',date:'10 days ago',action:'training'},
-    {tool:'Adobe Acrobat AI',type:'policy',title:'Adobe AI terms updated — content analysis scope changed',desc:'Adobe updated terms around how AI Assistant analyses document content. Review before using with confidential client documents.',date:'4 days ago',action:'policy'},
-    {tool:'Notion AI',type:'feature',title:'New AI connectors and Q&A features',desc:'Notion AI added connectors to external databases and improved Q&A over documents. Data scope has expanded.',date:'1 week ago',action:'both'},
-    {tool:'Zoom AI Companion',type:'policy',title:'Meeting data retention policy updated',desc:'Zoom updated AI Companion data retention from 30 to 90 days. Review whether this aligns with your client confidentiality obligations.',date:'6 days ago',action:'policy'},
-  ];
-  var relevant=allUpdates.filter(function(u){
-    return toolNames.some(function(t){return t.toLowerCase()===u.tool.toLowerCase();});
-  });
-  if(!relevant.length)return;
-  // Build pending updates and new module queue
-  var pending=relevant.filter(function(u){return u.action==='policy'||u.action==='both';});
-  var queue=relevant.filter(function(u){return u.action==='training'||u.action==='both';});
-  // Build new policy version if needed
-  var versions=S.policyVersions.length?S.policyVersions.slice():[];
-  if(!versions.length&&S.policy){
-    versions.push({version:'v1.0',label:'Initial policy generated',date:new Date().toLocaleDateString('en-AU'),change:'AI usage policy generated from audit results.',status:'Current'});
-  }
-  if(pending.length&&S.policy){
-    versions.unshift({version:'v'+(versions.length+1)+'.0',label:'Auto-update: '+pending[0].tool+' policy change',date:new Date().toLocaleDateString('en-AU'),change:pending[0].desc,status:'Pending review'});
-  }
-  ss({pendingUpdates:relevant,newModuleQueue:queue,policyVersions:versions,updateCheckDone:true,alerts:relevant.map(function(u){return {tool:u.tool,type:u.action==='policy'?'policy':u.action==='both'?'policy':'feature',title:u.title,desc:u.desc,date:u.date,action:u.action==='policy'?'Review policy':u.action==='training'?'Start module':'Review & update',color:u.action==='policy'?'#c97d10':u.action==='training'?'#185fa5':'#993556',bg:u.action==='policy'?'var(--amber-bg)':u.action==='training'?'var(--blue-bg)':'var(--red-bg)',icon:u.action==='policy'?'⚠️':u.action==='training'?'🆕':'🔄'};})});
+  return;
 }
 
 // Rewrites ONLY the policy sections actually affected by a pending tool
@@ -1922,6 +1910,14 @@ function checkForUpdates(){
 // and needed per-section calls to fix it (see comment above genPolicy).
 // Splicing the raw text back in section-by-section also means every
 // section NOT affected by this change is left byte-for-byte untouched.
+//
+// Currently unreachable: its only trigger is the "Auto-update policy"
+// button in the Policy tab, which only renders when S.pendingUpdates
+// has entries — and since checkForUpdates() above was neutered on
+// 8 Sep 2026 (fabricated data removed), pendingUpdates never populates.
+// Left in place rather than deleted: the logic itself is sound and
+// worth keeping for whenever a real update-detection source exists —
+// only the trigger is currently missing, not the mechanism.
 async function autoUpdatePolicy(){
   if(!S.policy||!S.pendingUpdates.length)return;
   ss({policyLoading:true,policyError:''});
@@ -3096,7 +3092,10 @@ function renderDashboard(){
 
 function renderAlerts(){
   var wrap=el('div',{});
-  wrap.appendChild(el('p',{sty:{fontSize:'14px',color:'var(--muted)',marginBottom:'20px',lineHeight:'1.6'}},'Your AI tools are monitored continuously. Alerts are generated when tools update their features, change data handling terms, or are flagged for compliance issues.'));
+  wrap.appendChild(el('p',{sty:{fontSize:'14px',color:'var(--muted)',marginBottom:'20px',lineHeight:'1.6'}},'Alerts relating to your account \u2014 including reminders about your upcoming quarterly re-audit \u2014 will appear here.'));
+  if(!S.alerts.length){
+    wrap.appendChild(el('div',{sty:{fontSize:'13px',color:'var(--muted)',padding:'24px 0',textAlign:'center'}},'No alerts right now.'));
+  }
   S.alerts.forEach(function(alert){
     var ai=el('div',{cls:'alert-item'});
     var icon=el('div',{cls:'alert-icon',sty:{background:alert.bg}});icon.textContent=alert.icon;ai.appendChild(icon);
@@ -3234,7 +3233,7 @@ function renderSettings(){
   fc.appendChild(el('div',{cls:'card-title'},'FAQ'));
   var faqItems=[
     {q:'What does the AI Risk Management Report cover?',a:'A timestamped, self-reported record of your firm\u2019s AI tool stack, the risks identified during your audit, the AI usage policy you have in place, and staff training completion. It is not an externally accredited certificate.'},
-    {q:'How often does the platform re-audit our AI stack?',a:'Automatically every 90 days. You\u2019ll be prompted to review and update your tool list, and the platform regenerates your findings, recommendations, and policy from the updated data \u2014 no call or manual review required.'},
+    {q:'How often does the platform re-audit our AI stack?',a:'Every 90 days you\u2019ll get a reminder \u2014 by email and in the platform \u2014 to review your AI tool list. Once you update it and re-run the audit, the platform regenerates your findings, recommendations, and policy from the current data. No consultant or phone call needed \u2014 just a few minutes reviewing what\u2019s changed.'},
     {q:'Who can see our audit data?',a:'Your audit data is tied to your firm\u2019s account and accessed by whoever is signed in to it. If you have specific questions about our data handling and security practices, contact hello@theiastack.com.au.'},
     {q:'How do we add or remove staff from training?',a:'Staff join using the shared training link on your Training tab \u2014 no individual invitations are needed. There is currently no self-service option to remove a completion record; email hello@theiastack.com.au if one needs to be corrected.'}
   ];
