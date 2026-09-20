@@ -27,3 +27,6 @@
 
 [functions."reaudit-reminder"]
   schedule = "@daily"
+
+[functions."renewal-reminder"]
+  schedule = "@daily"
