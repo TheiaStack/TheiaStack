@@ -92,7 +92,8 @@ function billingPill(status){
     pending_mandate: ['pill-amber', 'Pending mandate'],
     payment_failed: ['pill-red', 'Payment failed'],
     cancelled: ['pill-grey', 'Cancelled'],
-    no_billing: ['pill-grey', 'No billing']
+    no_billing: ['pill-grey', 'No billing'],
+    expired: ['pill-red', 'Expired']
   };
   var v = map[status] || ['pill-grey', status || '—'];
   return '<span class="pill ' + v[0] + '">' + esc(v[1]) + '</span>';
