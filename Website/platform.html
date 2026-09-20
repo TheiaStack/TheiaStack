@@ -887,8 +887,9 @@ function renderBillingCheckingCard(){
 // the same real GoCardless redirect, not a placeholder.
 function renderPaywallCard(featureLabel){
   var wrap=el('div',{cls:'card',sty:{textAlign:'center',padding:'40px 28px'}});
-  wrap.appendChild(el('div',{cls:'card-title',sty:{justifyContent:'center'}},'Part of your subscription'));
-  wrap.appendChild(el('div',{sty:{fontSize:'14px',color:'var(--muted)',lineHeight:'1.6',marginBottom:'20px',maxWidth:'440px',marginLeft:'auto',marginRight:'auto'}},'Your audit summary is free to run. Subscribing unlocks '+featureLabel+', along with the full report, your AI usage policy, and staff training.'));
+  var isExpired=S.billingInfo&&S.billingInfo.billing_status==='expired';
+  wrap.appendChild(el('div',{cls:'card-title',sty:{justifyContent:'center'}},isExpired?'Renewal needed':'Part of your subscription'));
+  wrap.appendChild(el('div',{sty:{fontSize:'14px',color:'var(--muted)',lineHeight:'1.6',marginBottom:'20px',maxWidth:'440px',marginLeft:'auto',marginRight:'auto'}},isExpired?('Your annual documentation has expired. Renew to regenerate your report and unlock '+featureLabel+', your AI usage policy, and staff training again.'):('Your audit summary is free to run. Subscribing unlocks '+featureLabel+', along with the full report, your AI usage policy, and staff training.')));
   var planRow=el('div',{sty:{display:'flex',gap:'12px',justifyContent:'center',flexWrap:'wrap'}});
   var annualBtn=el('button',{cls:'btn-primary btn-sm',onclick:function(){startBilling('annual');}});
   annualBtn.textContent=S.billingStartLoading==='annual'?'Starting\u2026':'Annual, $2,990/year';
@@ -950,7 +951,8 @@ var BILLING_STATUS_META={
   pending_mandate:{label:'Mandate pending',bg:'var(--amber-bg)',fg:'#7a4a08',border:'var(--amber-border)'},
   active:{label:'Active',bg:'var(--green-bg)',fg:'#0a5c30',border:'var(--green-border)'},
   payment_failed:{label:'Payment issue',bg:'var(--red-bg)',fg:'#7a1a1a',border:'var(--red-border)'},
-  cancelled:{label:'Cancelled',bg:'var(--red-bg)',fg:'#7a1a1a',border:'var(--red-border)'}
+  cancelled:{label:'Cancelled',bg:'var(--red-bg)',fg:'#7a1a1a',border:'var(--red-border)'},
+  expired:{label:'Expired',bg:'var(--amber-bg)',fg:'#7a4a08',border:'var(--amber-border)'}
 };
 
 function renderBillingCard(){
@@ -1007,6 +1009,8 @@ function renderBillingCard(){
   } else {
     if(status==='cancelled'){
       wrap.appendChild(el('div',{cls:'settings-row-desc',sty:{marginBottom:'14px'}},'Your previous subscription was cancelled. Choose a plan below to resubscribe.'));
+    } else if(status==='expired'){
+      wrap.appendChild(el('div',{cls:'settings-row-desc',sty:{marginBottom:'14px'}},'Your annual documentation has expired. Renew below to regenerate your report, policy, and unlock your account again.'));
     } else {
       wrap.appendChild(el('div',{cls:'settings-row-desc',sty:{marginBottom:'14px'}},'Choose a plan to activate your subscription.'));
     }
